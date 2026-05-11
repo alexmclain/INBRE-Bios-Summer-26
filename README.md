@@ -15,6 +15,7 @@ This repository contains lecture slides, R lab materials, datasets, and supporti
 The course is designed for faculty, graduate students, and advanced undergraduates in the biological and biomedical sciences. No prior programming experience is assumed for Week 1. Each day consists of a two-hour morning lecture and a two-hour afternoon R lab.
 
 **Format:** In-person (USC Columbia, Discovery Building Computing Lab, 915 Greene St., Suite 303B) or virtual
+
 **Daily Schedule:** 9:00–11:00 AM (Lecture) | 1:00–3:00 PM (R Lab)
 
 ---
