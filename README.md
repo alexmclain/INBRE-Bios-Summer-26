@@ -20,10 +20,9 @@ The course is designed for faculty, graduate students, and advanced undergraduat
 
 ---
 
-## Repository Structure
+## Repository Structure (tentative)
 
 ```
-.
 ├── week1-foundations/
 │   ├── day01-orientation/
 │   ├── day02-r-fundamentals/
@@ -45,9 +44,10 @@ The course is designed for faculty, graduate students, and advanced undergraduat
 └── data/
 ```
 
-Each day folder contains a `slides/` subdirectory (PDF) and a `lab/` subdirectory with a compiled `.html` file and the source `.qmd` file used to generate it.
 
 ---
+
+# Tentative Schedule
 
 ## Week 1 (June 1–5): Foundations of Data Science in R
 
