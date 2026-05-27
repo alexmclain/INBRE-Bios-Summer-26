@@ -1,0 +1,1674 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.32">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2026-05-27">
+
+<title>Day 3 (AM): Importing, Tidying, and Joining Data</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Day3_AM_Data_Import_Tidy_Join_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Day3_AM_Data_Import_Tidy_Join_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="Day3_AM_Data_Import_Tidy_Join_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="Day3_AM_Data_Import_Tidy_Join_files/libs/quarto-html/popper.min.js"></script>
+<script src="Day3_AM_Data_Import_Tidy_Join_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Day3_AM_Data_Import_Tidy_Join_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Day3_AM_Data_Import_Tidy_Join_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Day3_AM_Data_Import_Tidy_Join_files/libs/quarto-html/quarto-syntax-highlighting-234273d1456647dabc34a594ac50e507.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Day3_AM_Data_Import_Tidy_Join_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Day3_AM_Data_Import_Tidy_Join_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Day3_AM_Data_Import_Tidy_Join_files/libs/bootstrap/bootstrap-dfb3f4843b9b0ce307f095fcbeec1e0c.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<style>html{ scroll-behavior: smooth; }</style>
+
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview"><span class="header-section-number">1</span> Overview</a></li>
+  <li><a href="#importing-data" id="toc-importing-data" class="nav-link" data-scroll-target="#importing-data"><span class="header-section-number">2</span> Importing Data</a>
+  <ul class="collapse">
+  <li><a href="#key-terms" id="toc-key-terms" class="nav-link" data-scroll-target="#key-terms"><span class="header-section-number">2.1</span> Key Terms</a></li>
+  <li><a href="#reading-csv-files-with-readr" id="toc-reading-csv-files-with-readr" class="nav-link" data-scroll-target="#reading-csv-files-with-readr"><span class="header-section-number">2.2</span> Reading CSV Files with <code>readr</code></a></li>
+  <li><a href="#working-directories-and-file-paths" id="toc-working-directories-and-file-paths" class="nav-link" data-scroll-target="#working-directories-and-file-paths"><span class="header-section-number">2.3</span> Working Directories and File Paths</a></li>
+  <li><a href="#reading-a-csv" id="toc-reading-a-csv" class="nav-link" data-scroll-target="#reading-a-csv"><span class="header-section-number">2.4</span> Reading a CSV</a>
+  <ul class="collapse">
+  <li><a href="#common-arguments" id="toc-common-arguments" class="nav-link" data-scroll-target="#common-arguments"><span class="header-section-number">2.4.1</span> Common Arguments</a></li>
+  <li><a href="#post-import-cleaning" id="toc-post-import-cleaning" class="nav-link" data-scroll-target="#post-import-cleaning"><span class="header-section-number">2.4.2</span> Post-Import Cleaning</a></li>
+  </ul></li>
+  <li><a href="#reading-excel-files" id="toc-reading-excel-files" class="nav-link" data-scroll-target="#reading-excel-files"><span class="header-section-number">2.5</span> Reading Excel Files</a></li>
+  <li><a href="#writing-data" id="toc-writing-data" class="nav-link" data-scroll-target="#writing-data"><span class="header-section-number">2.6</span> Writing Data</a></li>
+  <li><a href="#other-formats" id="toc-other-formats" class="nav-link" data-scroll-target="#other-formats"><span class="header-section-number">2.7</span> Other Formats</a></li>
+  </ul></li>
+  <li><a href="#tidy-data" id="toc-tidy-data" class="nav-link" data-scroll-target="#tidy-data"><span class="header-section-number">3</span> Tidy Data</a>
+  <ul class="collapse">
+  <li><a href="#what-does-tidy-mean" id="toc-what-does-tidy-mean" class="nav-link" data-scroll-target="#what-does-tidy-mean"><span class="header-section-number">3.1</span> What Does “Tidy” Mean?</a></li>
+  <li><a href="#pivoting-wide-to-long-with-pivot_longer" id="toc-pivoting-wide-to-long-with-pivot_longer" class="nav-link" data-scroll-target="#pivoting-wide-to-long-with-pivot_longer"><span class="header-section-number">3.2</span> Pivoting: Wide to Long with <code>pivot_longer()</code></a></li>
+  <li><a href="#pivoting-long-to-wide-with-pivot_wider" id="toc-pivoting-long-to-wide-with-pivot_wider" class="nav-link" data-scroll-target="#pivoting-long-to-wide-with-pivot_wider"><span class="header-section-number">3.3</span> Pivoting: Long to Wide with <code>pivot_wider()</code></a></li>
+  <li><a href="#separating-and-uniting-columns" id="toc-separating-and-uniting-columns" class="nav-link" data-scroll-target="#separating-and-uniting-columns"><span class="header-section-number">3.4</span> Separating and Uniting Columns</a>
+  <ul class="collapse">
+  <li><a href="#separating-columns" id="toc-separating-columns" class="nav-link" data-scroll-target="#separating-columns"><span class="header-section-number">3.4.1</span> Separating Columns</a></li>
+  <li><a href="#uniting-columns" id="toc-uniting-columns" class="nav-link" data-scroll-target="#uniting-columns"><span class="header-section-number">3.4.2</span> Uniting Columns</a></li>
+  </ul></li>
+  <li><a href="#missing-values-explicit-vs.-implicit" id="toc-missing-values-explicit-vs.-implicit" class="nav-link" data-scroll-target="#missing-values-explicit-vs.-implicit"><span class="header-section-number">3.5</span> Missing Values: Explicit vs.&nbsp;Implicit</a></li>
+  </ul></li>
+  <li><a href="#joining-data" id="toc-joining-data" class="nav-link" data-scroll-target="#joining-data"><span class="header-section-number">4</span> Joining Data</a>
+  <ul class="collapse">
+  <li><a href="#why-join" id="toc-why-join" class="nav-link" data-scroll-target="#why-join"><span class="header-section-number">4.1</span> Why Join?</a></li>
+  <li><a href="#keys" id="toc-keys" class="nav-link" data-scroll-target="#keys"><span class="header-section-number">4.2</span> Keys</a></li>
+  <li><a href="#mutating-joins" id="toc-mutating-joins" class="nav-link" data-scroll-target="#mutating-joins"><span class="header-section-number">4.3</span> Mutating Joins</a>
+  <ul class="collapse">
+  <li><a href="#left_join-the-join-you-will-use-90-of-the-time" id="toc-left_join-the-join-you-will-use-90-of-the-time" class="nav-link" data-scroll-target="#left_join-the-join-you-will-use-90-of-the-time"><span class="header-section-number">4.3.1</span> <code>left_join()</code> — the join you will use 90% of the time</a></li>
+  <li><a href="#specifying-the-join-key" id="toc-specifying-the-join-key" class="nav-link" data-scroll-target="#specifying-the-join-key"><span class="header-section-number">4.3.2</span> Specifying the Join Key</a></li>
+  <li><a href="#other-mutating-joins" id="toc-other-mutating-joins" class="nav-link" data-scroll-target="#other-mutating-joins"><span class="header-section-number">4.3.3</span> Other Mutating Joins</a></li>
+  </ul></li>
+  <li><a href="#filtering-joins" id="toc-filtering-joins" class="nav-link" data-scroll-target="#filtering-joins"><span class="header-section-number">4.4</span> Filtering Joins</a>
+  <ul class="collapse">
+  <li><a href="#semi_join-keep-rows-in-x-that-have-a-match-in-y" id="toc-semi_join-keep-rows-in-x-that-have-a-match-in-y" class="nav-link" data-scroll-target="#semi_join-keep-rows-in-x-that-have-a-match-in-y"><span class="header-section-number">4.4.1</span> <code>semi_join()</code> — keep rows in <code>x</code> that have a match in <code>y</code></a></li>
+  <li><a href="#anti_join-keep-rows-in-x-that-have-no-match-in-y" id="toc-anti_join-keep-rows-in-x-that-have-no-match-in-y" class="nav-link" data-scroll-target="#anti_join-keep-rows-in-x-that-have-no-match-in-y"><span class="header-section-number">4.4.2</span> <code>anti_join()</code> — keep rows in <code>x</code> that have NO match in <code>y</code></a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#exercises" id="toc-exercises" class="nav-link" data-scroll-target="#exercises"><span class="header-section-number">5</span> Exercises</a></li>
+  </ul>
+</nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Day 3 (AM): Importing, Tidying, and Joining Data</h1>
+<p class="subtitle lead">SC INBRE Biostatistics Summer Intensive 2026</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">May 27, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="overview" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Overview</h1>
+<p>By the end of this session you will be able to:</p>
+<ul>
+<li>Read CSV, Excel, and other file formats into R</li>
+<li>Understand what “tidy data” means and why it matters</li>
+<li>Pivot data between wide and long formats using <code>pivot_longer()</code> and <code>pivot_wider()</code></li>
+<li>Separate and unite columns</li>
+<li>Understand explicit vs.&nbsp;implicit missing values</li>
+<li>Join two data frames together using mutating and filtering joins</li>
+</ul>
+<hr>
+</section>
+<section id="importing-data" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Importing Data</h1>
+<section id="key-terms" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="key-terms"><span class="header-section-number">2.1</span> Key Terms</h2>
+<p>Before reading data into R, three concepts matter:</p>
+<ul>
+<li><strong>Header:</strong> The first row of a file is usually variable names. R needs to know whether to treat it as names or as data values.</li>
+<li><strong>Delimiter:</strong> The character that separates entries in each row (comma in <code>.csv</code>, tab in <code>.tsv</code>, etc.). R uses this to know where one value ends and the next begins.</li>
+<li><strong>Missing value:</strong> How your file represents missingness. R recognizes <code>NA</code>, but files often use <code>.</code>, <code>""</code>, <code>N/A</code>, <code>999</code>, or other codes that need to be declared.</li>
+</ul>
+</section>
+<section id="reading-csv-files-with-readr" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="reading-csv-files-with-readr"><span class="header-section-number">2.2</span> Reading CSV Files with <code>readr</code></h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)  <span class="co"># loads readr</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readxl)     <span class="co"># for Excel files</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(haven)      <span class="co"># for SAS, Stata, SPSS files</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p><code>readr</code> is the tidyverse package for reading rectangular data. The most common functions:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Reads</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>read_csv()</code></td>
+<td>Comma-separated (<code>.csv</code>)</td>
+</tr>
+<tr class="even">
+<td><code>read_csv2()</code></td>
+<td>Semicolon-separated (common in Europe)</td>
+</tr>
+<tr class="odd">
+<td><code>read_tsv()</code></td>
+<td>Tab-separated</td>
+</tr>
+<tr class="even">
+<td><code>read_delim()</code></td>
+<td>Any delimiter you specify</td>
+</tr>
+</tbody>
+</table>
+<p>All have the same interface — once you know <code>read_csv()</code> the rest are trivial.</p>
+</section>
+<section id="working-directories-and-file-paths" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="working-directories-and-file-paths"><span class="header-section-number">2.3</span> Working Directories and File Paths</h2>
+<p>R looks for files relative to the <strong>working directory</strong>. Check yours with <code>getwd()</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">getwd</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "/Users/mclainfamily/Library/CloudStorage/OneDrive-UniversityofSouthCarolina/Teaching/Summer Workshop/INBRE-Bios-Summer-26/week1-foundations/day03-tidyverse"</code></pre>
+</div>
+</div>
+<p>Rather than hard-coding a full file path (which breaks on other people’s machines), use <code>rstudioapi</code> or <code>this.path</code> to set the working directory to wherever the script lives. Note, <code>rstudioapi</code> only works inside of RStudio and can give error messages when used with .qmd files (and in other situations). <code>this.path</code> is usually safer.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rstudioapi)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>this.dir <span class="ot">&lt;-</span> <span class="fu">dirname</span>(rstudioapi<span class="sc">::</span><span class="fu">getSourceEditorContext</span>()<span class="sc">$</span>path)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="fu">setwd</span>(this.dir)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(this.path) </span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>this.dir <span class="ot">&lt;-</span> <span class="fu">this.dir</span>()</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="fu">setwd</span>(this.dir)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Then reference files with short relative paths: <code>"data/myfile.csv"</code> rather than <code>"/Users/yourname/Documents/.../myfile.csv"</code>.</p>
+<p>You can use <code>"../data/framingham.csv"</code> to tell R to go back one folder, find the data folder, and then look for framingham.csv. We used this in the previous lab with:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>framingham <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"../../data/framingham.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>which said go back two folders, find the data folder, and then look for framingham.csv.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Windows users:</strong> File paths use <code>\</code> in Windows Explorer, but R requires <code>/</code> or <code>\\</code>. Copy a path from Explorer and replace each <code>\</code> with <code>/</code> before using it in R.</p>
+</div>
+</div>
+</section>
+<section id="reading-a-csv" class="level2" data-number="2.4">
+<h2 data-number="2.4" class="anchored" data-anchor-id="reading-a-csv"><span class="header-section-number">2.4</span> Reading a CSV</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>students <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data/students.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>When you run <code>read_csv()</code> it prints a message showing the number of rows and columns, the delimiter used, and how each column was parsed. This is useful for catching problems early.</p>
+<section id="common-arguments" class="level3" data-number="2.4.1">
+<h3 data-number="2.4.1" class="anchored" data-anchor-id="common-arguments"><span class="header-section-number">2.4.1</span> Common Arguments</h3>
+<p><strong>Skipping rows</strong> — useful when files have metadata at the top:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">read_csv</span>(<span class="st">"The first line of metadata</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="st">  The second line of metadata</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="st">  x,y,z</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="st">  1,2,3"</span>, <span class="at">skip =</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 3
+      x     y     z
+  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+1     1     2     3</code></pre>
+</div>
+</div>
+<p><strong>No column names</strong> — tell R to generate them:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">read_csv</span>(<span class="st">"1,2,3</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="st">         4,5,6"</span>, <span class="at">col_names =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 3
+     X1    X2    X3
+  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+1     1     2     3
+2     4     5     6</code></pre>
+</div>
+</div>
+<p><strong>Supply your own column names:</strong></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">read_csv</span>(<span class="st">"1,2,3</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="st">         4,5,6"</span>, <span class="at">col_names =</span> <span class="fu">c</span>(<span class="st">"id"</span>, <span class="st">"weight"</span>, <span class="st">"height"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 3
+     id weight height
+  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+1     1      2      3
+2     4      5      6</code></pre>
+</div>
+</div>
+<p><strong>Declare missing value codes</strong> — files often use <code>.</code> or <code>N/A</code> instead of <code>NA</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">read_csv</span>(<span class="st">"a,b,c</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="st">         1,2,."</span>, <span class="at">na =</span> <span class="st">"."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 3
+      a     b c    
+  &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;
+1     1     2 NA   </code></pre>
+</div>
+</div>
+</section>
+<section id="post-import-cleaning" class="level3" data-number="2.4.2">
+<h3 data-number="2.4.2" class="anchored" data-anchor-id="post-import-cleaning"><span class="header-section-number">2.4.2</span> Post-Import Cleaning</h3>
+<p>After reading data in, two immediate tasks often arise:</p>
+<p><strong>1. Fix column names with spaces.</strong> Column names with spaces require backtick quoting (<code>\</code>Full Name`<code>) which is error-prone. Use</code>janitor::clean_names()` to convert everything to snake_case automatically:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(janitor)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">caseID =</span> <span class="dv">1</span>, <span class="at">DOB =</span> <span class="dv">2</span>, <span class="at">Other =</span> <span class="dv">3</span>)</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>x <span class="sc">|&gt;</span> </span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">clean_names</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  case_id dob other
+1       1   2     3</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># if you prefer camelCase variable names:</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>x <span class="sc">%&gt;%</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">clean_names</span>(., <span class="st">"lower_camel"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  caseId dob other
+1      1   2     3</code></pre>
+</div>
+</div>
+<p>Or rename specific columns with <code>rename()</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>x <span class="sc">|&gt;</span> <span class="fu">rename</span>(<span class="at">case_id =</span> <span class="st">`</span><span class="at">caseID</span><span class="st">`</span>, <span class="at">dob =</span> DOB, <span class="at">other =</span> Other)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  case_id dob other
+1       1   2     3</code></pre>
+</div>
+</div>
+<p><strong>2. Fix variable types.</strong> <code>read_csv()</code> guesses column types from the data. Always check with <code>str()</code> and correct anything that was misread (e.g., a numeric column read as character because of a stray word like <code>"five"</code>).</p>
+</section>
+</section>
+<section id="reading-excel-files" class="level2" data-number="2.5">
+<h2 data-number="2.5" class="anchored" data-anchor-id="reading-excel-files"><span class="header-section-number">2.5</span> Reading Excel Files</h2>
+<p>Use <code>readxl::read_excel()</code>. You can specify which sheet to read:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readxl)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>data_xl <span class="ot">&lt;-</span> <span class="fu">read_excel</span>(<span class="st">"data/myfile.xlsx"</span>, <span class="at">sheet =</span> <span class="st">"data"</span>)</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>dict_xl <span class="ot">&lt;-</span> <span class="fu">read_excel</span>(<span class="st">"data/myfile.xlsx"</span>, <span class="at">sheet =</span> <span class="st">"dictionary"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The same arguments apply: <code>col_names</code>, <code>na</code>, <code>skip</code>.</p>
+</section>
+<section id="writing-data" class="level2" data-number="2.6">
+<h2 data-number="2.6" class="anchored" data-anchor-id="writing-data"><span class="header-section-number">2.6</span> Writing Data</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write_csv</span>(students, <span class="st">"data/students_clean.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Important:</strong> When you write a tibble to CSV and read it back, factor levels and other type information are lost — the file only stores plain text. If you need to preserve types across sessions, use <code>saveRDS()</code> / <code>readRDS()</code> to save as an R binary file instead.</p>
+</div>
+</div>
+</section>
+<section id="other-formats" class="level2" data-number="2.7">
+<h2 data-number="2.7" class="anchored" data-anchor-id="other-formats"><span class="header-section-number">2.7</span> Other Formats</h2>
+<p>The <code>haven</code> package reads SAS (<code>.sas7bdat</code>), Stata (<code>.dta</code>), and SPSS (<code>.sav</code>) files with the same interface:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(haven)</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>spss_data <span class="ot">&lt;-</span> <span class="fu">read_sav</span>(<span class="st">"data/myfile.sav"</span>) <span class="co">#SPSS data</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>sas_data  <span class="ot">&lt;-</span> <span class="fu">read_sas</span>(<span class="st">"data/myfile.sas7bdat"</span>) <span class="co">#SAS data</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>stata_data <span class="ot">&lt;-</span> <span class="fu">read_dta</span>(<span class="st">"data/myfile.dta"</span>) <span class="co">#Stata data</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>SPSS and Stata files often carry variable labels and value labels that <code>haven</code> preserves as attributes — useful when you are handed someone else’s data and need to understand the coding.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>You can read in SAS data, you can even write SAS data (using <code>write_sas</code>), but SAS data exported from R will not properly be read into SAS. Exported SPSS (<code>write_sav</code>) and Stata (<code>write_dta</code>) files can be read into their respected software programs.</p>
+</div>
+</div>
+<p>SPSS data has particularly nice features:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(haven)</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>x2 <span class="ot">&lt;-</span> <span class="fu">labelled_spss</span>(</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>,</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">c</span>(<span class="at">Good =</span> <span class="dv">1</span>, <span class="at">Okay =</span> <span class="dv">4</span>, <span class="at">Bad =</span> <span class="dv">8</span>),</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">na_range =</span> <span class="fu">c</span>(<span class="dv">9</span>, <span class="cn">Inf</span>),</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">label =</span> <span class="st">"Quality rating"</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>x2</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;labelled_spss&lt;integer&gt;[10]&gt;: Quality rating
+ [1]  1  2  3  4  5  6  7  8  9 10
+Missing range:  [9, Inf]
+
+Labels:
+ value label
+     1  Good
+     4  Okay
+     8   Bad</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">is.na</span>(x2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE  TRUE</code></pre>
+</div>
+</div>
+<p>SPSS data (with labels) can be read into SPSS or to Stata. To read into SAS you have to export to Stata, export from Stata, and then import into SAS.</p>
+<hr>
+</section>
+</section>
+<section id="tidy-data" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Tidy Data</h1>
+<section id="what-does-tidy-mean" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="what-does-tidy-mean"><span class="header-section-number">3.1</span> What Does “Tidy” Mean?</h2>
+<p>The same underlying data can be represented in many different ways. Consider these four representations of the same TB case data:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>table1  <span class="co"># tidy</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 4
+  country      year  cases population
+  &lt;chr&gt;       &lt;dbl&gt;  &lt;dbl&gt;      &lt;dbl&gt;
+1 Afghanistan  1999    745   19987071
+2 Afghanistan  2000   2666   20595360
+3 Brazil       1999  37737  172006362
+4 Brazil       2000  80488  174504898
+5 China        1999 212258 1272915272
+6 China        2000 213766 1280428583</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>table2  <span class="co"># observation spread across two rows</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 12 × 4
+   country      year type            count
+   &lt;chr&gt;       &lt;dbl&gt; &lt;chr&gt;           &lt;dbl&gt;
+ 1 Afghanistan  1999 cases             745
+ 2 Afghanistan  1999 population   19987071
+ 3 Afghanistan  2000 cases            2666
+ 4 Afghanistan  2000 population   20595360
+ 5 Brazil       1999 cases           37737
+ 6 Brazil       1999 population  172006362
+ 7 Brazil       2000 cases           80488
+ 8 Brazil       2000 population  174504898
+ 9 China        1999 cases          212258
+10 China        1999 population 1272915272
+11 China        2000 cases          213766
+12 China        2000 population 1280428583</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>table3  <span class="co"># two variables crammed into one column</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 3
+  country      year rate             
+  &lt;chr&gt;       &lt;dbl&gt; &lt;chr&gt;            
+1 Afghanistan  1999 745/19987071     
+2 Afghanistan  2000 2666/20595360    
+3 Brazil       1999 37737/172006362  
+4 Brazil       2000 80488/174504898  
+5 China        1999 212258/1272915272
+6 China        2000 213766/1280428583</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>table4a <span class="co"># cases only, years as columns</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 3
+  country     `1999` `2000`
+  &lt;chr&gt;        &lt;dbl&gt;  &lt;dbl&gt;
+1 Afghanistan    745   2666
+2 Brazil       37737  80488
+3 China       212258 213766</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>table4b <span class="co"># population only, years as columns</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 3
+  country         `1999`     `2000`
+  &lt;chr&gt;            &lt;dbl&gt;      &lt;dbl&gt;
+1 Afghanistan   19987071   20595360
+2 Brazil       172006362  174504898
+3 China       1272915272 1280428583</code></pre>
+</div>
+</div>
+<p>Only <code>table1</code> is <strong>tidy</strong>. Tidy data follows three rules:</p>
+<ol type="1">
+<li>Each variable is a column; each column is a variable</li>
+<li>Each observation is a row; each row is an observation</li>
+<li>Each value is a cell; each cell is a single value</li>
+</ol>
+<!-- FIGURE: Diagram showing the three tidy data rules visually
+     (variables = columns, observations = rows, values = cells) -->
+<p>Why tidy? Because every function in the tidyverse — <code>ggplot2</code>, <code>dplyr</code>, <code>tidyr</code>, modeling functions — expects tidy data. When your data is tidy, tools work naturally. When it is not, you spend your time fighting the data instead of analyzing it.</p>
+<p>Here is how naturally <code>table1</code> works once it is tidy:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute rate per 10,000</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>table1 <span class="sc">|&gt;</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">rate =</span> cases <span class="sc">/</span> population <span class="sc">*</span> <span class="dv">10000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 5
+  country      year  cases population  rate
+  &lt;chr&gt;       &lt;dbl&gt;  &lt;dbl&gt;      &lt;dbl&gt; &lt;dbl&gt;
+1 Afghanistan  1999    745   19987071 0.373
+2 Afghanistan  2000   2666   20595360 1.29 
+3 Brazil       1999  37737  172006362 2.19 
+4 Brazil       2000  80488  174504898 4.61 
+5 China        1999 212258 1272915272 1.67 
+6 China        2000 213766 1280428583 1.67 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Cases per year</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>table1 <span class="sc">|&gt;</span></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(year, <span class="at">wt =</span> cases)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 2
+   year      n
+  &lt;dbl&gt;  &lt;dbl&gt;
+1  1999 250740
+2  2000 296920</code></pre>
+</div>
+</div>
+</section>
+<section id="pivoting-wide-to-long-with-pivot_longer" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="pivoting-wide-to-long-with-pivot_longer"><span class="header-section-number">3.2</span> Pivoting: Wide to Long with <code>pivot_longer()</code></h2>
+<p>Real data is often <strong>wide</strong>: observations spread across many columns, with column names encoding a variable rather than labeling it. The <code>billboard</code> dataset is a classic example — 76 columns (<code>wk1</code> through <code>wk76</code>) where each column is really a value of the variable <code>week</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>billboard</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 317 × 79
+   artist     track date.entered   wk1   wk2   wk3   wk4   wk5   wk6   wk7   wk8
+   &lt;chr&gt;      &lt;chr&gt; &lt;date&gt;       &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+ 1 2 Pac      Baby… 2000-02-26      87    82    72    77    87    94    99    NA
+ 2 2Ge+her    The … 2000-09-02      91    87    92    NA    NA    NA    NA    NA
+ 3 3 Doors D… Kryp… 2000-04-08      81    70    68    67    66    57    54    53
+ 4 3 Doors D… Loser 2000-10-21      76    76    72    69    67    65    55    59
+ 5 504 Boyz   Wobb… 2000-04-15      57    34    25    17    17    31    36    49
+ 6 98^0       Give… 2000-08-19      51    39    34    26    26    19     2     2
+ 7 A*Teens    Danc… 2000-07-08      97    97    96    95   100    NA    NA    NA
+ 8 Aaliyah    I Do… 2000-01-29      84    62    51    41    38    35    35    38
+ 9 Aaliyah    Try … 2000-03-18      59    53    38    28    21    18    16    14
+10 Adams, Yo… Open… 2000-08-26      76    76    74    69    68    67    61    58
+# ℹ 307 more rows
+# ℹ 68 more variables: wk9 &lt;dbl&gt;, wk10 &lt;dbl&gt;, wk11 &lt;dbl&gt;, wk12 &lt;dbl&gt;,
+#   wk13 &lt;dbl&gt;, wk14 &lt;dbl&gt;, wk15 &lt;dbl&gt;, wk16 &lt;dbl&gt;, wk17 &lt;dbl&gt;, wk18 &lt;dbl&gt;,
+#   wk19 &lt;dbl&gt;, wk20 &lt;dbl&gt;, wk21 &lt;dbl&gt;, wk22 &lt;dbl&gt;, wk23 &lt;dbl&gt;, wk24 &lt;dbl&gt;,
+#   wk25 &lt;dbl&gt;, wk26 &lt;dbl&gt;, wk27 &lt;dbl&gt;, wk28 &lt;dbl&gt;, wk29 &lt;dbl&gt;, wk30 &lt;dbl&gt;,
+#   wk31 &lt;dbl&gt;, wk32 &lt;dbl&gt;, wk33 &lt;dbl&gt;, wk34 &lt;dbl&gt;, wk35 &lt;dbl&gt;, wk36 &lt;dbl&gt;,
+#   wk37 &lt;dbl&gt;, wk38 &lt;dbl&gt;, wk39 &lt;dbl&gt;, wk40 &lt;dbl&gt;, wk41 &lt;dbl&gt;, wk42 &lt;dbl&gt;, …</code></pre>
+</div>
+</div>
+<p><code>pivot_longer()</code> collapses these columns into rows. Three key arguments:</p>
+<ul>
+<li><code>cols</code>: which columns to pivot (uses <code>select()</code> syntax)</li>
+<li><code>names_to</code>: what to call the new column that holds the old column names</li>
+<li><code>values_to</code>: what to call the new column that holds the values</li>
+</ul>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>billboard <span class="sc">|&gt;</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(</span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">cols        =</span> <span class="fu">starts_with</span>(<span class="st">"wk"</span>),</span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">names_to    =</span> <span class="st">"week"</span>,</span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">values_to   =</span> <span class="st">"rank"</span>,</span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">values_drop_na =</span> <span class="cn">TRUE</span>   <span class="co"># drop rows where the song wasn't charting</span></span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 5,307 × 5
+   artist  track                   date.entered week   rank
+   &lt;chr&gt;   &lt;chr&gt;                   &lt;date&gt;       &lt;chr&gt; &lt;dbl&gt;
+ 1 2 Pac   Baby Don't Cry (Keep... 2000-02-26   wk1      87
+ 2 2 Pac   Baby Don't Cry (Keep... 2000-02-26   wk2      82
+ 3 2 Pac   Baby Don't Cry (Keep... 2000-02-26   wk3      72
+ 4 2 Pac   Baby Don't Cry (Keep... 2000-02-26   wk4      77
+ 5 2 Pac   Baby Don't Cry (Keep... 2000-02-26   wk5      87
+ 6 2 Pac   Baby Don't Cry (Keep... 2000-02-26   wk6      94
+ 7 2 Pac   Baby Don't Cry (Keep... 2000-02-26   wk7      99
+ 8 2Ge+her The Hardest Part Of ... 2000-09-02   wk1      91
+ 9 2Ge+her The Hardest Part Of ... 2000-09-02   wk2      87
+10 2Ge+her The Hardest Part Of ... 2000-09-02   wk3      92
+# ℹ 5,297 more rows</code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><code>values_drop_na = TRUE</code> removes rows that only exist because of the wide structure — songs that weren’t charting in a given week don’t have a meaningful <code>NA</code>, they simply weren’t ranked.</p>
+</div>
+</div>
+</section>
+<section id="pivoting-long-to-wide-with-pivot_wider" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="pivoting-long-to-wide-with-pivot_wider"><span class="header-section-number">3.3</span> Pivoting: Long to Wide with <code>pivot_wider()</code></h2>
+<p><code>pivot_wider()</code> is the inverse — it spreads rows into columns. Use it when an observation is scattered across multiple rows, as in <code>table2</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>table2</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 12 × 4
+   country      year type            count
+   &lt;chr&gt;       &lt;dbl&gt; &lt;chr&gt;           &lt;dbl&gt;
+ 1 Afghanistan  1999 cases             745
+ 2 Afghanistan  1999 population   19987071
+ 3 Afghanistan  2000 cases            2666
+ 4 Afghanistan  2000 population   20595360
+ 5 Brazil       1999 cases           37737
+ 6 Brazil       1999 population  172006362
+ 7 Brazil       2000 cases           80488
+ 8 Brazil       2000 population  174504898
+ 9 China        1999 cases          212258
+10 China        1999 population 1272915272
+11 China        2000 cases          213766
+12 China        2000 population 1280428583</code></pre>
+</div>
+</div>
+<p>Each country-year observation is split across two rows (one for <code>cases</code>, one for <code>population</code>). Fix it with:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>table2 <span class="sc">|&gt;</span></span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> type, <span class="at">values_from =</span> count)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 4
+  country      year  cases population
+  &lt;chr&gt;       &lt;dbl&gt;  &lt;dbl&gt;      &lt;dbl&gt;
+1 Afghanistan  1999    745   19987071
+2 Afghanistan  2000   2666   20595360
+3 Brazil       1999  37737  172006362
+4 Brazil       2000  80488  174504898
+5 China        1999 212258 1272915272
+6 China        2000 213766 1280428583</code></pre>
+</div>
+</div>
+<p><code>pivot_wider()</code> is also useful for creating <strong>display tables</strong> — not tidy, but human-readable:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>diamonds <span class="sc">|&gt;</span></span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(clarity, color) <span class="sc">|&gt;</span></span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> color, <span class="at">values_from =</span> n)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 8 × 8
+  clarity     D     E     F     G     H     I     J
+  &lt;ord&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt;
+1 I1         42   102   143   150   162    92    50
+2 SI2      1370  1713  1609  1548  1563   912   479
+3 SI1      2083  2426  2131  1976  2275  1424   750
+4 VS2      1697  2470  2201  2347  1643  1169   731
+5 VS1       705  1281  1364  2148  1169   962   542
+6 VVS2      553   991   975  1443   608   365   131
+7 VVS1      252   656   734   999   585   355    74
+8 IF         73   158   385   681   299   143    51</code></pre>
+</div>
+</div>
+</section>
+<section id="separating-and-uniting-columns" class="level2" data-number="3.4">
+<h2 data-number="3.4" class="anchored" data-anchor-id="separating-and-uniting-columns"><span class="header-section-number">3.4</span> Separating and Uniting Columns</h2>
+<section id="separating-columns" class="level3" data-number="3.4.1">
+<h3 data-number="3.4.1" class="anchored" data-anchor-id="separating-columns"><span class="header-section-number">3.4.1</span> Separating Columns</h3>
+<p><code>separate_wider_delim()</code> splits a column on a delimiter character.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>table3  <span class="co"># rate column contains "cases/population"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 3
+  country      year rate             
+  &lt;chr&gt;       &lt;dbl&gt; &lt;chr&gt;            
+1 Afghanistan  1999 745/19987071     
+2 Afghanistan  2000 2666/20595360    
+3 Brazil       1999 37737/172006362  
+4 Brazil       2000 80488/174504898  
+5 China        1999 212258/1272915272
+6 China        2000 213766/1280428583</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>table3 <span class="sc">|&gt;</span></span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">separate_wider_delim</span>(rate, <span class="at">delim =</span> <span class="st">"/"</span>, <span class="at">names =</span> <span class="fu">c</span>(<span class="st">"cases"</span>, <span class="st">"population"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 4
+  country      year cases  population
+  &lt;chr&gt;       &lt;dbl&gt; &lt;chr&gt;  &lt;chr&gt;     
+1 Afghanistan  1999 745    19987071  
+2 Afghanistan  2000 2666   20595360  
+3 Brazil       1999 37737  172006362 
+4 Brazil       2000 80488  174504898 
+5 China        1999 212258 1272915272
+6 China        2000 213766 1280428583</code></pre>
+</div>
+</div>
+<p>The resulting columns are character by default. Pipe into <code>mutate()</code> to convert types after splitting:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a>table3 <span class="sc">|&gt;</span></span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">separate_wider_delim</span>(rate, <span class="at">delim =</span> <span class="st">"/"</span>, <span class="at">names =</span> <span class="fu">c</span>(<span class="st">"cases"</span>, <span class="st">"population"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">cases =</span> <span class="fu">as.integer</span>(cases), <span class="at">population =</span> <span class="fu">as.integer</span>(population))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 4
+  country      year  cases population
+  &lt;chr&gt;       &lt;dbl&gt;  &lt;int&gt;      &lt;int&gt;
+1 Afghanistan  1999    745   19987071
+2 Afghanistan  2000   2666   20595360
+3 Brazil       1999  37737  172006362
+4 Brazil       2000  80488  174504898
+5 China        1999 212258 1272915272
+6 China        2000 213766 1280428583</code></pre>
+</div>
+</div>
+<p><code>separate_wider_position()</code> splits at a fixed character position. Supply a named integer vector where the name becomes the column name and the integer is the field width. Unnamed entries are dropped silently:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Split the 4-digit year into century (first 2 chars) and year (last 2 chars)</span></span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a>table3 <span class="sc">|&gt;</span></span>
+<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">separate_wider_position</span>(year, <span class="at">widths =</span> <span class="fu">c</span>(<span class="at">century =</span> <span class="dv">2</span>, <span class="at">year =</span> <span class="dv">2</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 4
+  country     century year  rate             
+  &lt;chr&gt;       &lt;chr&gt;   &lt;chr&gt; &lt;chr&gt;            
+1 Afghanistan 19      99    745/19987071     
+2 Afghanistan 20      00    2666/20595360    
+3 Brazil      19      99    37737/172006362  
+4 Brazil      20      00    80488/174504898  
+5 China       19      99    212258/1272915272
+6 China       20      00    213766/1280428583</code></pre>
+</div>
+</div>
+<p>Combine both to split <code>rate</code> by delimiter and <code>year</code> by position in one pipeline:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a>table3 <span class="sc">|&gt;</span></span>
+<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">separate_wider_delim</span>(rate, <span class="at">delim =</span> <span class="st">"/"</span>, <span class="at">names =</span> <span class="fu">c</span>(<span class="st">"cases"</span>, <span class="st">"population"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb60-3"><a href="#cb60-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">cases =</span> <span class="fu">as.integer</span>(cases), <span class="at">population =</span> <span class="fu">as.integer</span>(population)) <span class="sc">|&gt;</span></span>
+<span id="cb60-4"><a href="#cb60-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">separate_wider_position</span>(year, <span class="at">widths =</span> <span class="fu">c</span>(<span class="at">century =</span> <span class="dv">2</span>, <span class="at">year =</span> <span class="dv">2</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 5
+  country     century year   cases population
+  &lt;chr&gt;       &lt;chr&gt;   &lt;chr&gt;  &lt;int&gt;      &lt;int&gt;
+1 Afghanistan 19      99       745   19987071
+2 Afghanistan 20      00      2666   20595360
+3 Brazil      19      99     37737  172006362
+4 Brazil      20      00     80488  174504898
+5 China       19      99    212258 1272915272
+6 China       20      00    213766 1280428583</code></pre>
+</div>
+</div>
+</section>
+<section id="uniting-columns" class="level3" data-number="3.4.2">
+<h3 data-number="3.4.2" class="anchored" data-anchor-id="uniting-columns"><span class="header-section-number">3.4.2</span> Uniting Columns</h3>
+<p><code>unite()</code> is the inverse — it combines multiple columns into one:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb62"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Rebuild the year column from century + year</span></span>
+<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a>table3 <span class="sc">|&gt;</span></span>
+<span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">separate</span>(rate, <span class="at">into =</span> <span class="fu">c</span>(<span class="st">"cases"</span>, <span class="st">"population"</span>), <span class="at">convert =</span> <span class="cn">TRUE</span>) <span class="sc">|&gt;</span></span>
+<span id="cb62-4"><a href="#cb62-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">separate</span>(year, <span class="at">into =</span> <span class="fu">c</span>(<span class="st">"century"</span>, <span class="st">"year"</span>), <span class="at">sep =</span> <span class="dv">2</span>) <span class="sc">|&gt;</span></span>
+<span id="cb62-5"><a href="#cb62-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unite</span>(full_year, century, year, <span class="at">sep =</span> <span class="st">""</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 4
+  country     full_year  cases population
+  &lt;chr&gt;       &lt;chr&gt;      &lt;int&gt;      &lt;int&gt;
+1 Afghanistan 1999         745   19987071
+2 Afghanistan 2000        2666   20595360
+3 Brazil      1999       37737  172006362
+4 Brazil      2000       80488  174504898
+5 China       1999      212258 1272915272
+6 China       2000      213766 1280428583</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="missing-values-explicit-vs.-implicit" class="level2" data-number="3.5">
+<h2 data-number="3.5" class="anchored" data-anchor-id="missing-values-explicit-vs.-implicit"><span class="header-section-number">3.5</span> Missing Values: Explicit vs.&nbsp;Implicit</h2>
+<p>A value can be missing in two distinct ways:</p>
+<ul>
+<li><strong>Explicit:</strong> the cell exists and contains <code>NA</code></li>
+<li><strong>Implicit:</strong> the row simply does not exist in the data</li>
+</ul>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb64"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a>stocks <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">year   =</span> <span class="fu">c</span>(<span class="dv">2015</span>, <span class="dv">2015</span>, <span class="dv">2015</span>, <span class="dv">2015</span>, <span class="dv">2016</span>, <span class="dv">2016</span>, <span class="dv">2016</span>),</span>
+<span id="cb64-3"><a href="#cb64-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">qtr    =</span> <span class="fu">c</span>(   <span class="dv">1</span>,    <span class="dv">2</span>,    <span class="dv">3</span>,    <span class="dv">4</span>,    <span class="dv">2</span>,    <span class="dv">3</span>,    <span class="dv">4</span>),</span>
+<span id="cb64-4"><a href="#cb64-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">return =</span> <span class="fu">c</span>(<span class="fl">1.88</span>, <span class="fl">0.59</span>, <span class="fl">0.35</span>,   <span class="cn">NA</span>, <span class="fl">0.92</span>, <span class="fl">0.17</span>, <span class="fl">2.66</span>)</span>
+<span id="cb64-5"><a href="#cb64-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb64-6"><a href="#cb64-6" aria-hidden="true" tabindex="-1"></a>stocks</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 7 × 3
+   year   qtr return
+  &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;
+1  2015     1   1.88
+2  2015     2   0.59
+3  2015     3   0.35
+4  2015     4  NA   
+5  2016     2   0.92
+6  2016     3   0.17
+7  2016     4   2.66</code></pre>
+</div>
+</div>
+<p>The return for Q4 2015 is explicitly missing (<code>NA</code>). The return for Q1 2016 is implicitly missing — the row does not exist at all.</p>
+<p>Pivoting can make implicit missings explicit:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb66"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a>stocks <span class="sc">|&gt;</span></span>
+<span id="cb66-2"><a href="#cb66-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> year, <span class="at">values_from =</span> return)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 4 × 3
+    qtr `2015` `2016`
+  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+1     1   1.88  NA   
+2     2   0.59   0.92
+3     3   0.35   0.17
+4     4  NA      2.66</code></pre>
+</div>
+</div>
+<p>Use <code>complete()</code> to make implicit missing values explicit while keeping long format:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb68"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a>stocks <span class="sc">|&gt;</span></span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">complete</span>(year, qtr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 8 × 3
+   year   qtr return
+  &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;
+1  2015     1   1.88
+2  2015     2   0.59
+3  2015     3   0.35
+4  2015     4  NA   
+5  2016     1  NA   
+6  2016     2   0.92
+7  2016     3   0.17
+8  2016     4   2.66</code></pre>
+</div>
+</div>
+<p>Use <code>fill()</code> when missing values mean “same as the previous row” (last observation carried forward):</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a>treatment <span class="ot">&lt;-</span> <span class="fu">tribble</span>(</span>
+<span id="cb70-2"><a href="#cb70-2" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span>person,            <span class="sc">~</span>treatment, <span class="sc">~</span>response,</span>
+<span id="cb70-3"><a href="#cb70-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Derrick Whitmore"</span>, <span class="dv">1</span>,          <span class="dv">7</span>,</span>
+<span id="cb70-4"><a href="#cb70-4" aria-hidden="true" tabindex="-1"></a>  <span class="cn">NA</span>,                 <span class="dv">2</span>,          <span class="dv">10</span>,</span>
+<span id="cb70-5"><a href="#cb70-5" aria-hidden="true" tabindex="-1"></a>  <span class="cn">NA</span>,                 <span class="dv">3</span>,          <span class="dv">9</span>,</span>
+<span id="cb70-6"><a href="#cb70-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Katherine Burke"</span>,  <span class="dv">1</span>,          <span class="dv">4</span></span>
+<span id="cb70-7"><a href="#cb70-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb70-8"><a href="#cb70-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb70-9"><a href="#cb70-9" aria-hidden="true" tabindex="-1"></a>treatment <span class="sc">|&gt;</span> <span class="fu">fill</span>(person)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 4 × 3
+  person           treatment response
+  &lt;chr&gt;                &lt;dbl&gt;    &lt;dbl&gt;
+1 Derrick Whitmore         1        7
+2 Derrick Whitmore         2       10
+3 Derrick Whitmore         3        9
+4 Katherine Burke          1        4</code></pre>
+</div>
+</div>
+<hr>
+</section>
+</section>
+<section id="joining-data" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Joining Data</h1>
+<section id="why-join" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="why-join"><span class="header-section-number">4.1</span> Why Join?</h2>
+<p>It is rare that all the information you need lives in a single data frame. Relational data — data spread across multiple linked tables — is the norm in practice. Joins let you combine them.</p>
+<p>We will use the <code>nycflights13</code> package, which has five related tables:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb72"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(nycflights13)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<ul>
+<li><code>flights</code>: every flight departing NYC in 2013</li>
+<li><code>airlines</code>: carrier codes and full names</li>
+<li><code>airports</code>: airport codes and metadata</li>
+<li><code>planes</code>: plane metadata by tail number</li>
+<li><code>weather</code>: hourly weather at each NYC airport</li>
+</ul>
+<!-- FIGURE: Relationship diagram showing how the five nycflights13 tables
+     connect to each other via shared key variables -->
+</section>
+<section id="keys" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="keys"><span class="header-section-number">4.2</span> Keys</h2>
+<p>A <strong>primary key</strong> uniquely identifies each row in a table. A <strong>foreign key</strong> is the matching variable in another table that refers back to the primary key.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb73"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a>airlines  <span class="co"># primary key: carrier</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 16 × 2
+   carrier name                       
+   &lt;chr&gt;   &lt;chr&gt;                      
+ 1 9E      Endeavor Air Inc.          
+ 2 AA      American Airlines Inc.     
+ 3 AS      Alaska Airlines Inc.       
+ 4 B6      JetBlue Airways            
+ 5 DL      Delta Air Lines Inc.       
+ 6 EV      ExpressJet Airlines Inc.   
+ 7 F9      Frontier Airlines Inc.     
+ 8 FL      AirTran Airways Corporation
+ 9 HA      Hawaiian Airlines Inc.     
+10 MQ      Envoy Air                  
+11 OO      SkyWest Airlines Inc.      
+12 UA      United Air Lines Inc.      
+13 US      US Airways Inc.            
+14 VX      Virgin America             
+15 WN      Southwest Airlines Co.     
+16 YV      Mesa Airlines Inc.         </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a>airports  <span class="co"># primary key: faa</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1,458 × 8
+   faa   name                             lat    lon   alt    tz dst   tzone    
+   &lt;chr&gt; &lt;chr&gt;                          &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt;    
+ 1 04G   Lansdowne Airport               41.1  -80.6  1044    -5 A     America/…
+ 2 06A   Moton Field Municipal Airport   32.5  -85.7   264    -6 A     America/…
+ 3 06C   Schaumburg Regional             42.0  -88.1   801    -6 A     America/…
+ 4 06N   Randall Airport                 41.4  -74.4   523    -5 A     America/…
+ 5 09J   Jekyll Island Airport           31.1  -81.4    11    -5 A     America/…
+ 6 0A9   Elizabethton Municipal Airport  36.4  -82.2  1593    -5 A     America/…
+ 7 0G6   Williams County Airport         41.5  -84.5   730    -5 A     America/…
+ 8 0G7   Finger Lakes Regional Airport   42.9  -76.8   492    -5 A     America/…
+ 9 0P2   Shoestring Aviation Airfield    39.8  -76.6  1000    -5 U     America/…
+10 0S9   Jefferson County Intl           48.1 -123.    108    -8 A     America/…
+# ℹ 1,448 more rows</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb77"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a>planes    <span class="co"># primary key: tailnum</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3,322 × 9
+   tailnum  year type              manufacturer model engines seats speed engine
+   &lt;chr&gt;   &lt;int&gt; &lt;chr&gt;             &lt;chr&gt;        &lt;chr&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;chr&gt; 
+ 1 N10156   2004 Fixed wing multi… EMBRAER      EMB-…       2    55    NA Turbo…
+ 2 N102UW   1998 Fixed wing multi… AIRBUS INDU… A320…       2   182    NA Turbo…
+ 3 N103US   1999 Fixed wing multi… AIRBUS INDU… A320…       2   182    NA Turbo…
+ 4 N104UW   1999 Fixed wing multi… AIRBUS INDU… A320…       2   182    NA Turbo…
+ 5 N10575   2002 Fixed wing multi… EMBRAER      EMB-…       2    55    NA Turbo…
+ 6 N105UW   1999 Fixed wing multi… AIRBUS INDU… A320…       2   182    NA Turbo…
+ 7 N107US   1999 Fixed wing multi… AIRBUS INDU… A320…       2   182    NA Turbo…
+ 8 N108UW   1999 Fixed wing multi… AIRBUS INDU… A320…       2   182    NA Turbo…
+ 9 N109UW   1999 Fixed wing multi… AIRBUS INDU… A320…       2   182    NA Turbo…
+10 N110UW   1999 Fixed wing multi… AIRBUS INDU… A320…       2   182    NA Turbo…
+# ℹ 3,312 more rows</code></pre>
+</div>
+</div>
+<p><code>weather</code> has a <strong>compound key</strong> — you need both <code>origin</code> and <code>time_hour</code> together to uniquely identify a row:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb79"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a>weather</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 26,115 × 15
+   origin  year month   day  hour  temp  dewp humid wind_dir wind_speed
+   &lt;chr&gt;  &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;      &lt;dbl&gt;
+ 1 EWR     2013     1     1     1  39.0  26.1  59.4      270      10.4 
+ 2 EWR     2013     1     1     2  39.0  27.0  61.6      250       8.06
+ 3 EWR     2013     1     1     3  39.0  28.0  64.4      240      11.5 
+ 4 EWR     2013     1     1     4  39.9  28.0  62.2      250      12.7 
+ 5 EWR     2013     1     1     5  39.0  28.0  64.4      260      12.7 
+ 6 EWR     2013     1     1     6  37.9  28.0  67.2      240      11.5 
+ 7 EWR     2013     1     1     7  39.0  28.0  64.4      240      15.0 
+ 8 EWR     2013     1     1     8  39.9  28.0  62.2      250      10.4 
+ 9 EWR     2013     1     1     9  39.9  28.0  62.2      260      15.0 
+10 EWR     2013     1     1    10  41    28.0  59.6      260      13.8 
+# ℹ 26,105 more rows
+# ℹ 5 more variables: wind_gust &lt;dbl&gt;, precip &lt;dbl&gt;, pressure &lt;dbl&gt;,
+#   visib &lt;dbl&gt;, time_hour &lt;dttm&gt;</code></pre>
+</div>
+</div>
+<p>Always verify that a claimed primary key actually uniquely identifies rows:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb81"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Confirm tailnum is unique in planes</span></span>
+<span id="cb81-2"><a href="#cb81-2" aria-hidden="true" tabindex="-1"></a>planes <span class="sc">|&gt;</span></span>
+<span id="cb81-3"><a href="#cb81-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(tailnum) <span class="sc">|&gt;</span></span>
+<span id="cb81-4"><a href="#cb81-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(n <span class="sc">&gt;</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 0 × 2
+# ℹ 2 variables: tailnum &lt;chr&gt;, n &lt;int&gt;</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb83"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Confirm the compound key in weather</span></span>
+<span id="cb83-2"><a href="#cb83-2" aria-hidden="true" tabindex="-1"></a>weather <span class="sc">|&gt;</span></span>
+<span id="cb83-3"><a href="#cb83-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(origin, time_hour) <span class="sc">|&gt;</span></span>
+<span id="cb83-4"><a href="#cb83-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(n <span class="sc">&gt;</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 0 × 3
+# ℹ 3 variables: origin &lt;chr&gt;, time_hour &lt;dttm&gt;, n &lt;int&gt;</code></pre>
+</div>
+</div>
+<p>Empty results confirm both keys are valid.</p>
+</section>
+<section id="mutating-joins" class="level2" data-number="4.3">
+<h2 data-number="4.3" class="anchored" data-anchor-id="mutating-joins"><span class="header-section-number">4.3</span> Mutating Joins</h2>
+<p>A <strong>mutating join</strong> adds columns from one table to another by matching on a key. We will work with a slim version of <code>flights</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb85"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a>flights2 <span class="ot">&lt;-</span> flights <span class="sc">|&gt;</span></span>
+<span id="cb85-2"><a href="#cb85-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(year, time_hour, origin, dest, tailnum, carrier)</span>
+<span id="cb85-3"><a href="#cb85-3" aria-hidden="true" tabindex="-1"></a>flights2</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 336,776 × 6
+    year time_hour           origin dest  tailnum carrier
+   &lt;int&gt; &lt;dttm&gt;              &lt;chr&gt;  &lt;chr&gt; &lt;chr&gt;   &lt;chr&gt;  
+ 1  2013 2013-01-01 05:00:00 EWR    IAH   N14228  UA     
+ 2  2013 2013-01-01 05:00:00 LGA    IAH   N24211  UA     
+ 3  2013 2013-01-01 05:00:00 JFK    MIA   N619AA  AA     
+ 4  2013 2013-01-01 05:00:00 JFK    BQN   N804JB  B6     
+ 5  2013 2013-01-01 06:00:00 LGA    ATL   N668DN  DL     
+ 6  2013 2013-01-01 05:00:00 EWR    ORD   N39463  UA     
+ 7  2013 2013-01-01 06:00:00 EWR    FLL   N516JB  B6     
+ 8  2013 2013-01-01 06:00:00 LGA    IAD   N829AS  EV     
+ 9  2013 2013-01-01 06:00:00 JFK    MCO   N593JB  B6     
+10  2013 2013-01-01 06:00:00 LGA    ORD   N3ALAA  AA     
+# ℹ 336,766 more rows</code></pre>
+</div>
+</div>
+<section id="left_join-the-join-you-will-use-90-of-the-time" class="level3" data-number="4.3.1">
+<h3 data-number="4.3.1" class="anchored" data-anchor-id="left_join-the-join-you-will-use-90-of-the-time"><span class="header-section-number">4.3.1</span> <code>left_join()</code> — the join you will use 90% of the time</h3>
+<p><code>left_join(x, y)</code> keeps every row in <code>x</code> and fills in matching columns from <code>y</code>. Rows in <code>x</code> with no match in <code>y</code> get <code>NA</code> for the new columns.</p>
+<p>Add full carrier names:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb87"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a>flights2 <span class="sc">|&gt;</span></span>
+<span id="cb87-2"><a href="#cb87-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(airlines)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 336,776 × 7
+    year time_hour           origin dest  tailnum carrier name                  
+   &lt;int&gt; &lt;dttm&gt;              &lt;chr&gt;  &lt;chr&gt; &lt;chr&gt;   &lt;chr&gt;   &lt;chr&gt;                 
+ 1  2013 2013-01-01 05:00:00 EWR    IAH   N14228  UA      United Air Lines Inc. 
+ 2  2013 2013-01-01 05:00:00 LGA    IAH   N24211  UA      United Air Lines Inc. 
+ 3  2013 2013-01-01 05:00:00 JFK    MIA   N619AA  AA      American Airlines Inc.
+ 4  2013 2013-01-01 05:00:00 JFK    BQN   N804JB  B6      JetBlue Airways       
+ 5  2013 2013-01-01 06:00:00 LGA    ATL   N668DN  DL      Delta Air Lines Inc.  
+ 6  2013 2013-01-01 05:00:00 EWR    ORD   N39463  UA      United Air Lines Inc. 
+ 7  2013 2013-01-01 06:00:00 EWR    FLL   N516JB  B6      JetBlue Airways       
+ 8  2013 2013-01-01 06:00:00 LGA    IAD   N829AS  EV      ExpressJet Airlines I…
+ 9  2013 2013-01-01 06:00:00 JFK    MCO   N593JB  B6      JetBlue Airways       
+10  2013 2013-01-01 06:00:00 LGA    ORD   N3ALAA  AA      American Airlines Inc.
+# ℹ 336,766 more rows</code></pre>
+</div>
+</div>
+<p>Add weather conditions at departure:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb89"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb89-1"><a href="#cb89-1" aria-hidden="true" tabindex="-1"></a>flights2 <span class="sc">|&gt;</span></span>
+<span id="cb89-2"><a href="#cb89-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(weather <span class="sc">|&gt;</span> <span class="fu">select</span>(origin, time_hour, temp, wind_speed))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 336,776 × 8
+    year time_hour           origin dest  tailnum carrier  temp wind_speed
+   &lt;int&gt; &lt;dttm&gt;              &lt;chr&gt;  &lt;chr&gt; &lt;chr&gt;   &lt;chr&gt;   &lt;dbl&gt;      &lt;dbl&gt;
+ 1  2013 2013-01-01 05:00:00 EWR    IAH   N14228  UA       39.0       12.7
+ 2  2013 2013-01-01 05:00:00 LGA    IAH   N24211  UA       39.9       15.0
+ 3  2013 2013-01-01 05:00:00 JFK    MIA   N619AA  AA       39.0       15.0
+ 4  2013 2013-01-01 05:00:00 JFK    BQN   N804JB  B6       39.0       15.0
+ 5  2013 2013-01-01 06:00:00 LGA    ATL   N668DN  DL       39.9       16.1
+ 6  2013 2013-01-01 05:00:00 EWR    ORD   N39463  UA       39.0       12.7
+ 7  2013 2013-01-01 06:00:00 EWR    FLL   N516JB  B6       37.9       11.5
+ 8  2013 2013-01-01 06:00:00 LGA    IAD   N829AS  EV       39.9       16.1
+ 9  2013 2013-01-01 06:00:00 JFK    MCO   N593JB  B6       37.9       13.8
+10  2013 2013-01-01 06:00:00 LGA    ORD   N3ALAA  AA       39.9       16.1
+# ℹ 336,766 more rows</code></pre>
+</div>
+</div>
+<p>Add plane size:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb91"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb91-1"><a href="#cb91-1" aria-hidden="true" tabindex="-1"></a>flights2 <span class="sc">|&gt;</span></span>
+<span id="cb91-2"><a href="#cb91-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(planes <span class="sc">|&gt;</span> <span class="fu">select</span>(tailnum, type, engines, seats))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 336,776 × 9
+    year time_hour           origin dest  tailnum carrier type     engines seats
+   &lt;int&gt; &lt;dttm&gt;              &lt;chr&gt;  &lt;chr&gt; &lt;chr&gt;   &lt;chr&gt;   &lt;chr&gt;      &lt;int&gt; &lt;int&gt;
+ 1  2013 2013-01-01 05:00:00 EWR    IAH   N14228  UA      Fixed w…       2   149
+ 2  2013 2013-01-01 05:00:00 LGA    IAH   N24211  UA      Fixed w…       2   149
+ 3  2013 2013-01-01 05:00:00 JFK    MIA   N619AA  AA      Fixed w…       2   178
+ 4  2013 2013-01-01 05:00:00 JFK    BQN   N804JB  B6      Fixed w…       2   200
+ 5  2013 2013-01-01 06:00:00 LGA    ATL   N668DN  DL      Fixed w…       2   178
+ 6  2013 2013-01-01 05:00:00 EWR    ORD   N39463  UA      Fixed w…       2   191
+ 7  2013 2013-01-01 06:00:00 EWR    FLL   N516JB  B6      Fixed w…       2   200
+ 8  2013 2013-01-01 06:00:00 LGA    IAD   N829AS  EV      Fixed w…       2    55
+ 9  2013 2013-01-01 06:00:00 JFK    MCO   N593JB  B6      Fixed w…       2   200
+10  2013 2013-01-01 06:00:00 LGA    ORD   N3ALAA  AA      &lt;NA&gt;          NA    NA
+# ℹ 336,766 more rows</code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Important
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Why <code>left_join()</code> almost always?</strong> Because it preserves every row in your primary dataset. You will not silently lose observations the way <code>inner_join()</code> can. If a join key is missing from <code>y</code>, you get <code>NA</code> — which is visible and diagnosable. If <code>inner_join()</code> drops rows, you may not notice.</p>
+</div>
+</div>
+</section>
+<section id="specifying-the-join-key" class="level3" data-number="4.3.2">
+<h3 data-number="4.3.2" class="anchored" data-anchor-id="specifying-the-join-key"><span class="header-section-number">4.3.2</span> Specifying the Join Key</h3>
+<p>By default, <code>left_join()</code> joins on all columns with matching names. This is called a <strong>natural join</strong> and works well when column names are consistent across tables. When they are not, use <code>by</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb93"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb93-1"><a href="#cb93-1" aria-hidden="true" tabindex="-1"></a><span class="co"># both tables have a "year" column but mean different things</span></span>
+<span id="cb93-2"><a href="#cb93-2" aria-hidden="true" tabindex="-1"></a><span class="co"># only join on tailnum</span></span>
+<span id="cb93-3"><a href="#cb93-3" aria-hidden="true" tabindex="-1"></a>flights2 <span class="sc">|&gt;</span></span>
+<span id="cb93-4"><a href="#cb93-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(planes, <span class="at">by =</span> <span class="st">"tailnum"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 336,776 × 14
+   year.x time_hour           origin dest  tailnum carrier year.y type          
+    &lt;int&gt; &lt;dttm&gt;              &lt;chr&gt;  &lt;chr&gt; &lt;chr&gt;   &lt;chr&gt;    &lt;int&gt; &lt;chr&gt;         
+ 1   2013 2013-01-01 05:00:00 EWR    IAH   N14228  UA        1999 Fixed wing mu…
+ 2   2013 2013-01-01 05:00:00 LGA    IAH   N24211  UA        1998 Fixed wing mu…
+ 3   2013 2013-01-01 05:00:00 JFK    MIA   N619AA  AA        1990 Fixed wing mu…
+ 4   2013 2013-01-01 05:00:00 JFK    BQN   N804JB  B6        2012 Fixed wing mu…
+ 5   2013 2013-01-01 06:00:00 LGA    ATL   N668DN  DL        1991 Fixed wing mu…
+ 6   2013 2013-01-01 05:00:00 EWR    ORD   N39463  UA        2012 Fixed wing mu…
+ 7   2013 2013-01-01 06:00:00 EWR    FLL   N516JB  B6        2000 Fixed wing mu…
+ 8   2013 2013-01-01 06:00:00 LGA    IAD   N829AS  EV        1998 Fixed wing mu…
+ 9   2013 2013-01-01 06:00:00 JFK    MCO   N593JB  B6        2004 Fixed wing mu…
+10   2013 2013-01-01 06:00:00 LGA    ORD   N3ALAA  AA          NA &lt;NA&gt;          
+# ℹ 336,766 more rows
+# ℹ 6 more variables: manufacturer &lt;chr&gt;, model &lt;chr&gt;, engines &lt;int&gt;,
+#   seats &lt;int&gt;, speed &lt;int&gt;, engine &lt;chr&gt;</code></pre>
+</div>
+</div>
+<p>When the key has different names in each table, use <code>by = c("x_name" = "y_name")</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb95"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb95-1"><a href="#cb95-1" aria-hidden="true" tabindex="-1"></a><span class="co"># join flights destination to airport metadata</span></span>
+<span id="cb95-2"><a href="#cb95-2" aria-hidden="true" tabindex="-1"></a>flights2 <span class="sc">|&gt;</span></span>
+<span id="cb95-3"><a href="#cb95-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(airports, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"dest"</span> <span class="ot">=</span> <span class="st">"faa"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 336,776 × 13
+    year time_hour           origin dest  tailnum carrier name         lat   lon
+   &lt;int&gt; &lt;dttm&gt;              &lt;chr&gt;  &lt;chr&gt; &lt;chr&gt;   &lt;chr&gt;   &lt;chr&gt;      &lt;dbl&gt; &lt;dbl&gt;
+ 1  2013 2013-01-01 05:00:00 EWR    IAH   N14228  UA      George Bu…  30.0 -95.3
+ 2  2013 2013-01-01 05:00:00 LGA    IAH   N24211  UA      George Bu…  30.0 -95.3
+ 3  2013 2013-01-01 05:00:00 JFK    MIA   N619AA  AA      Miami Intl  25.8 -80.3
+ 4  2013 2013-01-01 05:00:00 JFK    BQN   N804JB  B6      &lt;NA&gt;        NA    NA  
+ 5  2013 2013-01-01 06:00:00 LGA    ATL   N668DN  DL      Hartsfiel…  33.6 -84.4
+ 6  2013 2013-01-01 05:00:00 EWR    ORD   N39463  UA      Chicago O…  42.0 -87.9
+ 7  2013 2013-01-01 06:00:00 EWR    FLL   N516JB  B6      Fort Laud…  26.1 -80.2
+ 8  2013 2013-01-01 06:00:00 LGA    IAD   N829AS  EV      Washingto…  38.9 -77.5
+ 9  2013 2013-01-01 06:00:00 JFK    MCO   N593JB  B6      Orlando I…  28.4 -81.3
+10  2013 2013-01-01 06:00:00 LGA    ORD   N3ALAA  AA      Chicago O…  42.0 -87.9
+# ℹ 336,766 more rows
+# ℹ 4 more variables: alt &lt;dbl&gt;, tz &lt;dbl&gt;, dst &lt;chr&gt;, tzone &lt;chr&gt;</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb97"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb97-1"><a href="#cb97-1" aria-hidden="true" tabindex="-1"></a><span class="co"># join flights origin to airport metadata</span></span>
+<span id="cb97-2"><a href="#cb97-2" aria-hidden="true" tabindex="-1"></a>flights2 <span class="sc">|&gt;</span></span>
+<span id="cb97-3"><a href="#cb97-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(airports, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"origin"</span> <span class="ot">=</span> <span class="st">"faa"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 336,776 × 13
+    year time_hour           origin dest  tailnum carrier name         lat   lon
+   &lt;int&gt; &lt;dttm&gt;              &lt;chr&gt;  &lt;chr&gt; &lt;chr&gt;   &lt;chr&gt;   &lt;chr&gt;      &lt;dbl&gt; &lt;dbl&gt;
+ 1  2013 2013-01-01 05:00:00 EWR    IAH   N14228  UA      Newark Li…  40.7 -74.2
+ 2  2013 2013-01-01 05:00:00 LGA    IAH   N24211  UA      La Guardia  40.8 -73.9
+ 3  2013 2013-01-01 05:00:00 JFK    MIA   N619AA  AA      John F Ke…  40.6 -73.8
+ 4  2013 2013-01-01 05:00:00 JFK    BQN   N804JB  B6      John F Ke…  40.6 -73.8
+ 5  2013 2013-01-01 06:00:00 LGA    ATL   N668DN  DL      La Guardia  40.8 -73.9
+ 6  2013 2013-01-01 05:00:00 EWR    ORD   N39463  UA      Newark Li…  40.7 -74.2
+ 7  2013 2013-01-01 06:00:00 EWR    FLL   N516JB  B6      Newark Li…  40.7 -74.2
+ 8  2013 2013-01-01 06:00:00 LGA    IAD   N829AS  EV      La Guardia  40.8 -73.9
+ 9  2013 2013-01-01 06:00:00 JFK    MCO   N593JB  B6      John F Ke…  40.6 -73.8
+10  2013 2013-01-01 06:00:00 LGA    ORD   N3ALAA  AA      La Guardia  40.8 -73.9
+# ℹ 336,766 more rows
+# ℹ 4 more variables: alt &lt;dbl&gt;, tz &lt;dbl&gt;, dst &lt;chr&gt;, tzone &lt;chr&gt;</code></pre>
+</div>
+</div>
+</section>
+<section id="other-mutating-joins" class="level3" data-number="4.3.3">
+<h3 data-number="4.3.3" class="anchored" data-anchor-id="other-mutating-joins"><span class="header-section-number">4.3.3</span> Other Mutating Joins</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Join</th>
+<th>Keeps</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>left_join(x, y)</code></td>
+<td>All rows of <code>x</code>; fills NAs where no match in <code>y</code></td>
+</tr>
+<tr class="even">
+<td><code>right_join(x, y)</code></td>
+<td>All rows of <code>y</code>; fills NAs where no match in <code>x</code></td>
+</tr>
+<tr class="odd">
+<td><code>inner_join(x, y)</code></td>
+<td>Only rows with matches in <strong>both</strong> <code>x</code> and <code>y</code></td>
+</tr>
+<tr class="even">
+<td><code>full_join(x, y)</code></td>
+<td>All rows from both; NAs where no match on either side</td>
+</tr>
+</tbody>
+</table>
+<p>In practice: use <code>left_join()</code> as your default. Use <code>inner_join()</code> only when you explicitly want to drop non-matching rows and have verified that is safe.</p>
+</section>
+</section>
+<section id="filtering-joins" class="level2" data-number="4.4">
+<h2 data-number="4.4" class="anchored" data-anchor-id="filtering-joins"><span class="header-section-number">4.4</span> Filtering Joins</h2>
+<p>Filtering joins do not add columns — they use <code>y</code> to decide which rows of <code>x</code> to keep or drop.</p>
+<section id="semi_join-keep-rows-in-x-that-have-a-match-in-y" class="level3" data-number="4.4.1">
+<h3 data-number="4.4.1" class="anchored" data-anchor-id="semi_join-keep-rows-in-x-that-have-a-match-in-y"><span class="header-section-number">4.4.1</span> <code>semi_join()</code> — keep rows in <code>x</code> that have a match in <code>y</code></h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb99"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb99-1"><a href="#cb99-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Keep only airports that appear as origins in flights</span></span>
+<span id="cb99-2"><a href="#cb99-2" aria-hidden="true" tabindex="-1"></a>airports <span class="sc">|&gt;</span></span>
+<span id="cb99-3"><a href="#cb99-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">semi_join</span>(flights2, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"faa"</span> <span class="ot">=</span> <span class="st">"origin"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 8
+  faa   name                  lat   lon   alt    tz dst   tzone           
+  &lt;chr&gt; &lt;chr&gt;               &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt;           
+1 EWR   Newark Liberty Intl  40.7 -74.2    18    -5 A     America/New_York
+2 JFK   John F Kennedy Intl  40.6 -73.8    13    -5 A     America/New_York
+3 LGA   La Guardia           40.8 -73.9    22    -5 A     America/New_York</code></pre>
+</div>
+</div>
+</section>
+<section id="anti_join-keep-rows-in-x-that-have-no-match-in-y" class="level3" data-number="4.4.2">
+<h3 data-number="4.4.2" class="anchored" data-anchor-id="anti_join-keep-rows-in-x-that-have-no-match-in-y"><span class="header-section-number">4.4.2</span> <code>anti_join()</code> — keep rows in <code>x</code> that have NO match in <code>y</code></h3>
+<p><code>anti_join()</code> is the most useful diagnostic tool for join problems. It finds rows that would be silently dropped by an inner join.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb101"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb101-1"><a href="#cb101-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Which destination codes in flights have no matching airport entry?</span></span>
+<span id="cb101-2"><a href="#cb101-2" aria-hidden="true" tabindex="-1"></a>flights2 <span class="sc">|&gt;</span></span>
+<span id="cb101-3"><a href="#cb101-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">anti_join</span>(airports, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"dest"</span> <span class="ot">=</span> <span class="st">"faa"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb101-4"><a href="#cb101-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(dest)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 4 × 1
+  dest 
+  &lt;chr&gt;
+1 BQN  
+2 SJU  
+3 STT  
+4 PSE  </code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb103"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb103-1"><a href="#cb103-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Which tail numbers in flights have no plane record?</span></span>
+<span id="cb103-2"><a href="#cb103-2" aria-hidden="true" tabindex="-1"></a>flights2 <span class="sc">|&gt;</span></span>
+<span id="cb103-3"><a href="#cb103-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">anti_join</span>(planes, <span class="at">by =</span> <span class="st">"tailnum"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb103-4"><a href="#cb103-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(tailnum) <span class="sc">|&gt;</span></span>
+<span id="cb103-5"><a href="#cb103-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">nrow</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 722</code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Always run <code>anti_join()</code> before a major join.</strong> If it returns rows you did not expect to drop, you have a data quality problem to investigate before proceeding with the analysis.</p>
+</div>
+</div>
+<hr>
+</section>
+</section>
+</section>
+<section id="exercises" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Exercises</h1>
+<p><strong>Exercise 1.</strong> Read the <code>framingham.csv</code> file from the <code>data/</code> folder using <code>read_csv()</code>. Check <code>str()</code> and <code>summary()</code>. How many variables were read in as the wrong type? Use <code>mutate()</code> to correct at least three of them.</p>
+<p><strong>Exercise 2.</strong> The <code>table4a</code> dataset has years as column names. Use <code>pivot_longer()</code> to convert it to tidy format with columns <code>country</code>, <code>year</code>, and <code>cases</code>. Then join it with the tidy version of <code>table4b</code> (population data) using <code>left_join()</code> to create a single tidy table with <code>country</code>, <code>year</code>, <code>cases</code>, and <code>population</code>.</p>
+<p><strong>Exercise 3.</strong> Using <code>flights</code> and <code>airlines</code>, add the full airline name to the flights dataset. Then compute the mean arrival delay by airline name (not code) and sort from worst to best.</p>
+<p><strong>Exercise 4.</strong> Add weather data (temperature and wind speed) to <code>flights2</code> using <code>left_join()</code>. Then: how many flights are missing weather data? Use <code>anti_join()</code> to identify which <code>origin</code>-<code>time_hour</code> combinations in <code>flights2</code> have no match in <code>weather</code>.</p>
+<p><strong>Exercise 5 (Challenge).</strong> Start with <code>flights</code>. Join in plane information (<code>planes</code>) and airport names for both <code>origin</code> and <code>dest</code> (requires two separate joins to <code>airports</code>, using different <code>by</code> arguments and different suffixes). Then compute, for each origin airport name and aircraft engine type, the mean air time. Keep only groups with at least 500 flights and sort by mean air time descending.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+<script src="Day3_AM_Data_Import_Tidy_Join_files/libs/quarto-html/zenscroll-min.js"></script>
+</body></html>
