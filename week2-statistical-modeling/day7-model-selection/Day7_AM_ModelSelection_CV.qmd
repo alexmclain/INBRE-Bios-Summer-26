@@ -1,0 +1,472 @@
+---
+title: "Day 7: Model Selection and Cross-Validation"
+subtitle: "SC INBRE Biostatistics Summer Intensive 2026"
+date: today
+format:
+  html:
+    toc: true
+    toc-location: left
+    toc-depth: 3
+    number-sections: true
+    smooth-scroll: true
+    theme: cosmo
+    code-fold: false
+    highlight-style: github
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+```{r}
+#| echo: false
+library(tidyverse)
+library(this.path)
+setwd(this.dir())
+
+framingham <- read_csv("../../data/framingham.csv") |>
+  filter(!is.na(sysBP), !is.na(age), !is.na(BMI), !is.na(totChol),
+         !is.na(diabetes), !is.na(cigsPerDay), !is.na(glucose)) |>
+  mutate(
+    male          = factor(male,          levels = c(0,1), labels = c("Female","Male")),
+    currentSmoker = factor(currentSmoker, levels = c(0,1), labels = c("Non-smoker","Smoker")),
+    prevalentHyp  = factor(prevalentHyp,  levels = c(0,1), labels = c("No","Yes")),
+    diabetes      = factor(diabetes,      levels = c(0,1), labels = c("No","Yes")),
+    TenYearCHD    = factor(TenYearCHD,    levels = c(0,1), labels = c("No","Yes")),
+    education     = factor(education,     levels = 1:4,
+                           labels = c("Some HS","HS Diploma","Some College","College Degree"))
+  )
+
+FITNESS <- tibble(
+  age      = c(44,40,44,42,38,47,40,43,44,38,44,45,45,47,54,
+               49,51,51,48,49,57,54,52,50,51,54,51,57,49,48,52),
+  weight   = c(89.47,75.07,85.84,68.15,89.02,77.45,75.98,81.19,
+               81.42,81.87,73.03,87.66,66.45,79.15,83.12,81.42,
+               69.63,77.91,91.63,73.37,73.37,79.38,76.32,70.87,
+               67.25,91.63,73.71,59.08,76.32,61.24,82.78),
+  runtime  = c(11.37,10.07,8.65,8.17,9.22,11.63,11.95,10.85,
+               13.08,8.63,10.13,14.03,11.12,10.60,10.33,8.95,
+               10.95,10.00,10.25,10.08,12.63,11.17,9.63,8.92,
+               11.08,12.88,10.47,9.93,9.40,11.50,10.50),
+  restpulse = c(62,62,45,40,55,58,70,64,63,48,45,56,51,47,50,
+               44,57,48,48,67,58,62,48,48,48,44,59,49,56,52,53),
+  runpulse = c(178,185,156,166,178,176,176,162,174,170,168,186,
+               176,162,166,180,168,162,162,168,174,156,164,146,
+               172,168,186,148,186,170,170),
+  maxpulse = c(182,185,168,172,180,176,180,170,176,186,168,192,
+               176,164,170,185,172,168,164,168,176,165,166,155,
+               172,172,188,155,188,176,172),
+  Y        = c(44.609,45.313,54.297,59.571,49.874,44.811,45.681,
+               49.091,39.442,60.055,50.541,37.388,44.754,47.273,
+               51.855,49.156,40.836,46.672,46.774,50.388,39.407,
+               46.080,45.441,54.625,45.118,39.203,45.790,50.545,
+               48.730,47.920,47.467)
+)
+```
+
+# Overview
+
+This document accompanies the Day 7 morning lecture slides. It demonstrates
+the practical R tools for model selection and cross-validation using two
+datasets:
+
+- **Framingham Heart Study**: comparing models predicting systolic blood
+  pressure
+- **FITNESS dataset**: stepwise selection with multiple physiological
+  predictors
+
+---
+
+# Why $R^2$ Is Not Enough
+
+A natural first instinct is to pick the model with the highest $R^2$. Let's
+see why this fails.
+
+```{r}
+# Fit models with increasing numbers of predictors
+m1 <- lm(sysBP ~ age, data = framingham)
+m2 <- lm(sysBP ~ age + BMI, data = framingham)
+m3 <- lm(sysBP ~ age + BMI + totChol, data = framingham)
+m4 <- lm(sysBP ~ age + BMI + totChol + cigsPerDay, data = framingham)
+m5 <- lm(sysBP ~ age + BMI + totChol + cigsPerDay + glucose, data = framingham)
+m6 <- lm(sysBP ~ age + BMI + totChol + cigsPerDay + glucose + diabetes, data = framingham)
+
+# R-squared always goes up
+tibble(
+  predictors = 1:6,
+  R_squared  = c(summary(m1)$r.squared, summary(m2)$r.squared,
+                 summary(m3)$r.squared, summary(m4)$r.squared,
+                 summary(m5)$r.squared, summary(m6)$r.squared)
+) |>
+  ggplot(aes(x = predictors, y = R_squared)) +
+  geom_line(color = "steelblue", linewidth = 1) +
+  geom_point(color = "steelblue", size = 3) +
+  scale_x_continuous(breaks = 1:6) +
+  labs(x = "Number of predictors", y = expression(R^2),
+       title = expression(R^2 ~ "always increases with more predictors"),
+       subtitle = "Even if the added predictors are not useful") +
+  theme_minimal()
+```
+
+$R^2$ goes up with every predictor we add, regardless of whether it
+actually improves prediction. We need criteria that **penalize**
+unnecessary complexity.
+
+---
+
+# AIC and BIC
+
+## Comparing Models
+
+AIC and BIC add a penalty for the number of parameters. Lower values are
+better.
+
+```{r}
+AIC(m1, m2, m3, m4, m5, m6)
+```
+
+```{r}
+BIC(m1, m2, m3, m4, m5, m6)
+```
+
+Notice: AIC keeps decreasing through model 6, but BIC levels off earlier.
+BIC penalizes complexity more heavily and tends to prefer simpler models.
+
+## Interpreting AIC Differences
+
+```{r}
+aic_values <- AIC(m1, m2, m3, m4, m5, m6)
+aic_values$delta_AIC <- aic_values$AIC - min(aic_values$AIC)
+aic_values
+```
+
+A $\Delta$AIC less than 2 means the models are essentially equivalent. A
+$\Delta$AIC greater than 10 is strong evidence for the lower-AIC model. When
+models are close, prefer the simpler one.
+
+## Visualizing AIC and BIC Together
+
+```{r}
+#| fig-width: 7
+#| fig-height: 4
+# Extract the AIC and BIC values correctly
+aic_vals <- c(AIC(m1), AIC(m2), AIC(m3), AIC(m4), AIC(m5), AIC(m6))
+bic_vals <- c(BIC(m1), BIC(m2), BIC(m3), BIC(m4), BIC(m5), BIC(m6))
+
+comparison <- tibble(
+  predictors = rep(1:6, 2),
+  criterion  = rep(c("AIC", "BIC"), each = 6),
+  value      = c(aic_vals, bic_vals)
+)
+
+ggplot(comparison, aes(x = predictors, y = value, color = criterion)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 3) +
+  scale_x_continuous(breaks = 1:6) +
+  scale_color_manual(values = c("AIC" = "steelblue", "BIC" = "firebrick")) +
+  labs(x = "Number of predictors", y = "Criterion value (lower is better)",
+       title = "AIC vs. BIC Across Nested Models",
+       color = "Criterion") +
+  theme_minimal()
+```
+
+---
+
+# Stepwise Selection with `step()`
+
+## FITNESS Dataset: Full Model
+
+We use the FITNESS dataset from Day 6. Start with a model containing all six
+predictors.
+
+```{r}
+model_full <- lm(Y ~ age + weight + runtime + restpulse + runpulse + maxpulse,
+                 data = FITNESS)
+summary(model_full)
+```
+
+## Stepwise Selection (Both Directions)
+
+`step()` iteratively adds and removes predictors to minimize AIC.
+
+```{r}
+model_step_both <- step(model_full, direction = "both", trace = 1)
+```
+
+The trace output shows exactly what the algorithm does at each step: which
+predictor it considers adding or removing, the resulting AIC, and which
+change it selects. The final model is the one where no single add or remove
+improves AIC.
+
+```{r}
+summary(model_step_both)
+```
+
+## Comparing Directions
+
+Forward selection and backward elimination can give different results.
+
+```{r}
+# Forward: start from intercept only
+model_null <- lm(Y ~ 1, data = FITNESS)
+model_step_fwd <- step(model_null,
+                       scope = list(lower = model_null, upper = model_full),
+                       direction = "forward", trace = 0)
+
+# Backward: start from full model
+model_step_bwd <- step(model_full, direction = "backward", trace = 0)
+
+# Compare
+tibble(
+  direction = c("Forward", "Backward", "Both"),
+  formula   = c(deparse(formula(model_step_fwd)),
+                deparse(formula(model_step_bwd)),
+                deparse(formula(model_step_both))),
+  AIC       = c(AIC(model_step_fwd), AIC(model_step_bwd), AIC(model_step_both)),
+  R_squared = c(summary(model_step_fwd)$r.squared,
+                summary(model_step_bwd)$r.squared,
+                summary(model_step_both)$r.squared)
+)
+```
+
+::: {.callout-note}
+If the three directions select the same model, you can be more confident in
+the result. If they disagree, it suggests that some predictors are marginal
+and the choice may not matter much practically.
+:::
+
+## Formally Comparing Nested Models
+
+We can also use the partial F-test (`anova()`) to compare any two nested
+models directly.
+
+```{r}
+# Does the full model improve significantly over the stepwise model?
+anova(model_step_both, model_full)
+```
+
+A non-significant p-value means the extra predictors in the full model do not
+meaningfully improve fit --- we prefer the simpler stepwise model.
+
+---
+
+# Cross-Validation
+
+## The Idea
+
+AIC estimates prediction error using a formula. Cross-validation estimates it
+by **actually predicting held-out data**. We implement 5-fold CV from
+scratch, then compare to AIC.
+
+## Setting Up 5-Fold CV
+
+```{r}
+set.seed(42)   # for reproducibility
+
+# Assign each observation to a fold
+n <- nrow(framingham)
+K <- 5
+framingham$fold <- sample(rep(1:K, length.out = n))
+
+table(framingham$fold)
+```
+
+## Writing a CV Function
+
+```{r}
+cv_mse <- function(formula, data, K = 5) {
+  mse_per_fold <- numeric(K)
+
+  for (k in 1:K) {
+    train <- data[data$fold != k, ]
+    test  <- data[data$fold == k, ]
+
+    model <- lm(formula, data = train)
+    preds <- predict(model, newdata = test)
+    mse_per_fold[k] <- mean((test$sysBP - preds)^2)
+  }
+
+  mean(mse_per_fold)
+}
+```
+
+This function:
+
+1. Loops over the $K$ folds.
+2. For each fold, fits the model on the training data (everything except
+   that fold).
+3. Predicts the held-out fold.
+4. Computes the mean squared error (MSE) for that fold.
+5. Returns the average MSE across all folds.
+
+## Comparing Models with CV
+
+```{r}
+cv_results <- tibble(
+  model       = c("age only",
+                   "age + BMI",
+                   "age + BMI + totChol",
+                   "age + BMI + totChol + cigsPerDay",
+                   "age + BMI + totChol + cigsPerDay + glucose",
+                   "age + BMI + totChol + cigsPerDay + glucose + diabetes"),
+  predictors  = 1:6,
+  cv_mse      = c(
+    cv_mse(sysBP ~ age, framingham),
+    cv_mse(sysBP ~ age + BMI, framingham),
+    cv_mse(sysBP ~ age + BMI + totChol, framingham),
+    cv_mse(sysBP ~ age + BMI + totChol + cigsPerDay, framingham),
+    cv_mse(sysBP ~ age + BMI + totChol + cigsPerDay + glucose, framingham),
+    cv_mse(sysBP ~ age + BMI + totChol + cigsPerDay + glucose + diabetes, framingham)
+  )
+)
+
+cv_results
+```
+
+## Visualizing CV Error
+
+```{r}
+#| fig-width: 7
+#| fig-height: 4
+ggplot(cv_results, aes(x = predictors, y = cv_mse)) +
+  geom_line(color = "steelblue", linewidth = 1) +
+  geom_point(color = "steelblue", size = 3) +
+  geom_point(data = filter(cv_results, cv_mse == min(cv_mse)),
+             color = "firebrick", size = 4) +
+  scale_x_continuous(breaks = 1:6) +
+  labs(x = "Number of predictors", y = "5-Fold CV Mean Squared Error",
+       title = "Cross-Validation Error Across Nested Models",
+       subtitle = "Red point marks the model with lowest CV error") +
+  theme_minimal()
+```
+
+::: {.callout-important}
+Compare this plot to the $R^2$ plot from Section 1. $R^2$ always goes up.
+CV error goes down and then **levels off or increases** as overfitting
+begins. This is why CV is a better guide for model selection than $R^2$.
+:::
+
+## AIC vs. CV: Do They Agree?
+
+```{r}
+cv_results$AIC <- c(AIC(m1), AIC(m2), AIC(m3), AIC(m4), AIC(m5), AIC(m6))
+
+cv_results |>
+  select(model, predictors, cv_mse, AIC) |>
+  mutate(
+    best_cv  = if_else(cv_mse == min(cv_mse), "<-- best CV", ""),
+    best_aic = if_else(AIC == min(AIC), "<-- best AIC", "")
+  )
+```
+
+In many practical situations, AIC and CV will select the same model or very
+similar ones. When they disagree, it is usually on marginal predictors that
+don't change the conclusions meaningfully.
+
+---
+
+# Using `rsample` for Cross-Validation
+
+The manual loop above is instructive, but in practice the `rsample` package
+makes CV cleaner and less error-prone.
+
+```{r}
+library(rsample)
+
+set.seed(42)
+folds <- vfold_cv(framingham, v = 5)
+folds
+```
+
+Each fold object contains a training/test split. We can map over them:
+
+```{r}
+cv_rsample <- function(formula, folds) {
+  mse_vals <- map_dbl(folds$splits, function(split) {
+    train <- analysis(split)
+    test  <- assessment(split)
+    model <- lm(formula, data = train)
+    preds <- predict(model, newdata = test)
+    mean((test$sysBP - preds)^2)
+  })
+
+  tibble(
+    mean_mse = mean(mse_vals),
+    sd_mse   = sd(mse_vals)
+  )
+}
+
+cv_rsample(sysBP ~ age + BMI + totChol, folds)
+```
+
+The standard deviation tells you how variable the CV error is across folds.
+If it is large relative to the mean, the estimate is noisy and you should
+interpret model comparisons cautiously.
+
+---
+
+# Putting It All Together
+
+Here is the complete model selection workflow applied to the Framingham data:
+
+**Step 1: Check variable form** (Day 6 — loess smoothers for each predictor).
+
+**Step 2: Fit a full model** with all candidate predictors.
+
+```{r}
+full <- lm(sysBP ~ age + BMI + totChol + cigsPerDay + glucose + diabetes,
+           data = framingham)
+summary(full)
+```
+
+**Step 3: Run stepwise selection** with AIC.
+
+```{r}
+selected <- step(full, direction = "both", trace = 0)
+summary(selected)
+```
+
+**Step 4: Compare with AIC and a formal F-test.**
+
+```{r}
+AIC(full, selected)
+anova(selected, full)
+```
+
+**Step 5: Validate with cross-validation.**
+
+```{r}
+set.seed(42)
+folds <- vfold_cv(framingham, v = 5)
+
+cv_full     <- cv_rsample(sysBP ~ age + BMI + totChol + cigsPerDay + glucose + diabetes, folds)
+cv_selected <- cv_rsample(formula(selected), folds)
+
+bind_rows(
+  cv_full     |> mutate(model = "Full"),
+  cv_selected |> mutate(model = "Stepwise-selected")
+) |>
+  select(model, mean_mse, sd_mse)
+```
+
+**Step 6: Run diagnostics on the final model** (Day 6 workflow).
+
+```{r}
+#| fig-width: 8
+#| fig-height: 7
+par(mfrow = c(2, 2))
+plot(selected)
+par(mfrow = c(1, 1))
+```
+
+**Step 7: Interpret the final model.**
+
+```{r}
+confint(selected)
+```
+
+::: {.callout-tip}
+This seven-step workflow — check variable form, fit full model, stepwise
+selection, AIC comparison, cross-validation, diagnostics, interpretation —
+is a template you can apply to any regression analysis.
+:::

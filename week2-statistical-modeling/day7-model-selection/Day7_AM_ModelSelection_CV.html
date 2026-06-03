@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.32">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2026-05-29">
+
+<title>Day 7: Model Selection and Cross-Validation</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Day7_AM_ModelSelection_CV_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Day7_AM_ModelSelection_CV_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="Day7_AM_ModelSelection_CV_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="Day7_AM_ModelSelection_CV_files/libs/quarto-html/popper.min.js"></script>
+<script src="Day7_AM_ModelSelection_CV_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Day7_AM_ModelSelection_CV_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Day7_AM_ModelSelection_CV_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Day7_AM_ModelSelection_CV_files/libs/quarto-html/quarto-syntax-highlighting-234273d1456647dabc34a594ac50e507.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Day7_AM_ModelSelection_CV_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Day7_AM_ModelSelection_CV_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Day7_AM_ModelSelection_CV_files/libs/bootstrap/bootstrap-dfb3f4843b9b0ce307f095fcbeec1e0c.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<style>html{ scroll-behavior: smooth; }</style>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview"><span class="header-section-number">1</span> Overview</a></li>
+  <li><a href="#why-r2-is-not-enough" id="toc-why-r2-is-not-enough" class="nav-link" data-scroll-target="#why-r2-is-not-enough"><span class="header-section-number">2</span> Why <span class="math inline">\(R^2\)</span> Is Not Enough</a></li>
+  <li><a href="#aic-and-bic" id="toc-aic-and-bic" class="nav-link" data-scroll-target="#aic-and-bic"><span class="header-section-number">3</span> AIC and BIC</a>
+  <ul class="collapse">
+  <li><a href="#comparing-models" id="toc-comparing-models" class="nav-link" data-scroll-target="#comparing-models"><span class="header-section-number">3.1</span> Comparing Models</a></li>
+  <li><a href="#interpreting-aic-differences" id="toc-interpreting-aic-differences" class="nav-link" data-scroll-target="#interpreting-aic-differences"><span class="header-section-number">3.2</span> Interpreting AIC Differences</a></li>
+  <li><a href="#visualizing-aic-and-bic-together" id="toc-visualizing-aic-and-bic-together" class="nav-link" data-scroll-target="#visualizing-aic-and-bic-together"><span class="header-section-number">3.3</span> Visualizing AIC and BIC Together</a></li>
+  </ul></li>
+  <li><a href="#stepwise-selection-with-step" id="toc-stepwise-selection-with-step" class="nav-link" data-scroll-target="#stepwise-selection-with-step"><span class="header-section-number">4</span> Stepwise Selection with <code>step()</code></a>
+  <ul class="collapse">
+  <li><a href="#fitness-dataset-full-model" id="toc-fitness-dataset-full-model" class="nav-link" data-scroll-target="#fitness-dataset-full-model"><span class="header-section-number">4.1</span> FITNESS Dataset: Full Model</a></li>
+  <li><a href="#stepwise-selection-both-directions" id="toc-stepwise-selection-both-directions" class="nav-link" data-scroll-target="#stepwise-selection-both-directions"><span class="header-section-number">4.2</span> Stepwise Selection (Both Directions)</a></li>
+  <li><a href="#comparing-directions" id="toc-comparing-directions" class="nav-link" data-scroll-target="#comparing-directions"><span class="header-section-number">4.3</span> Comparing Directions</a></li>
+  <li><a href="#formally-comparing-nested-models" id="toc-formally-comparing-nested-models" class="nav-link" data-scroll-target="#formally-comparing-nested-models"><span class="header-section-number">4.4</span> Formally Comparing Nested Models</a></li>
+  </ul></li>
+  <li><a href="#cross-validation" id="toc-cross-validation" class="nav-link" data-scroll-target="#cross-validation"><span class="header-section-number">5</span> Cross-Validation</a>
+  <ul class="collapse">
+  <li><a href="#the-idea" id="toc-the-idea" class="nav-link" data-scroll-target="#the-idea"><span class="header-section-number">5.1</span> The Idea</a></li>
+  <li><a href="#setting-up-5-fold-cv" id="toc-setting-up-5-fold-cv" class="nav-link" data-scroll-target="#setting-up-5-fold-cv"><span class="header-section-number">5.2</span> Setting Up 5-Fold CV</a></li>
+  <li><a href="#writing-a-cv-function" id="toc-writing-a-cv-function" class="nav-link" data-scroll-target="#writing-a-cv-function"><span class="header-section-number">5.3</span> Writing a CV Function</a></li>
+  <li><a href="#comparing-models-with-cv" id="toc-comparing-models-with-cv" class="nav-link" data-scroll-target="#comparing-models-with-cv"><span class="header-section-number">5.4</span> Comparing Models with CV</a></li>
+  <li><a href="#visualizing-cv-error" id="toc-visualizing-cv-error" class="nav-link" data-scroll-target="#visualizing-cv-error"><span class="header-section-number">5.5</span> Visualizing CV Error</a></li>
+  <li><a href="#aic-vs.-cv-do-they-agree" id="toc-aic-vs.-cv-do-they-agree" class="nav-link" data-scroll-target="#aic-vs.-cv-do-they-agree"><span class="header-section-number">5.6</span> AIC vs.&nbsp;CV: Do They Agree?</a></li>
+  </ul></li>
+  <li><a href="#using-rsample-for-cross-validation" id="toc-using-rsample-for-cross-validation" class="nav-link" data-scroll-target="#using-rsample-for-cross-validation"><span class="header-section-number">6</span> Using <code>rsample</code> for Cross-Validation</a></li>
+  <li><a href="#putting-it-all-together" id="toc-putting-it-all-together" class="nav-link" data-scroll-target="#putting-it-all-together"><span class="header-section-number">7</span> Putting It All Together</a></li>
+  </ul>
+</nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Day 7: Model Selection and Cross-Validation</h1>
+<p class="subtitle lead">SC INBRE Biostatistics Summer Intensive 2026</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">May 29, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="overview" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Overview</h1>
+<p>This document accompanies the Day 7 morning lecture slides. It demonstrates the practical R tools for model selection and cross-validation using two datasets:</p>
+<ul>
+<li><strong>Framingham Heart Study</strong>: comparing models predicting systolic blood pressure</li>
+<li><strong>FITNESS dataset</strong>: stepwise selection with multiple physiological predictors</li>
+</ul>
+<hr>
+</section>
+<section id="why-r2-is-not-enough" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Why <span class="math inline">\(R^2\)</span> Is Not Enough</h1>
+<p>A natural first instinct is to pick the model with the highest <span class="math inline">\(R^2\)</span>. Let’s see why this fails.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit models with increasing numbers of predictors</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>m1 <span class="ot">&lt;-</span> <span class="fu">lm</span>(sysBP <span class="sc">~</span> age, <span class="at">data =</span> framingham)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>m2 <span class="ot">&lt;-</span> <span class="fu">lm</span>(sysBP <span class="sc">~</span> age <span class="sc">+</span> BMI, <span class="at">data =</span> framingham)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>m3 <span class="ot">&lt;-</span> <span class="fu">lm</span>(sysBP <span class="sc">~</span> age <span class="sc">+</span> BMI <span class="sc">+</span> totChol, <span class="at">data =</span> framingham)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>m4 <span class="ot">&lt;-</span> <span class="fu">lm</span>(sysBP <span class="sc">~</span> age <span class="sc">+</span> BMI <span class="sc">+</span> totChol <span class="sc">+</span> cigsPerDay, <span class="at">data =</span> framingham)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>m5 <span class="ot">&lt;-</span> <span class="fu">lm</span>(sysBP <span class="sc">~</span> age <span class="sc">+</span> BMI <span class="sc">+</span> totChol <span class="sc">+</span> cigsPerDay <span class="sc">+</span> glucose, <span class="at">data =</span> framingham)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>m6 <span class="ot">&lt;-</span> <span class="fu">lm</span>(sysBP <span class="sc">~</span> age <span class="sc">+</span> BMI <span class="sc">+</span> totChol <span class="sc">+</span> cigsPerDay <span class="sc">+</span> glucose <span class="sc">+</span> diabetes, <span class="at">data =</span> framingham)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co"># R-squared always goes up</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">predictors =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>,</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">R_squared  =</span> <span class="fu">c</span>(<span class="fu">summary</span>(m1)<span class="sc">$</span>r.squared, <span class="fu">summary</span>(m2)<span class="sc">$</span>r.squared,</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>                 <span class="fu">summary</span>(m3)<span class="sc">$</span>r.squared, <span class="fu">summary</span>(m4)<span class="sc">$</span>r.squared,</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>                 <span class="fu">summary</span>(m5)<span class="sc">$</span>r.squared, <span class="fu">summary</span>(m6)<span class="sc">$</span>r.squared)</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> predictors, <span class="at">y =</span> R_squared)) <span class="sc">+</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">color =</span> <span class="st">"steelblue"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">color =</span> <span class="st">"steelblue"</span>, <span class="at">size =</span> <span class="dv">3</span>) <span class="sc">+</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>) <span class="sc">+</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Number of predictors"</span>, <span class="at">y =</span> <span class="fu">expression</span>(R<span class="sc">^</span><span class="dv">2</span>),</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="fu">expression</span>(R<span class="sc">^</span><span class="dv">2</span> <span class="sc">~</span> <span class="st">"always increases with more predictors"</span>),</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="st">"Even if the added predictors are not useful"</span>) <span class="sc">+</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day7_AM_ModelSelection_CV_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><span class="math inline">\(R^2\)</span> goes up with every predictor we add, regardless of whether it actually improves prediction. We need criteria that <strong>penalize</strong> unnecessary complexity.</p>
+<hr>
+</section>
+<section id="aic-and-bic" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> AIC and BIC</h1>
+<section id="comparing-models" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="comparing-models"><span class="header-section-number">3.1</span> Comparing Models</h2>
+<p>AIC and BIC add a penalty for the number of parameters. Lower values are better.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">AIC</span>(m1, m2, m3, m4, m5, m6)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   df      AIC
+m1  3 33714.92
+m2  4 33355.55
+m3  5 33313.47
+m4  6 33315.41
+m5  7 33295.69
+m6  8 33297.68</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">BIC</span>(m1, m2, m3, m4, m5, m6)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   df      BIC
+m1  3 33733.65
+m2  4 33380.52
+m3  5 33344.69
+m4  6 33352.87
+m5  7 33339.39
+m6  8 33347.63</code></pre>
+</div>
+</div>
+<p>Notice: AIC keeps decreasing through model 6, but BIC levels off earlier. BIC penalizes complexity more heavily and tends to prefer simpler models.</p>
+</section>
+<section id="interpreting-aic-differences" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="interpreting-aic-differences"><span class="header-section-number">3.2</span> Interpreting AIC Differences</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>aic_values <span class="ot">&lt;-</span> <span class="fu">AIC</span>(m1, m2, m3, m4, m5, m6)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>aic_values<span class="sc">$</span>delta_AIC <span class="ot">&lt;-</span> aic_values<span class="sc">$</span>AIC <span class="sc">-</span> <span class="fu">min</span>(aic_values<span class="sc">$</span>AIC)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>aic_values</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   df      AIC  delta_AIC
+m1  3 33714.92 419.236413
+m2  4 33355.55  59.863558
+m3  5 33313.47  17.782276
+m4  6 33315.41  19.725089
+m5  7 33295.69   0.000000
+m6  8 33297.68   1.997696</code></pre>
+</div>
+</div>
+<p>A <span class="math inline">\(\Delta\)</span>AIC less than 2 means the models are essentially equivalent. A <span class="math inline">\(\Delta\)</span>AIC greater than 10 is strong evidence for the lower-AIC model. When models are close, prefer the simpler one.</p>
+</section>
+<section id="visualizing-aic-and-bic-together" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="visualizing-aic-and-bic-together"><span class="header-section-number">3.3</span> Visualizing AIC and BIC Together</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract the AIC and BIC values correctly</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>aic_vals <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fu">AIC</span>(m1), <span class="fu">AIC</span>(m2), <span class="fu">AIC</span>(m3), <span class="fu">AIC</span>(m4), <span class="fu">AIC</span>(m5), <span class="fu">AIC</span>(m6))</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>bic_vals <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fu">BIC</span>(m1), <span class="fu">BIC</span>(m2), <span class="fu">BIC</span>(m3), <span class="fu">BIC</span>(m4), <span class="fu">BIC</span>(m5), <span class="fu">BIC</span>(m6))</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>comparison <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">predictors =</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>, <span class="dv">2</span>),</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">criterion  =</span> <span class="fu">rep</span>(<span class="fu">c</span>(<span class="st">"AIC"</span>, <span class="st">"BIC"</span>), <span class="at">each =</span> <span class="dv">6</span>),</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">value      =</span> <span class="fu">c</span>(aic_vals, bic_vals)</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(comparison, <span class="fu">aes</span>(<span class="at">x =</span> predictors, <span class="at">y =</span> value, <span class="at">color =</span> criterion)) <span class="sc">+</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">3</span>) <span class="sc">+</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>) <span class="sc">+</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"AIC"</span> <span class="ot">=</span> <span class="st">"steelblue"</span>, <span class="st">"BIC"</span> <span class="ot">=</span> <span class="st">"firebrick"</span>)) <span class="sc">+</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Number of predictors"</span>, <span class="at">y =</span> <span class="st">"Criterion value (lower is better)"</span>,</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"AIC vs. BIC Across Nested Models"</span>,</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>       <span class="at">color =</span> <span class="st">"Criterion"</span>) <span class="sc">+</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day7_AM_ModelSelection_CV_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<hr>
+</section>
+</section>
+<section id="stepwise-selection-with-step" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Stepwise Selection with <code>step()</code></h1>
+<section id="fitness-dataset-full-model" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="fitness-dataset-full-model"><span class="header-section-number">4.1</span> FITNESS Dataset: Full Model</h2>
+<p>We use the FITNESS dataset from Day 6. Start with a model containing all six predictors.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>model_full <span class="ot">&lt;-</span> <span class="fu">lm</span>(Y <span class="sc">~</span> age <span class="sc">+</span> weight <span class="sc">+</span> runtime <span class="sc">+</span> restpulse <span class="sc">+</span> runpulse <span class="sc">+</span> maxpulse,</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>                 <span class="at">data =</span> FITNESS)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model_full)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = Y ~ age + weight + runtime + restpulse + runpulse + 
+    maxpulse, data = FITNESS)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-5.4052 -0.8967  0.0744  1.0505  5.3804 
+
+Coefficients:
+             Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) 102.83508   12.40437   8.290 1.67e-08 ***
+age          -0.22629    0.09985  -2.266  0.03272 *  
+weight       -0.07417    0.05460  -1.359  0.18693    
+runtime      -2.63183    0.38460  -6.843 4.46e-07 ***
+restpulse    -0.02134    0.06606  -0.323  0.74943    
+runpulse     -0.36933    0.11986  -3.081  0.00511 ** 
+maxpulse      0.30345    0.13651   2.223  0.03589 *  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 2.317 on 24 degrees of freedom
+Multiple R-squared:  0.8487,    Adjusted R-squared:  0.8108 
+F-statistic: 22.43 on 6 and 24 DF,  p-value: 9.716e-09</code></pre>
+</div>
+</div>
+</section>
+<section id="stepwise-selection-both-directions" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="stepwise-selection-both-directions"><span class="header-section-number">4.2</span> Stepwise Selection (Both Directions)</h2>
+<p><code>step()</code> iteratively adds and removes predictors to minimize AIC.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>model_step_both <span class="ot">&lt;-</span> <span class="fu">step</span>(model_full, <span class="at">direction =</span> <span class="st">"both"</span>, <span class="at">trace =</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Start:  AIC=58.17
+Y ~ age + weight + runtime + restpulse + runpulse + maxpulse
+
+            Df Sum of Sq    RSS    AIC
+- restpulse  1     0.560 129.42 56.302
+&lt;none&gt;                   128.86 58.167
+- weight     1     9.909 138.77 58.464
+- maxpulse   1    26.533 155.39 61.971
+- age        1    27.580 156.44 62.179
+- runpulse   1    50.975 179.84 66.500
+- runtime    1   251.429 380.29 89.715
+
+Step:  AIC=56.3
+Y ~ age + weight + runtime + runpulse + maxpulse
+
+            Df Sum of Sq    RSS    AIC
+&lt;none&gt;                   129.42 56.302
+- weight     1      9.52 138.95 56.503
++ restpulse  1      0.56 128.86 58.167
+- maxpulse   1     26.87 156.29 60.149
+- age        1     27.22 156.64 60.219
+- runpulse   1     52.50 181.92 64.858
+- runtime    1    321.00 450.43 92.962</code></pre>
+</div>
+</div>
+<p>The trace output shows exactly what the algorithm does at each step: which predictor it considers adding or removing, the resulting AIC, and which change it selects. The final model is the one where no single add or remove improves AIC.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model_step_both)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = Y ~ age + weight + runtime + runpulse + maxpulse, 
+    data = FITNESS)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-5.4744 -0.8457  0.0074  0.9989  5.3764 
+
+Coefficients:
+             Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) 102.11135   11.97990   8.524 7.26e-09 ***
+age          -0.21901    0.09551  -2.293  0.03053 *  
+weight       -0.07231    0.05331  -1.356  0.18709    
+runtime      -2.68522    0.34100  -7.874 3.13e-08 ***
+runpulse     -0.37307    0.11715  -3.185  0.00386 ** 
+maxpulse      0.30513    0.13394   2.278  0.03154 *  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 2.275 on 25 degrees of freedom
+Multiple R-squared:  0.848, Adjusted R-squared:  0.8176 
+F-statistic:  27.9 on 5 and 25 DF,  p-value: 1.809e-09</code></pre>
+</div>
+</div>
+</section>
+<section id="comparing-directions" class="level2" data-number="4.3">
+<h2 data-number="4.3" class="anchored" data-anchor-id="comparing-directions"><span class="header-section-number">4.3</span> Comparing Directions</h2>
+<p>Forward selection and backward elimination can give different results.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Forward: start from intercept only</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>model_null <span class="ot">&lt;-</span> <span class="fu">lm</span>(Y <span class="sc">~</span> <span class="dv">1</span>, <span class="at">data =</span> FITNESS)</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>model_step_fwd <span class="ot">&lt;-</span> <span class="fu">step</span>(model_null,</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>                       <span class="at">scope =</span> <span class="fu">list</span>(<span class="at">lower =</span> model_null, <span class="at">upper =</span> model_full),</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>                       <span class="at">direction =</span> <span class="st">"forward"</span>, <span class="at">trace =</span> <span class="dv">0</span>)</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Backward: start from full model</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>model_step_bwd <span class="ot">&lt;-</span> <span class="fu">step</span>(model_full, <span class="at">direction =</span> <span class="st">"backward"</span>, <span class="at">trace =</span> <span class="dv">0</span>)</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(</span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">direction =</span> <span class="fu">c</span>(<span class="st">"Forward"</span>, <span class="st">"Backward"</span>, <span class="st">"Both"</span>),</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">formula   =</span> <span class="fu">c</span>(<span class="fu">deparse</span>(<span class="fu">formula</span>(model_step_fwd)),</span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>                <span class="fu">deparse</span>(<span class="fu">formula</span>(model_step_bwd)),</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>                <span class="fu">deparse</span>(<span class="fu">formula</span>(model_step_both))),</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">AIC       =</span> <span class="fu">c</span>(<span class="fu">AIC</span>(model_step_fwd), <span class="fu">AIC</span>(model_step_bwd), <span class="fu">AIC</span>(model_step_both)),</span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">R_squared =</span> <span class="fu">c</span>(<span class="fu">summary</span>(model_step_fwd)<span class="sc">$</span>r.squared,</span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>                <span class="fu">summary</span>(model_step_bwd)<span class="sc">$</span>r.squared,</span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>                <span class="fu">summary</span>(model_step_both)<span class="sc">$</span>r.squared)</span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 4
+  direction formula                                            AIC R_squared
+  &lt;chr&gt;     &lt;chr&gt;                                            &lt;dbl&gt;     &lt;dbl&gt;
+1 Forward   Y ~ runtime + age + runpulse + maxpulse + weight  146.     0.848
+2 Backward  Y ~ age + weight + runtime + runpulse + maxpulse  146.     0.848
+3 Both      Y ~ age + weight + runtime + runpulse + maxpulse  146.     0.848</code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>If the three directions select the same model, you can be more confident in the result. If they disagree, it suggests that some predictors are marginal and the choice may not matter much practically.</p>
+</div>
+</div>
+</section>
+<section id="formally-comparing-nested-models" class="level2" data-number="4.4">
+<h2 data-number="4.4" class="anchored" data-anchor-id="formally-comparing-nested-models"><span class="header-section-number">4.4</span> Formally Comparing Nested Models</h2>
+<p>We can also use the partial F-test (<code>anova()</code>) to compare any two nested models directly.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Does the full model improve significantly over the stepwise model?</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="fu">anova</span>(model_step_both, model_full)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Analysis of Variance Table
+
+Model 1: Y ~ age + weight + runtime + runpulse + maxpulse
+Model 2: Y ~ age + weight + runtime + restpulse + runpulse + maxpulse
+  Res.Df    RSS Df Sum of Sq      F Pr(&gt;F)
+1     25 129.42                           
+2     24 128.86  1   0.56044 0.1044 0.7494</code></pre>
+</div>
+</div>
+<p>A non-significant p-value means the extra predictors in the full model do not meaningfully improve fit — we prefer the simpler stepwise model.</p>
+<hr>
+</section>
+</section>
+<section id="cross-validation" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Cross-Validation</h1>
+<section id="the-idea" class="level2" data-number="5.1">
+<h2 data-number="5.1" class="anchored" data-anchor-id="the-idea"><span class="header-section-number">5.1</span> The Idea</h2>
+<p>AIC estimates prediction error using a formula. Cross-validation estimates it by <strong>actually predicting held-out data</strong>. We implement 5-fold CV from scratch, then compare to AIC.</p>
+</section>
+<section id="setting-up-5-fold-cv" class="level2" data-number="5.2">
+<h2 data-number="5.2" class="anchored" data-anchor-id="setting-up-5-fold-cv"><span class="header-section-number">5.2</span> Setting Up 5-Fold CV</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)   <span class="co"># for reproducibility</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Assign each observation to a fold</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>n <span class="ot">&lt;-</span> <span class="fu">nrow</span>(framingham)</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>K <span class="ot">&lt;-</span> <span class="dv">5</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>framingham<span class="sc">$</span>fold <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span>K, <span class="at">length.out =</span> n))</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(framingham<span class="sc">$</span>fold)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+  1   2   3   4   5 
+761 761 761 760 760 </code></pre>
+</div>
+</div>
+</section>
+<section id="writing-a-cv-function" class="level2" data-number="5.3">
+<h2 data-number="5.3" class="anchored" data-anchor-id="writing-a-cv-function"><span class="header-section-number">5.3</span> Writing a CV Function</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>cv_mse <span class="ot">&lt;-</span> <span class="cf">function</span>(formula, data, <span class="at">K =</span> <span class="dv">5</span>) {</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  mse_per_fold <span class="ot">&lt;-</span> <span class="fu">numeric</span>(K)</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (k <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>K) {</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    train <span class="ot">&lt;-</span> data[data<span class="sc">$</span>fold <span class="sc">!=</span> k, ]</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    test  <span class="ot">&lt;-</span> data[data<span class="sc">$</span>fold <span class="sc">==</span> k, ]</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>    model <span class="ot">&lt;-</span> <span class="fu">lm</span>(formula, <span class="at">data =</span> train)</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>    preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(model, <span class="at">newdata =</span> test)</span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>    mse_per_fold[k] <span class="ot">&lt;-</span> <span class="fu">mean</span>((test<span class="sc">$</span>sysBP <span class="sc">-</span> preds)<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mean</span>(mse_per_fold)</span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>This function:</p>
+<ol type="1">
+<li>Loops over the <span class="math inline">\(K\)</span> folds.</li>
+<li>For each fold, fits the model on the training data (everything except that fold).</li>
+<li>Predicts the held-out fold.</li>
+<li>Computes the mean squared error (MSE) for that fold.</li>
+<li>Returns the average MSE across all folds.</li>
+</ol>
+</section>
+<section id="comparing-models-with-cv" class="level2" data-number="5.4">
+<h2 data-number="5.4" class="anchored" data-anchor-id="comparing-models-with-cv"><span class="header-section-number">5.4</span> Comparing Models with CV</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>cv_results <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">model       =</span> <span class="fu">c</span>(<span class="st">"age only"</span>,</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>                   <span class="st">"age + BMI"</span>,</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>                   <span class="st">"age + BMI + totChol"</span>,</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>                   <span class="st">"age + BMI + totChol + cigsPerDay"</span>,</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>                   <span class="st">"age + BMI + totChol + cigsPerDay + glucose"</span>,</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>                   <span class="st">"age + BMI + totChol + cigsPerDay + glucose + diabetes"</span>),</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">predictors  =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>,</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">cv_mse      =</span> <span class="fu">c</span>(</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cv_mse</span>(sysBP <span class="sc">~</span> age, framingham),</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cv_mse</span>(sysBP <span class="sc">~</span> age <span class="sc">+</span> BMI, framingham),</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cv_mse</span>(sysBP <span class="sc">~</span> age <span class="sc">+</span> BMI <span class="sc">+</span> totChol, framingham),</span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cv_mse</span>(sysBP <span class="sc">~</span> age <span class="sc">+</span> BMI <span class="sc">+</span> totChol <span class="sc">+</span> cigsPerDay, framingham),</span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cv_mse</span>(sysBP <span class="sc">~</span> age <span class="sc">+</span> BMI <span class="sc">+</span> totChol <span class="sc">+</span> cigsPerDay <span class="sc">+</span> glucose, framingham),</span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cv_mse</span>(sysBP <span class="sc">~</span> age <span class="sc">+</span> BMI <span class="sc">+</span> totChol <span class="sc">+</span> cigsPerDay <span class="sc">+</span> glucose <span class="sc">+</span> diabetes, framingham)</span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>cv_results</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 3
+  model                                                 predictors cv_mse
+  &lt;chr&gt;                                                      &lt;int&gt;  &lt;dbl&gt;
+1 age only                                                       1   414.
+2 age + BMI                                                      2   377.
+3 age + BMI + totChol                                            3   373.
+4 age + BMI + totChol + cigsPerDay                               4   373.
+5 age + BMI + totChol + cigsPerDay + glucose                     5   372.
+6 age + BMI + totChol + cigsPerDay + glucose + diabetes          6   372.</code></pre>
+</div>
+</div>
+</section>
+<section id="visualizing-cv-error" class="level2" data-number="5.5">
+<h2 data-number="5.5" class="anchored" data-anchor-id="visualizing-cv-error"><span class="header-section-number">5.5</span> Visualizing CV Error</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(cv_results, <span class="fu">aes</span>(<span class="at">x =</span> predictors, <span class="at">y =</span> cv_mse)) <span class="sc">+</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">color =</span> <span class="st">"steelblue"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">color =</span> <span class="st">"steelblue"</span>, <span class="at">size =</span> <span class="dv">3</span>) <span class="sc">+</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">data =</span> <span class="fu">filter</span>(cv_results, cv_mse <span class="sc">==</span> <span class="fu">min</span>(cv_mse)),</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>             <span class="at">color =</span> <span class="st">"firebrick"</span>, <span class="at">size =</span> <span class="dv">4</span>) <span class="sc">+</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>) <span class="sc">+</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Number of predictors"</span>, <span class="at">y =</span> <span class="st">"5-Fold CV Mean Squared Error"</span>,</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Cross-Validation Error Across Nested Models"</span>,</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="st">"Red point marks the model with lowest CV error"</span>) <span class="sc">+</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day7_AM_ModelSelection_CV_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Important
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Compare this plot to the <span class="math inline">\(R^2\)</span> plot from Section 1. <span class="math inline">\(R^2\)</span> always goes up. CV error goes down and then <strong>levels off or increases</strong> as overfitting begins. This is why CV is a better guide for model selection than <span class="math inline">\(R^2\)</span>.</p>
+</div>
+</div>
+</section>
+<section id="aic-vs.-cv-do-they-agree" class="level2" data-number="5.6">
+<h2 data-number="5.6" class="anchored" data-anchor-id="aic-vs.-cv-do-they-agree"><span class="header-section-number">5.6</span> AIC vs.&nbsp;CV: Do They Agree?</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>cv_results<span class="sc">$</span>AIC <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fu">AIC</span>(m1), <span class="fu">AIC</span>(m2), <span class="fu">AIC</span>(m3), <span class="fu">AIC</span>(m4), <span class="fu">AIC</span>(m5), <span class="fu">AIC</span>(m6))</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>cv_results <span class="sc">|&gt;</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(model, predictors, cv_mse, AIC) <span class="sc">|&gt;</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">best_cv  =</span> <span class="fu">if_else</span>(cv_mse <span class="sc">==</span> <span class="fu">min</span>(cv_mse), <span class="st">"&lt;-- best CV"</span>, <span class="st">""</span>),</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">best_aic =</span> <span class="fu">if_else</span>(AIC <span class="sc">==</span> <span class="fu">min</span>(AIC), <span class="st">"&lt;-- best AIC"</span>, <span class="st">""</span>)</span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 6
+  model                                predictors cv_mse    AIC best_cv best_aic
+  &lt;chr&gt;                                     &lt;int&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;chr&gt;   &lt;chr&gt;   
+1 age only                                      1   414. 33715. ""      ""      
+2 age + BMI                                     2   377. 33356. ""      ""      
+3 age + BMI + totChol                           3   373. 33313. ""      ""      
+4 age + BMI + totChol + cigsPerDay              4   373. 33315. ""      ""      
+5 age + BMI + totChol + cigsPerDay + …          5   372. 33296. "&lt;-- b… "&lt;-- be…
+6 age + BMI + totChol + cigsPerDay + …          6   372. 33298. ""      ""      </code></pre>
+</div>
+</div>
+<p>In many practical situations, AIC and CV will select the same model or very similar ones. When they disagree, it is usually on marginal predictors that don’t change the conclusions meaningfully.</p>
+<hr>
+</section>
+</section>
+<section id="using-rsample-for-cross-validation" class="level1" data-number="6">
+<h1 data-number="6"><span class="header-section-number">6</span> Using <code>rsample</code> for Cross-Validation</h1>
+<p>The manual loop above is instructive, but in practice the <code>rsample</code> package makes CV cleaner and less error-prone.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rsample)</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>folds <span class="ot">&lt;-</span> <span class="fu">vfold_cv</span>(framingham, <span class="at">v =</span> <span class="dv">5</span>)</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>folds</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>#  5-fold cross-validation 
+# A tibble: 5 × 2
+  splits             id   
+  &lt;list&gt;             &lt;chr&gt;
+1 &lt;split [3042/761]&gt; Fold1
+2 &lt;split [3042/761]&gt; Fold2
+3 &lt;split [3042/761]&gt; Fold3
+4 &lt;split [3043/760]&gt; Fold4
+5 &lt;split [3043/760]&gt; Fold5</code></pre>
+</div>
+</div>
+<p>Each fold object contains a training/test split. We can map over them:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>cv_rsample <span class="ot">&lt;-</span> <span class="cf">function</span>(formula, folds) {</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  mse_vals <span class="ot">&lt;-</span> <span class="fu">map_dbl</span>(folds<span class="sc">$</span>splits, <span class="cf">function</span>(split) {</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>    train <span class="ot">&lt;-</span> <span class="fu">analysis</span>(split)</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>    test  <span class="ot">&lt;-</span> <span class="fu">assessment</span>(split)</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>    model <span class="ot">&lt;-</span> <span class="fu">lm</span>(formula, <span class="at">data =</span> train)</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>    preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(model, <span class="at">newdata =</span> test)</span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mean</span>((test<span class="sc">$</span>sysBP <span class="sc">-</span> preds)<span class="sc">^</span><span class="dv">2</span>)</span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(</span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_mse =</span> <span class="fu">mean</span>(mse_vals),</span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">sd_mse   =</span> <span class="fu">sd</span>(mse_vals)</span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-16"><a href="#cb29-16" aria-hidden="true" tabindex="-1"></a><span class="fu">cv_rsample</span>(sysBP <span class="sc">~</span> age <span class="sc">+</span> BMI <span class="sc">+</span> totChol, folds)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 2
+  mean_mse sd_mse
+     &lt;dbl&gt;  &lt;dbl&gt;
+1     373.   31.7</code></pre>
+</div>
+</div>
+<p>The standard deviation tells you how variable the CV error is across folds. If it is large relative to the mean, the estimate is noisy and you should interpret model comparisons cautiously.</p>
+<hr>
+</section>
+<section id="putting-it-all-together" class="level1" data-number="7">
+<h1 data-number="7"><span class="header-section-number">7</span> Putting It All Together</h1>
+<p>Here is the complete model selection workflow applied to the Framingham data:</p>
+<p><strong>Step 1: Check variable form</strong> (Day 6 — loess smoothers for each predictor).</p>
+<p><strong>Step 2: Fit a full model</strong> with all candidate predictors.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>full <span class="ot">&lt;-</span> <span class="fu">lm</span>(sysBP <span class="sc">~</span> age <span class="sc">+</span> BMI <span class="sc">+</span> totChol <span class="sc">+</span> cigsPerDay <span class="sc">+</span> glucose <span class="sc">+</span> diabetes,</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>           <span class="at">data =</span> framingham)</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(full)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = sysBP ~ age + BMI + totChol + cigsPerDay + glucose + 
+    diabetes, data = framingham)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-60.486 -12.666  -2.550   9.758 131.745 
+
+Coefficients:
+             Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) 37.688847   3.082030  12.229  &lt; 2e-16 ***
+age          0.824601   0.038772  21.268  &lt; 2e-16 ***
+BMI          1.450791   0.078225  18.546  &lt; 2e-16 ***
+totChol      0.048131   0.007265   6.625 3.96e-11 ***
+cigsPerDay  -0.002538   0.026752  -0.095  0.92442    
+glucose      0.061350   0.016688   3.676  0.00024 ***
+diabetesYes  0.116648   2.432377   0.048  0.96175    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 19.25 on 3796 degrees of freedom
+Multiple R-squared:  0.2427,    Adjusted R-squared:  0.2415 
+F-statistic: 202.8 on 6 and 3796 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+</div>
+<p><strong>Step 3: Run stepwise selection</strong> with AIC.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>selected <span class="ot">&lt;-</span> <span class="fu">step</span>(full, <span class="at">direction =</span> <span class="st">"both"</span>, <span class="at">trace =</span> <span class="dv">0</span>)</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(selected)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = sysBP ~ age + BMI + totChol + glucose, data = framingham)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-60.532 -12.666  -2.531   9.781 131.752 
+
+Coefficients:
+             Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) 37.576822   2.848580  13.191  &lt; 2e-16 ***
+age          0.825322   0.038117  21.652  &lt; 2e-16 ***
+BMI          1.451474   0.077934  18.624  &lt; 2e-16 ***
+totChol      0.048114   0.007261   6.627 3.91e-11 ***
+glucose      0.061875   0.013250   4.670 3.12e-06 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 19.25 on 3798 degrees of freedom
+Multiple R-squared:  0.2427,    Adjusted R-squared:  0.2419 
+F-statistic: 304.3 on 4 and 3798 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+</div>
+<p><strong>Step 4: Compare with AIC and a formal F-test.</strong></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">AIC</span>(full, selected)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>         df      AIC
+full      8 33297.68
+selected  6 33293.69</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">anova</span>(selected, full)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Analysis of Variance Table
+
+Model 1: sysBP ~ age + BMI + totChol + glucose
+Model 2: sysBP ~ age + BMI + totChol + cigsPerDay + glucose + diabetes
+  Res.Df     RSS Df Sum of Sq      F Pr(&gt;F)
+1   3798 1407182                           
+2   3796 1407178  2    4.1747 0.0056 0.9944</code></pre>
+</div>
+</div>
+<p><strong>Step 5: Validate with cross-validation.</strong></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>folds <span class="ot">&lt;-</span> <span class="fu">vfold_cv</span>(framingham, <span class="at">v =</span> <span class="dv">5</span>)</span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>cv_full     <span class="ot">&lt;-</span> <span class="fu">cv_rsample</span>(sysBP <span class="sc">~</span> age <span class="sc">+</span> BMI <span class="sc">+</span> totChol <span class="sc">+</span> cigsPerDay <span class="sc">+</span> glucose <span class="sc">+</span> diabetes, folds)</span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>cv_selected <span class="ot">&lt;-</span> <span class="fu">cv_rsample</span>(<span class="fu">formula</span>(selected), folds)</span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_rows</span>(</span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>  cv_full     <span class="sc">|&gt;</span> <span class="fu">mutate</span>(<span class="at">model =</span> <span class="st">"Full"</span>),</span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>  cv_selected <span class="sc">|&gt;</span> <span class="fu">mutate</span>(<span class="at">model =</span> <span class="st">"Stepwise-selected"</span>)</span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(model, mean_mse, sd_mse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 3
+  model             mean_mse sd_mse
+  &lt;chr&gt;                &lt;dbl&gt;  &lt;dbl&gt;
+1 Full                  372.   31.8
+2 Stepwise-selected     371.   31.7</code></pre>
+</div>
+</div>
+<p><strong>Step 6: Run diagnostics on the final model</strong> (Day 6 workflow).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">2</span>))</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(selected)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day7_AM_ModelSelection_CV_files/figure-html/unnamed-chunk-23-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p><strong>Step 7: Interpret the final model.</strong></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">confint</span>(selected)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                  2.5 %      97.5 %
+(Intercept) 31.99192815 43.16171647
+age          0.75058903  0.90005425
+BMI          1.29867772  1.60427000
+totChol      0.03387940  0.06234922
+glucose      0.03589707  0.08785270</code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>This seven-step workflow — check variable form, fit full model, stepwise selection, AIC comparison, cross-validation, diagnostics, interpretation — is a template you can apply to any regression analysis.</p>
+</div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+<script src="Day7_AM_ModelSelection_CV_files/libs/quarto-html/zenscroll-min.js"></script>
+</body></html>

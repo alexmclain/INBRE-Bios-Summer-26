@@ -1,0 +1,242 @@
+---
+title: "Day 2 (PM) Lab: Working with Data in R -- Solutions"
+subtitle: "SC INBRE Biostatistics Summer Intensive 2026"
+date: today
+format:
+  html:
+    toc: true
+    toc-location: left
+    toc-depth: 3
+    number-sections: true
+    smooth-scroll: true
+    theme: cosmo
+    code-fold: false
+    highlight-style: github
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+# Setup
+
+```{r}
+library(tidyverse)
+library(this.path)
+
+this.dir <- this.dir()
+setwd(this.dir)
+
+framingham <- read_csv("../../data/framingham.csv")
+```
+
+Variable type corrections (required before all exercises):
+
+```{r}
+framingham <- framingham |>
+  mutate(
+    male            = factor(male,            levels = c(0, 1),
+                                              labels = c("Female", "Male")),
+    currentSmoker   = factor(currentSmoker,   levels = c(0, 1),
+                                              labels = c("Non-smoker", "Smoker")),
+    BPMeds          = factor(BPMeds,          levels = c(0, 1),
+                                              labels = c("No", "Yes")),
+    prevalentStroke = factor(prevalentStroke, levels = c(0, 1),
+                                              labels = c("No", "Yes")),
+    prevalentHyp    = factor(prevalentHyp,    levels = c(0, 1),
+                                              labels = c("No", "Yes")),
+    diabetes        = factor(diabetes,        levels = c(0, 1),
+                                              labels = c("No", "Yes")),
+    TenYearCHD      = factor(TenYearCHD,      levels = c(0, 1),
+                                              labels = c("No", "Yes")),
+    education       = factor(education,       levels = 1:4,
+                                              labels = c("Some HS", "HS Diploma",
+                                                         "Some College",
+                                                         "College Degree"))
+  )
+```
+
+---
+
+# Exercise 1
+
+**Cholesterol by diabetes status.**
+
+```{r}
+framingham |>
+  group_by(diabetes) |>
+  summarize(
+    n        = n(),
+    mean_chol = mean(totChol, na.rm = TRUE),
+    sd_chol   = sd(totChol,   na.rm = TRUE),
+    med_chol  = median(totChol, na.rm = TRUE),
+    .groups  = "drop"
+  )
+```
+
+Diabetic and non-diabetic participants have similar mean total cholesterol
+(roughly 236 vs. 248 mg/dL), with the diabetic group showing a
+slightly *higher* mean. The difference is small and does not suggest a strong
+univariate association between diabetes status and cholesterol in this
+sample.
+
+---
+
+# Exercise 2
+
+**Pulse pressure and BMI category.**
+
+
+
+```{r}
+framingham <- framingham |>
+  mutate(
+    pulse_pressure = sysBP - diaBP,
+    bmi_category   = case_when(
+      BMI < 18.5              ~ "Underweight",
+      BMI >= 18.5 & BMI < 25 ~ "Normal",
+      BMI >= 25   & BMI < 30 ~ "Overweight",
+      BMI >= 30               ~ "Obese",
+      .default = NA_character_
+    )
+  )
+
+framingham |>
+  group_by(bmi_category) |>
+  summarize(
+    n                  = n(),
+    mean_pulse_pressure = mean(pulse_pressure, na.rm = TRUE)
+  )
+```
+
+Mean pulse pressure increases monotonically with BMI category, rising from
+about 47 mmHg in the Normal group to about 54 mmHg in the Obese group. This
+is consistent with higher arterial stiffness in individuals with greater body
+mass.
+
+
+
+---
+
+# Exercise 3
+
+**Female non-smokers over age 55: base R vs. dplyr.**
+
+```{r}
+# Base R version
+subset_baseR <- framingham[
+  framingham$male == "Female" &
+  framingham$currentSmoker == "Non-smoker" &
+  framingham$age > 55,
+]
+nrow(subset_baseR)
+mean(subset_baseR$glucose, na.rm = TRUE)
+```
+
+```{r}
+# dplyr version
+subset_dplyr <- framingham |>
+  filter(
+    male          == "Female",
+    currentSmoker == "Non-smoker",
+    age           > 55
+  )
+nrow(subset_dplyr)
+mean(subset_dplyr$glucose, na.rm = TRUE)
+```
+
+Both approaches return the same row count. Mean glucose in
+this subgroup is approximately 87 mg/dL, which is within the normal fasting
+range. The dplyr version is easier to read and extend; the base R version is
+useful to know for contexts where tidyverse is unavailable.
+
+---
+
+# Exercise 4
+
+**Cigarette use among current smokers; heavy smoker flag.**
+
+```{r}
+# Summary among current smokers
+framingham |>
+  filter(currentSmoker == "Smoker") |>
+  summarize(
+    n            = n(),
+    mean_cpd     = mean(cigsPerDay, na.rm = TRUE),
+    sd_cpd       = sd(cigsPerDay,   na.rm = TRUE),
+    min_cpd      = min(cigsPerDay,  na.rm = TRUE),
+    max_cpd      = max(cigsPerDay,  na.rm = TRUE),
+    .groups      = "drop"
+  )
+```
+
+```{r}
+# Add heavy_smoker to full dataset and count
+framingham |>
+  mutate(heavy_smoker = cigsPerDay > 20) |> 
+  summarise(
+    pct_heavy_smk = mean(heavy_smoker, na.rm = TRUE) * 100,
+    num_heavy_smk = sum(heavy_smoker, na.rm = TRUE)
+         )
+```
+
+Among current smokers, the average is roughly 18 cigarettes per day (close to
+a pack), with a wide range. About 11% of people are classified as heavy smokers. Note that `cigsPerDay` contains
+some missingness, so `na.rm = TRUE` is essential throughout.
+
+---
+
+# Exercise 5
+
+**10-year CHD rate by education level.**
+
+```{r}
+framingham |>
+  group_by(education) |>
+  summarize(
+    n        = n(),
+    chd_pct  = mean(TenYearCHD == "Yes", na.rm = TRUE) * 100
+  ) |>
+  filter(!is.na(education)) |> # Remove the education = NA group.
+  arrange(desc(chd_pct))
+```
+
+CHD rates are highest among participants with the lowest education (Some HS), 
+and the lowest 10-year CHD risk is among those with a HS Diploma. 
+
+---
+
+# Exercise 6 (Challenge)
+
+**Multi-step pipeline: ages 40--65, hypertension-smoker interaction, CHD
+rates by subgroup.**
+
+```{r}
+framingham |>
+  filter(age >= 40, age <= 65) |>
+  mutate(
+    hyp_smoker = if_else(
+      prevalentHyp == "Yes" & currentSmoker == "Smoker",
+      "Yes", "No"
+    )
+  ) |>
+  group_by(hyp_smoker, male) |>
+  summarize(
+    n         = n(),
+    mean_sysBP = mean(sysBP,  na.rm = TRUE),
+    chd_pct   = mean(TenYearCHD == "Yes", na.rm = TRUE) * 100,
+    .groups   = "drop"
+  ) |>
+  filter(n >= 50) |>
+  arrange(desc(chd_pct))
+```
+
+Among adults aged 40--65, males with both prevalent hypertension and current
+smoking (`hyp_smoker == "Yes"`, `male == "Male"`) show the highest 10-year CHD
+rate (31.4%). The combination of hypertension and smoking acts synergistically: each
+risk factor alone elevates risk, but their co-occurrence is associated with
+substantially higher rates than either alone. 
+
+There are no groups with fewer than 50 participants, so the final filtering
+does not have any effect.
+

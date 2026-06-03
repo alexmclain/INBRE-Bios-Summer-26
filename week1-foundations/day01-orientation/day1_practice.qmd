@@ -25,3 +25,37 @@ You can add options to executable code like this
 ```
 
 The `echo: false` option disables the printing of code (only output is displayed).
+
+## Question One
+
+```{r}
+temperatures <- c( 98.6, 99.1, 97.8, 100.4, 98.2)
+mean(temperatures)
+sd(temperatures)
+range(temperatures)
+```
+
+## Question Two  
+
+```{r}
+#| echo: true
+my_study <- data.frame(
+  id = 1:6,
+  treatment = c("A", "B", "A", "B", "A", "B"),
+  treatment2 = rep(c("A","B"),3),
+  response = c(2.3, 5.2, 6.1, 7.8, 4.3, 9.1)
+)
+my_study
+summary(my_study)
+print(my_study)
+```
+
+## Question Three 
+
+When you type in `zebra`, you get an error message that says `Error: object 'zebra' not found`.
+
+## Question Four
+
+``` markdown
+The mean temperature is `r mean(temperatures)`!
+```

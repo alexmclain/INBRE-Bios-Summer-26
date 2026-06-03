@@ -1,0 +1,476 @@
+---
+title: "Day 6 (PM) Lab: Linear Regression"
+subtitle: "SC INBRE Biostatistics Summer Intensive 2026"
+date: today
+format:
+  html:
+    toc: true
+    toc-location: left
+    toc-depth: 3
+    number-sections: true
+    smooth-scroll: true
+    theme: cosmo
+    code-fold: false
+    highlight-style: github
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+# Overview
+
+This lab puts the Day 6 morning material into practice. You will work through
+the full linear regression workflow — from checking variable form to fitting,
+interpreting, and diagnosing models — using the Framingham Heart Study dataset
+you already know.
+
+**How this lab works:**
+
+- **Part 1 (instructor demo, ~20 min):** Follow along as the instructor works
+  through a complete simple regression example using a new outcome variable.
+- **Part 2 (on your own, ~90 min):** Six exercises of increasing difficulty.
+  Create a new `.qmd` file, work through each exercise, render when done.
+
+The **Quick Reference Card** in Section 3 has the key functions.
+
+---
+
+# Part 1: Instructor Demo
+
+## Setup
+
+```{r}
+library(tidyverse)
+library(this.path)
+setwd(this.dir())
+
+framingham <- read_csv("../../data/framingham.csv") |>
+  mutate(
+    male          = factor(male,          levels = c(0,1), labels = c("Female","Male")),
+    currentSmoker = factor(currentSmoker, levels = c(0,1), labels = c("Non-smoker","Smoker")),
+    prevalentHyp  = factor(prevalentHyp,  levels = c(0,1), labels = c("No","Yes")),
+    diabetes      = factor(diabetes,      levels = c(0,1), labels = c("No","Yes")),
+    TenYearCHD    = factor(TenYearCHD,    levels = c(0,1), labels = c("No","Yes")),
+    education     = factor(education,     levels = 1:4,
+                           labels = c("Some HS","HS Diploma","Some College","College Degree"))
+  )
+```
+
+## Step 1: Check Variable Form
+
+We want to predict total cholesterol (`totChol`) from BMI. First, inspect the
+relationship visually with a loess smoother.
+
+```{r}
+#| message: false
+ggplot(framingham, aes(x = BMI, y = totChol)) +
+  geom_point(alpha = 0.2, color = "steelblue") +
+  geom_smooth(method = "loess", color = "firebrick", se = TRUE, linewidth = 1) +
+  labs(x = "BMI", y = "Total Cholesterol (mg/dL)",
+       title = "Total Cholesterol vs. BMI with Loess Smoother") +
+  theme_minimal()
+```
+
+The loess curve is approximately linear — a linear model is reasonable here.
+
+## Step 2: Fit the Model and Interpret
+
+```{r}
+chol_model <- lm(totChol ~ BMI, data = framingham)
+summary(chol_model)
+confint(chol_model)
+```
+
+Key take-aways from the output:
+
+- The slope tells us how much cholesterol changes per one-unit increase in BMI,
+  on average.
+- R² tells us the proportion of cholesterol variability explained by BMI alone.
+- The confidence interval for the slope tells us the range of plausible values
+  for the true population effect.
+
+## Step 3: Plot the Regression Line
+
+```{r}
+#| message: false
+ggplot(framingham, aes(x = BMI, y = totChol)) +
+  geom_point(alpha = 0.2, color = "steelblue") +
+  geom_smooth(method = "lm", color = "firebrick", se = TRUE, linewidth = 1) +
+  labs(x = "BMI", y = "Total Cholesterol (mg/dL)",
+       title = "Simple Linear Regression: Total Cholesterol on BMI",
+       subtitle = "Shaded band is 95% confidence interval for the mean") +
+  theme_minimal()
+```
+
+## Step 4: Diagnostics
+
+```{r}
+#| fig-width: 8
+#| fig-height: 7
+par(mfrow = c(2, 2))
+plot(chol_model)
+par(mfrow = c(1, 1))
+```
+
+```{r}
+#| fig-width: 7
+#| fig-height: 4
+cooks_df <- tibble(
+  obs   = seq_along(cooks.distance(chol_model)),
+  cooks = cooks.distance(chol_model)
+)
+
+ggplot(cooks_df, aes(x = obs, y = cooks)) +
+  geom_segment(aes(xend = obs, yend = 0), color = "steelblue", alpha = 0.6) +
+  geom_point(data = filter(cooks_df, cooks > quantile(cooks, 0.99)),
+             color = "firebrick", size = 2) +
+  labs(x = "Observation index", y = "Cook's distance",
+       title = "Cook's Distance — Cholesterol on BMI") +
+  theme_minimal()
+```
+
+---
+
+# Part 2: Exercises
+
+## Instructions
+
+**Step 1.** Open a new Quarto document: File → New File → Quarto Document.
+Title it `"Day 6 Lab: Linear Regression"`, select HTML, click **Create**.
+
+**Step 2.** Replace the template content with this YAML and setup chunk:
+
+````markdown
+---
+title: "Day 6 Lab: Linear Regression"
+subtitle: "SC INBRE Biostatistics Summer Intensive 2026"
+date: today
+format:
+  html:
+    toc: true
+    theme: cosmo
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+```{{r}}
+library(tidyverse)
+library(this.path)
+setwd(this.dir())
+
+framingham <- read_csv("../../data/framingham.csv") |>
+  mutate(
+    male          = factor(male,          levels = c(0,1), labels = c("Female","Male")),
+    currentSmoker = factor(currentSmoker, levels = c(0,1), labels = c("Non-smoker","Smoker")),
+    prevalentHyp  = factor(prevalentHyp,  levels = c(0,1), labels = c("No","Yes")),
+    diabetes      = factor(diabetes,      levels = c(0,1), labels = c("No","Yes")),
+    TenYearCHD    = factor(TenYearCHD,    levels = c(0,1), labels = c("No","Yes")),
+    education     = factor(education,     levels = 1:4,
+                           labels = c("Some HS","HS Diploma","Some College","College Degree"))
+  )
+```
+````
+
+**Step 3.** Work through Exercises 1--6 in order. For each one:
+
+- Add a new code chunk (`Ctrl+Alt+I` / `Cmd+Option+I`)
+- Write and run your code
+- Add 2--3 sentences below each result describing what you found in plain
+  language
+
+**Step 4.** Render (`Ctrl+Shift+K` / `Cmd+Shift+K`) when finished and fix
+any errors before you are done.
+
+::: {.callout-tip}
+**Before asking for help**, check two things: (1) the **Quick Reference Card**
+in Section 3, and (2) whether you have `na.rm = TRUE` in any summary functions
+that precede your model — `lm()` drops missing values automatically, but
+`mean()` and `sd()` do not.
+:::
+
+::: {.callout-note}
+Exercises 1--4 cover the core material. Exercise 5 requires putting together
+everything from the morning into a multi-step analysis. Exercise 6 is a
+challenge --- don't worry if you don't reach it.
+:::
+
+---
+
+**Exercise 1 — Simple Linear Regression: Diastolic BP and Age.**
+
+a. Use `ggplot()` with `geom_smooth(method = "loess")` to inspect the
+   relationship between age (`age`) and diastolic blood pressure (`diaBP`).
+   Does the relationship look linear?
+
+b. Fit a simple linear regression model predicting `diaBP` from `age`.
+   Write out the fitted regression equation using the estimated coefficients.
+
+c. Interpret the slope in plain language: what does it tell you about the
+   relationship between age and diastolic blood pressure in this population?
+
+d. How much of the variability in diastolic BP does age alone explain? Is this
+   more or less than the R² for the `sysBP ~ age` model from the morning session
+   (R² = 15.5%)?
+
+e. Plot the fitted regression line with a 95% confidence band using
+   `geom_smooth(method = "lm")`.
+
+```{r}
+# your code here
+```
+
+---
+
+**Exercise 2 — Model Diagnostics.**
+
+Using the `diaBP ~ age` model from Exercise 1:
+
+a. Produce the four standard diagnostic plots using `par(mfrow = c(2,2))` and
+   `plot(model)`. Describe what you see in each panel. Are any model assumptions
+   clearly violated?
+
+b. Produce a Cook's distance plot using `ggplot()` with `geom_segment()`.
+   Flag the top 1% of observations as red points. Are there any observations
+   that stand clearly apart from the rest?
+
+c. Report the 95% confidence interval for the slope using `confint()`. What
+   does this interval tell you about the precision of the estimate?
+
+```{r}
+# your code here
+```
+
+---
+
+**Exercise 3 — Continuous vs. Categorical Predictors.**
+
+a. Create a new variable called `bmi_category` in the Framingham data using
+   `mutate()` and `cut()` with three groups: `"<25"` (BMI < 25),
+   `"25-30"` (25 ≤ BMI < 30), and `"30+"` (BMI ≥ 30).
+
+b. Fit two models predicting `sysBP`: one using `BMI` as continuous, one using
+   `bmi_category` as a factor. Compare their AIC values using `AIC()`. Which
+   model fits the data better?
+
+c. Report the R² of both models. What does this comparison tell you about the
+   cost of categorizing a continuous predictor?
+
+d. Plot the predicted values from the categorical model on a scatter plot of
+   BMI vs. sysBP. You can use `predict()` and `geom_step()` or overlay group
+   means using `stat_summary()`. What do the step-function predictions reveal
+   about the limitations of categorization?
+
+```{r}
+# your code here
+```
+
+---
+
+**Exercise 4 — Multiple Regression: Checking Variable Form.**
+
+Before building a multiple regression model for `sysBP`, inspect the
+relationship between each continuous predictor and `sysBP` using a loess
+smoother.
+
+a. Use `pivot_longer()` and `facet_wrap()` to create a single faceted plot
+   showing `sysBP` on the y-axis against each of the following predictors:
+   `age`, `BMI`, `totChol`, `diaBP`, `cigsPerDay`, `glucose`. Use
+   `geom_smooth(method = "loess")`.
+
+b. Based on the plots, which predictors appear to have a roughly linear
+   relationship with `sysBP`? Are there any that show obvious non-linearity
+   or very weak relationships?
+
+c. Note: `cigsPerDay` and `glucose` have missing values. Does this affect
+   the plot? Check `colSums(is.na(framingham[, c("cigsPerDay","glucose")]))`.
+
+```{r}
+# your code here
+```
+
+---
+
+**Exercise 5 — Multiple Regression: Full Workflow.**
+
+Build a multiple regression model predicting `sysBP` from a set of continuous
+predictors.
+
+a. Start with a full model including: `age`, `BMI`, `totChol`, `diaBP`,
+   `cigsPerDay`, and `glucose`. Fit it with `lm()` and examine `summary()`.
+   Which predictors appear most strongly associated with `sysBP`?
+
+b. Use `step(model_full, direction = "both", trace = 0)` to perform AIC-based
+   model selection. Compare the AIC of the full and selected models using
+   `AIC()`. What variables were retained?
+
+c. For any pair of nested models you want to formally compare, use `anova()`
+   to run an F-test. Interpret the p-value: does the larger model explain
+   significantly more variance?
+
+d. Report and interpret the coefficients of your final model. For each
+   predictor retained, write one sentence explaining what the coefficient means
+   in clinical terms.
+
+e. Run the four diagnostic plots on your final model. Note any concerns.
+   Produce a Cook's distance plot and label any flagged observations.
+
+f. Report the 95% confidence intervals for all coefficients in the final model
+   using `confint()`.
+
+```{r}
+# your code here
+```
+
+---
+
+**Exercise 6 (Challenge) — Non-Linear Relationships in Framingham.**
+
+The relationship between `glucose` and `sysBP` in the Framingham data is worth
+examining carefully. Glucose has a skewed distribution and its relationship with
+blood pressure may not be linear.
+
+a. Remove missing values from `glucose` and `sysBP` first:
+   ```r
+   fram_gluc <- framingham |> filter(!is.na(glucose), !is.na(sysBP))
+   ```
+   How many observations remain?
+
+b. Plot `sysBP ~ glucose` with a loess smoother. Describe the shape of the
+   relationship. Does the loess curve bend, or is it roughly straight? Note
+   that glucose has a few very high values --- are these affecting the smoother?
+
+c. Fit three competing models predicting `sysBP` from `glucose`:
+   - `m_linear`: `sysBP ~ glucose`
+   - `m_quad`: `sysBP ~ poly(glucose, 2)`
+   - `m_spline`: `sysBP ~ splines::ns(glucose, df = 3)`
+
+   Compare all three with `AIC()`. Which fits best?
+
+d. To visualize the three fitted curves on the same plot, create a prediction
+   grid and use `predict()` for each model:
+   ```r
+   gluc_grid <- tibble(glucose = seq(min(fram_gluc$glucose),
+                                     max(fram_gluc$glucose),
+                                     length.out = 300))
+   ```
+   Then use `pivot_longer()` to reshape the predictions and plot them with
+   different colors using `geom_line()`.
+
+e. Now build a **multiple regression** model for `sysBP` that includes `age`,
+   `BMI`, `diaBP`, and `glucose` — but allow `glucose` to enter as a spline
+   term (`splines::ns(glucose, df = 3)`) based on what you found above. Compare
+   its AIC to an equivalent model with `glucose` entered as linear. Is the
+   non-linear glucose term worth including once the other predictors are
+   accounted for?
+
+f. Run diagnostics on the better-fitting model. Does allowing for non-linearity
+   in glucose improve the residual plots compared to the linear version?
+
+```{r}
+# your code here
+```
+
+---
+
+# Quick Reference Card
+
+## Setup and Reading Data
+
+```r
+library(tidyverse)
+library(this.path)
+setwd(this.dir())
+framingham <- read_csv("../../data/framingham.csv")
+```
+
+## Checking Variable Form
+
+```r
+# Single predictor vs. outcome
+ggplot(df, aes(x = predictor, y = outcome)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "loess", color = "firebrick", se = TRUE)
+
+# All predictors at once
+df |>
+  pivot_longer(cols = c(x1, x2, x3), names_to = "predictor", values_to = "value") |>
+  ggplot(aes(x = value, y = outcome)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "loess", color = "firebrick") +
+  facet_wrap(~ predictor, scales = "free_x")
+```
+
+## Fitting Models
+
+| Function | What it does |
+|---|---|
+| `lm(y ~ x, data = df)` | Simple linear regression |
+| `lm(y ~ x1 + x2 + x3, data = df)` | Multiple linear regression |
+| `lm(y ~ poly(x, 2), data = df)` | Quadratic polynomial |
+| `lm(y ~ splines::ns(x, df = 3), data = df)` | Natural spline |
+| `lm(y ~ factor(x), data = df)` | Categorical predictor |
+| `summary(model)` | Coefficients, R², F-test |
+| `confint(model)` | 95% CIs for all coefficients |
+| `AIC(model1, model2)` | Compare models — lower is better |
+| `anova(model_small, model_large)` | F-test for nested models |
+| `step(model, direction = "both", trace = 0)` | AIC-based stepwise selection |
+
+## Plotting the Regression Line
+
+```r
+ggplot(df, aes(x = predictor, y = outcome)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "lm", color = "firebrick", se = TRUE)
+```
+
+## Diagnostics
+
+```r
+# Four standard diagnostic plots
+par(mfrow = c(2, 2))
+plot(model)
+par(mfrow = c(1, 1))
+
+# Cook's distance with ggplot
+tibble(obs = seq_along(cooks.distance(model)),
+       cooks = cooks.distance(model)) |>
+  ggplot(aes(x = obs, y = cooks)) +
+  geom_segment(aes(xend = obs, yend = 0), color = "steelblue") +
+  geom_point(data = ~ filter(., cooks > quantile(cooks, 0.99)),
+             color = "firebrick", size = 2)
+```
+
+## Prediction
+
+```r
+# New data to predict for
+new_data <- tibble(age = c(45, 55), BMI = c(25, 30))
+
+# Confidence interval for the mean response
+predict(model, newdata = new_data, interval = "confidence")
+
+# Prediction interval for individual observations (always wider)
+predict(model, newdata = new_data, interval = "prediction")
+```
+
+## Categorizing a Continuous Variable (to compare — not recommended)
+
+```r
+df <- df |>
+  mutate(x_cat = cut(x,
+                     breaks = c(0, 25, 30, Inf),
+                     labels = c("<25", "25-30", "30+"),
+                     include.lowest = TRUE))
+```
+
+## Interpreting Diagnostic Plots
+
+| Plot | What to look for |
+|---|---|
+| Residuals vs. Fitted | Random scatter around zero — no curve, no funnel |
+| Normal Q-Q | Points follow the diagonal — no heavy tails |
+| Scale-Location | Flat red line — no increasing/decreasing spread |
+| Residuals vs. Leverage | No points in upper/lower right corners |

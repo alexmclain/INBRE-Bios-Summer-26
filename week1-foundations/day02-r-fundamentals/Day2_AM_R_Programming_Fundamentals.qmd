@@ -156,7 +156,7 @@ patient_data <- data.frame(
   treatment = c("A", "B", "A", "B", "A"),
   response  = c(12.1, 8.4, 14.3, 9.1, 11.7)
 )
-
+patient_data             # all data
 patient_data[1, ]        # first row, all columns
 patient_data[, 2]        # all rows, second column (returns a vector)
 patient_data[1, 2]       # first row, second column (single value)

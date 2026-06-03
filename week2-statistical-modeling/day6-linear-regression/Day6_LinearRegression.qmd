@@ -1,0 +1,547 @@
+---
+title: "Day 6: Linear Regression"
+subtitle: "SC INBRE Biostatistics Summer Intensive 2026"
+date: today
+format:
+  html:
+    toc: true
+    toc-location: left
+    toc-depth: 3
+    number-sections: true
+    smooth-scroll: true
+    theme: cosmo
+    code-fold: false
+    highlight-style: github
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+```{r}
+library(tidyverse)
+library(this.path)
+setwd(this.dir())
+
+framingham <- read_csv("../../data/framingham.csv") |>
+  mutate(
+    male          = factor(male,          levels = c(0,1), labels = c("Female","Male")),
+    currentSmoker = factor(currentSmoker, levels = c(0,1), labels = c("Non-smoker","Smoker")),
+    prevalentHyp  = factor(prevalentHyp,  levels = c(0,1), labels = c("No","Yes")),
+    diabetes      = factor(diabetes,      levels = c(0,1), labels = c("No","Yes")),
+    TenYearCHD    = factor(TenYearCHD,    levels = c(0,1), labels = c("No","Yes")),
+    education     = factor(education,     levels = 1:4,
+                           labels = c("Some HS","HS Diploma","Some College","College Degree"))
+  )
+```
+
+# Overview
+
+This document covers simple and multiple linear regression using two datasets:
+
+- **Example 1:** Simple regression of systolic blood pressure on age (Framingham Heart Study)
+- **Example 2:** Multiple regression for a fitness outcome using physiological measurements (FITNESS dataset)
+- **Example 3:** Modeling non-linear relationships using polynomial terms and natural splines
+
+---
+
+# Example 1: Systolic BP and Age (Framingham)
+
+## The Dataset
+
+The Framingham Heart Study is a landmark longitudinal study of cardiovascular risk factors. We focus here on the relationship between age and systolic blood pressure.
+
+```{r}
+framingham |>
+  select(age, sysBP) |>
+  summary()
+```
+
+## Checking Variable Form Before Modeling
+
+Before fitting any regression model, the first step is to visually inspect the relationship between the predictor and the outcome. This answers the key question: **is a linear model appropriate here?**
+
+We use `geom_smooth(method = "loess")` to overlay a flexible smoothed curve on the scatterplot. If the loess curve follows a roughly straight line, a linear model is appropriate. If it bends substantially, we may need to consider a non-linear approach (covered in Example 3).
+
+```{r}
+#| fig-width: 7
+#| fig-height: 5
+ggplot(framingham, aes(x = age, y = sysBP)) +
+  geom_point(alpha = 0.2, color = "steelblue") +
+  geom_smooth(method = "loess", color = "firebrick", se = TRUE, linewidth = 1) +
+  labs(x = "Age (years)", y = "Systolic BP (mmHg)",
+       title = "Systolic BP vs. Age with Loess Smoother",
+       subtitle = "Loess curve shown in red; shaded band is 95% confidence interval") +
+  theme_minimal()
+```
+
+The loess smoother follows a nearly straight path across the age range, confirming that a linear model is a reasonable choice here.
+
+## A Note on Variable Form
+
+A common modeling mistake is to take a continuous variable and convert it to categories. For example, splitting age into groups of 10 years. This:
+
+- Throws away information by treating everyone in a group as identical
+- Assumes a step change at the cutpoint rather than a smooth effect
+- Reduces statistical power
+- Can produce misleading conclusions depending on where cutpoints are placed
+
+The comparison below illustrates the issue:
+
+```{r}
+# The wrong approach: categorize a continuous variable
+framingham_grouped <- framingham |>
+  mutate(age_group = cut(age, breaks = c(30, 40, 50, 60, 70),
+                         labels = c("30-40", "40-50", "50-60", "60-70"),
+                         include.lowest = TRUE))
+
+# Good model: treat age as continuous
+good_model   <- lm(sysBP ~ age,       data = framingham)
+
+# Poor model: treat age as categorical
+bad_model    <- lm(sysBP ~ age_group, data = framingham_grouped)
+
+# Compare AIC: lower is better
+AIC(good_model, bad_model)
+```
+
+The continuous model has a lower AIC, meaning it fits the data better using fewer degrees of freedom. Use continuous variables as continuous unless there is a strong biological reason to categorize.
+
+## Fitting the Model
+
+The simple linear regression model is:
+
+$$Y = \beta_0 + \beta_1 X + \varepsilon$$
+
+where $Y$ is systolic blood pressure, $X$ is age, $\beta_0$ is the intercept, $\beta_1$ is the slope, and $\varepsilon$ is the error term.
+
+```{r}
+sbp_model <- lm(sysBP ~ age, data = framingham)
+summary(sbp_model)
+```
+
+**Interpreting the output:**
+
+- **Intercept ($\hat\beta_0$ = `r round(coef(sbp_model)[1], 2)`):** The estimated mean systolic BP for a participant aged zero --- not directly interpretable here, but necessary to define the line.
+- **Age ($\hat\beta_1$ = `r round(coef(sbp_model)[2], 2)`):** For each additional year of age, systolic BP is estimated to increase by `r round(coef(sbp_model)[2], 2)` mmHg on average, holding all else constant.
+- **R²:** The model explains `r round(summary(sbp_model)$r.squared * 100, 1)`% of the variability in systolic BP.
+- **p-value:** Age is a highly significant predictor of systolic BP.
+
+## Confidence Intervals for Coefficients
+
+```{r}
+confint(sbp_model)
+```
+
+We are 95% confident that the true slope for age lies between the bounds above.
+
+## Plotting the Regression Line
+
+```{r}
+#| fig-width: 7
+#| fig-height: 5
+ggplot(framingham, aes(x = age, y = sysBP)) +
+  geom_point(alpha = 0.2, color = "steelblue") +
+  geom_smooth(method = "lm", color = "firebrick", se = TRUE, linewidth = 1) +
+  labs(x = "Age (years)", y = "Systolic BP (mmHg)",
+       title = "Simple Linear Regression: Systolic BP on Age",
+       subtitle = "Shaded band is 95% confidence interval for the mean") +
+  theme_minimal()
+```
+
+## Model Diagnostics
+
+After fitting the model, we check four standard diagnostic plots. Each tests a different assumption.
+
+```{r}
+#| fig-width: 8
+#| fig-height: 7
+par(mfrow = c(2, 2))
+plot(sbp_model)
+par(mfrow = c(1, 1))
+```
+
+**What to look for in each panel:**
+
+- **Residuals vs. Fitted:** Points should scatter randomly around zero with no pattern. A curved pattern suggests the linearity assumption is violated; a funnel shape suggests non-constant variance (heteroscedasticity).
+- **Normal Q-Q:** Points should fall approximately along the diagonal line. Heavy tails or systematic departure from the line suggest the normality assumption may be violated.
+- **Scale-Location:** The spread of standardized residuals should be roughly constant across fitted values. An upward or downward trend indicates heteroscedasticity.
+- **Residuals vs. Leverage:** Points in the upper or lower right have both high leverage (unusual predictor values) and high influence on the fitted line. Named points are worth investigating.
+
+## Influential Observations: Cook's Distance
+
+Cook's distance measures how much the fitted values would change if a given observation were removed. Rather than applying a formula-based cutoff, look for observations that stand clearly apart from the rest.
+
+```{r}
+#| fig-width: 7
+#| fig-height: 4
+cooks_df <- tibble(
+  obs   = seq_along(cooks.distance(sbp_model)),
+  cooks = cooks.distance(sbp_model)
+)
+
+ggplot(cooks_df, aes(x = obs, y = cooks)) +
+  geom_segment(aes(xend = obs, yend = 0), color = "steelblue", alpha = 0.6) +
+  geom_point(data = filter(cooks_df, cooks > quantile(cooks, 0.99)),
+             color = "firebrick", size = 2) +
+  labs(x = "Observation index", y = "Cook's distance",
+       title = "Cook's Distance — Simple Regression of SBP on Age",
+       subtitle = "Red points are in the top 1% — worth investigating, not automatically removed") +
+  theme_minimal()
+```
+
+Points with notably large Cook's distances warrant investigation. Check whether they are data entry errors, legitimate extreme values, or part of a distinct subgroup. **Do not remove them automatically.**
+
+Here, the largest Cook's value is:
+
+```{r}
+framingham[which.max(cooks_df$cooks),c("age","sysBP")]
+summary(framingham[,c("age","sysBP")])
+```
+
+
+## ANOVA Table
+
+```{r}
+summary(bad_model)$coefficients
+anova(bad_model)
+```
+
+The ANOVA F-test evaluates is useful when we have grouped variables (like here). Notice that the ANOVA gives one test for the significance of the grouped age variable. This is very useful for variables that are factors.
+
+---
+
+# Example 2: Multiple Regression — FITNESS Dataset
+
+## The Dataset
+
+This dataset contains physiological measurements from 31 middle-aged men and a measure of oxygen uptake capacity (`Y`, in mL/kg/min) collected during a fitness test. The goal is to predict `Y` from exercise-related measurements.
+
+```{r}
+FITNESS <- tibble(
+  age          = c(44,40,44,42,38,47,40,43,44,38,44,45,45,47,54,
+                   49,51,51,48,49,57,54,52,50,51,54,51,57,49,48,52),
+  weight       = c(89.47,75.07,85.84,68.15,89.02,77.45,75.98,81.19,
+                   81.42,81.87,73.03,87.66,66.45,79.15,83.12,81.42,
+                   69.63,77.91,91.63,73.37,73.37,79.38,76.32,70.87,
+                   67.25,91.63,73.71,59.08,76.32,61.24,82.78),
+  runtime      = c(11.37,10.07,8.65,8.17,9.22,11.63,11.95,10.85,
+                   13.08,8.63,10.13,14.03,11.12,10.60,10.33,8.95,
+                   10.95,10.00,10.25,10.08,12.63,11.17,9.63,8.92,
+                   11.08,12.88,10.47,9.93,9.40,11.50,10.50),
+  restpulse    = c(62,62,45,40,55,58,70,64,63,48,45,56,51,47,50,
+                   44,57,48,48,67,58,62,48,48,48,44,59,49,56,52,53),
+  runpulse     = c(178,185,156,166,178,176,176,162,174,170,168,186,
+                   176,162,166,180,168,162,162,168,174,156,164,146,
+                   172,168,186,148,186,170,170),
+  maxpulse     = c(182,185,168,172,180,176,180,170,176,186,168,192,
+                   176,164,170,185,172,168,164,168,176,165,166,155,
+                   172,172,188,155,188,176,172),
+  Y            = c(44.609,45.313,54.297,59.571,49.874,44.811,45.681,
+                   49.091,39.442,60.055,50.541,37.388,44.754,47.273,
+                   51.855,49.156,40.836,46.672,46.774,50.388,39.407,
+                   46.080,45.441,54.625,45.118,39.203,45.790,50.545,
+                   48.730,47.920,47.467)
+)
+
+glimpse(FITNESS)
+```
+
+## Checking Variable Form for Each Predictor
+
+Before fitting any model, inspect the relationship between each predictor and the outcome. We use a loess smoother to detect non-linearity. If the loess curve is approximately straight, a linear term is appropriate. If it bends substantially, a non-linear term may be needed (see Example 3).
+
+```{r}
+#| fig-width: 9
+#| fig-height: 9
+#| message: false
+FITNESS |>
+  pivot_longer(cols = c(age, weight, runtime, restpulse, runpulse, maxpulse),
+               names_to = "predictor", values_to = "value") |>
+  ggplot(aes(x = value, y = Y)) +
+  geom_point(alpha = 0.5, color = "steelblue") +
+  geom_smooth(method = "loess", color = "firebrick", se = TRUE, linewidth = 1) +
+  facet_wrap(~ predictor, scales = "free_x", ncol = 2) +
+  labs(x = "Predictor value", y = "Oxygen uptake (Y)",
+       title = "Relationship Between Each Predictor and Oxygen Uptake",
+       subtitle = "Loess smoother — a roughly straight red line supports a linear term") +
+  theme_minimal()
+```
+
+**What to look for:**
+
+- `runtime` shows a clear negative linear relationship — faster runners have higher oxygen uptake. A linear term is appropriate.
+- `age`, `weight`, `runpulse`, and `maxpulse` show roughly linear relationships, though with more scatter.
+- `restpulse` shows the weakest and noisiest relationship.
+
+The loess curves do not reveal strong non-linearity for any predictor, so we proceed with linear terms throughout.
+
+## Full Model
+
+We begin with a model containing all six predictors.
+
+```{r}
+model_full <- lm(Y ~ age + weight + runtime + restpulse + runpulse + maxpulse,
+                 data = FITNESS)
+summary(model_full)
+```
+
+**Initial observations from the full model:**
+
+- `runtime` is the strongest predictor by far (highly significant, large coefficient relative to its scale).
+- `weight` and `restpulse` appear non-significant individually.
+- `runpulse` and `maxpulse` are correlated --- including both may cause redundancy (multicollinearity).
+
+## Model Selection
+
+Rather than relying solely on individual p-values to drop predictors (which can be misleading), we use AIC-based stepwise selection. AIC (Akaike Information Criterion) balances model fit against complexity --- lower is better.
+
+```{r}
+model_step <- step(model_full, direction = "both", trace = 0)
+summary(model_step)
+AIC(model_full, model_step)
+```
+
+The stepwise procedure identifies a reduced model. We can also compare specific nested models directly using `anova()`:
+
+```{r}
+model_reduced <- lm(Y ~ age + runtime + runpulse + maxpulse, data = FITNESS)
+
+# Does adding weight and restpulse improve the model?
+anova(model_reduced, model_full)
+```
+
+The ANOVA F-test compares the reduced and full models. A non-significant p-value means the extra predictors do not meaningfully improve fit --- we prefer the simpler model.
+
+```{r}
+# Does including maxpulse improve the model over runtime + age + runpulse?
+model_3pred <- lm(Y ~ age + runtime + runpulse, data = FITNESS)
+anova(model_3pred, model_reduced)
+```
+
+Based on both AIC and the formal F-test, we select the model with `age`, `runtime`, and `runpulse` as the final model.
+
+## Final Model
+
+```{r}
+final_model <- lm(Y ~ age + runtime + runpulse, data = FITNESS)
+summary(final_model)
+```
+
+**Interpreting the final model:**
+
+- **`runtime`:** Each additional minute of runtime is associated with a decrease of `r round(abs(coef(final_model)["runtime"]), 2)` mL/kg/min in oxygen uptake, holding age and run pulse constant. Slower runners have lower fitness.
+- **`runpulse`:** Each additional beat per minute in run pulse is associated with a decrease of `r round(abs(coef(final_model)["runpulse"]), 2)` mL/kg/min in oxygen uptake, holding age and runtime constant.
+- **`age`:** Each additional year of age is associated with a decrease of `r round(abs(coef(final_model)["age"]), 2)` mL/kg/min, holding runtime and run pulse constant.
+- **R²:** The model explains `r round(summary(final_model)$r.squared * 100, 1)`% of the variability in oxygen uptake.
+
+## Confidence Intervals for Coefficients
+
+```{r}
+confint(final_model)
+```
+
+## Model Diagnostics
+
+```{r}
+#| fig-width: 8
+#| fig-height: 7
+par(mfrow = c(2, 2))
+plot(final_model)
+par(mfrow = c(1, 1))
+```
+
+The diagnostic plots for the final model should be interpreted as described in Example 1. Look for:
+
+- No strong patterns in Residuals vs. Fitted
+- Points roughly following the diagonal in the Q-Q plot
+- Roughly constant spread in Scale-Location
+- No points with simultaneously high leverage and large residuals
+
+## Cook's Distance
+
+```{r}
+#| fig-width: 7
+#| fig-height: 4
+cooks_fit <- tibble(
+  obs   = seq_along(cooks.distance(final_model)),
+  cooks = cooks.distance(final_model)
+)
+
+ggplot(cooks_fit, aes(x = obs, y = cooks)) +
+  geom_segment(aes(xend = obs, yend = 0), color = "steelblue", alpha = 0.7) +
+  geom_point(data = filter(cooks_fit, cooks > quantile(cooks, 0.95)),
+             color = "firebrick", size = 2) +
+  geom_text(data = filter(cooks_fit, cooks > quantile(cooks, 0.95)),
+            aes(label = obs), nudge_y = 0.003, size = 3) +
+  labs(x = "Observation index", y = "Cook's distance",
+       title = "Cook's Distance — FITNESS Final Model",
+       subtitle = "Red points are in the top 5% — labeled for investigation") +
+  theme_minimal()
+```
+
+Here, the largest Cook's value is:
+
+```{r}
+FITNESS[c(10),]
+summary(FITNESS)
+```
+
+## Prediction Intervals
+
+We can generate predictions for new participants. Confidence intervals give the range for the **mean** response; prediction intervals give the range for an **individual** new observation (always wider).
+
+```{r}
+new_participants <- tibble(
+  age      = c(45, 50),
+  runtime  = c(10.0, 11.5),
+  runpulse = c(168, 175)
+)
+
+# Confidence interval for the mean response
+predict(final_model, newdata = new_participants, interval = "confidence") |>
+  as_tibble() |>
+  bind_cols(new_participants) |>
+  select(age, runtime, runpulse, everything()) |>
+  round(3)
+
+# Prediction interval for individual observations
+predict(final_model, newdata = new_participants, interval = "prediction") |>
+  as_tibble() |>
+  bind_cols(new_participants) |>
+  select(age, runtime, runpulse, everything()) |>
+  round(3)
+```
+
+Prediction intervals are substantially wider than confidence intervals because they must account for individual-level variability in addition to uncertainty in the mean.
+
+---
+
+# Modeling Non-Linear Relationships
+
+## When Linearity Fails
+
+The loess-based checks above are key to detecting non-linearity. When the smoothed curve bends substantially, a linear model will be mis-specified and its predictions will be systematically biased.
+
+To illustrate, we use the `airquality` dataset (built into R), which records daily ozone levels and temperature in New York. The relationship between temperature and ozone is clearly non-linear.
+
+```{r}
+#| message: false
+#| fig-width: 7
+#| fig-height: 5
+airquality_clean <- airquality |>
+  as_tibble() |>
+  filter(!is.na(Ozone), !is.na(Temp))
+
+ggplot(airquality_clean, aes(x = Temp, y = Ozone)) +
+  geom_point(alpha = 0.5, color = "steelblue") +
+  geom_smooth(method = "loess", color = "firebrick", se = TRUE, linewidth = 1) +
+  labs(x = "Temperature (°F)", y = "Ozone (ppb)",
+       title = "Ozone vs. Temperature — New York, 1973",
+       subtitle = "Loess curve shows a clear non-linear (accelerating) relationship") +
+  theme_minimal()
+```
+
+The loess curve rises steeply at high temperatures, indicating that a linear term for temperature will underfit the data.
+
+## Option 1: Polynomial Terms with `poly()`
+
+`poly(x, degree)` adds powered versions of the predictor ($x^2$, $x^3$, etc.) to the model. This allows the regression line to bend.
+
+```{r}
+model_linear <- lm(Ozone ~ Temp,         data = airquality_clean)
+model_quad   <- lm(Ozone ~ poly(Temp, 2), data = airquality_clean)
+model_cubic  <- lm(Ozone ~ poly(Temp, 3), data = airquality_clean)
+
+AIC(model_linear, model_quad, model_cubic)
+```
+
+The quadratic model has the lowest AIC, suggesting that adding a squared term captures the non-linearity well without overfitting.
+
+```{r}
+#| fig-width: 7
+#| fig-height: 5
+temp_grid <- tibble(Temp = seq(min(airquality_clean$Temp),
+                               max(airquality_clean$Temp), length.out = 200))
+
+preds <- temp_grid |>
+  mutate(
+    Linear    = predict(model_linear, newdata = temp_grid),
+    Quadratic = predict(model_quad,   newdata = temp_grid),
+    Cubic     = predict(model_cubic,  newdata = temp_grid)
+  ) |>
+  pivot_longer(cols = c(Linear, Quadratic, Cubic),
+               names_to = "Model", values_to = "Ozone")
+
+ggplot(airquality_clean, aes(x = Temp, y = Ozone)) +
+  geom_point(alpha = 0.4, color = "gray50") +
+  geom_line(data = preds, aes(color = Model), linewidth = 1) +
+  scale_color_manual(values = c("Linear" = "steelblue",
+                                "Quadratic" = "firebrick",
+                                "Cubic" = "darkorange")) +
+  labs(x = "Temperature (°F)", y = "Ozone (ppb)",
+       title = "Linear vs. Polynomial Regression — Ozone on Temperature",
+       color = "Model") +
+  theme_minimal()
+```
+
+The linear fit systematically underestimates ozone at high and low temperatures. The quadratic and cubic fits both capture the curvature well.
+
+## Option 2: Natural Splines with `splines::ns()`
+
+Natural splines are a more flexible alternative to polynomials. Instead of a single polynomial across the whole range, splines fit separate polynomial pieces connected at **knots**, producing smoother curves that do not behave erratically at the extremes.
+
+```{r}
+library(splines)
+
+model_spline3 <- lm(Ozone ~ ns(Temp, df = 3), data = airquality_clean)
+model_spline5 <- lm(Ozone ~ ns(Temp, df = 5), data = airquality_clean)
+
+AIC(model_linear, model_quad, model_spline3, model_spline5)
+```
+
+```{r}
+#| fig-width: 7
+#| fig-height: 5
+preds2 <- temp_grid |>
+  mutate(
+    Linear         = predict(model_linear,  newdata = temp_grid),
+    Quadratic      = predict(model_quad,    newdata = temp_grid),
+    "Spline (df=3)" = predict(model_spline3, newdata = temp_grid),
+    "Spline (df=5)" = predict(model_spline5, newdata = temp_grid)
+  ) |>
+  pivot_longer(cols = -Temp, names_to = "Model", values_to = "Ozone")
+
+ggplot(airquality_clean, aes(x = Temp, y = Ozone)) +
+  geom_point(alpha = 0.4, color = "gray50") +
+  geom_line(data = preds2, aes(color = Model), linewidth = 1) +
+  scale_color_manual(values = c(
+    "Linear"         = "steelblue",
+    "Quadratic"      = "firebrick",
+    "Spline (df=3)"  = "darkorange",
+    "Spline (df=5)"  = "purple"
+  )) +
+  labs(x = "Temperature (°F)", y = "Ozone (ppb)",
+       title = "Polynomial vs. Natural Spline Regression",
+       color = "Model") +
+  theme_minimal()
+```
+
+::: {.callout-tip}
+**Which to use?** Natural splines are generally preferred over polynomials for flexibility with fewer pathological behaviors at the extremes of the predictor range. For most biological applications, `df = 3` or `df = 4` is a reasonable starting point. Use AIC to compare and choose.
+:::
+
+## Applying Non-Linear Terms in Multiple Regression
+
+Non-linear terms can be included in a multiple regression model just like any other term:
+
+```{r}
+# Fit the final FITNESS model but allow runtime to have a non-linear effect
+fitness_spline <- lm(Y ~ age + ns(runtime, df = 3) + runpulse, data = FITNESS)
+
+AIC(final_model, fitness_spline)
+```
+
+Compare the AIC of the spline model to the linear model. If the spline model does not meaningfully reduce AIC, the simpler linear term is preferred. This is how you decide whether non-linearity is worth modeling for a given predictor.
+
+Here, the AIC only reduces slightly, so I would keep the original final model. I tried non-linear fits for the other variables, and did not see any gains.

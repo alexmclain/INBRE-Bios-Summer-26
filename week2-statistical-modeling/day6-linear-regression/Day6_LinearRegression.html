@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.32">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2026-05-29">
+
+<title>Day 6: Linear Regression</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Day6_LinearRegression_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Day6_LinearRegression_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="Day6_LinearRegression_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="Day6_LinearRegression_files/libs/quarto-html/popper.min.js"></script>
+<script src="Day6_LinearRegression_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Day6_LinearRegression_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Day6_LinearRegression_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Day6_LinearRegression_files/libs/quarto-html/quarto-syntax-highlighting-234273d1456647dabc34a594ac50e507.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Day6_LinearRegression_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Day6_LinearRegression_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Day6_LinearRegression_files/libs/bootstrap/bootstrap-dfb3f4843b9b0ce307f095fcbeec1e0c.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<style>html{ scroll-behavior: smooth; }</style>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview"><span class="header-section-number">1</span> Overview</a></li>
+  <li><a href="#example-1-systolic-bp-and-age-framingham" id="toc-example-1-systolic-bp-and-age-framingham" class="nav-link" data-scroll-target="#example-1-systolic-bp-and-age-framingham"><span class="header-section-number">2</span> Example 1: Systolic BP and Age (Framingham)</a>
+  <ul class="collapse">
+  <li><a href="#the-dataset" id="toc-the-dataset" class="nav-link" data-scroll-target="#the-dataset"><span class="header-section-number">2.1</span> The Dataset</a></li>
+  <li><a href="#checking-variable-form-before-modeling" id="toc-checking-variable-form-before-modeling" class="nav-link" data-scroll-target="#checking-variable-form-before-modeling"><span class="header-section-number">2.2</span> Checking Variable Form Before Modeling</a></li>
+  <li><a href="#a-note-on-variable-form" id="toc-a-note-on-variable-form" class="nav-link" data-scroll-target="#a-note-on-variable-form"><span class="header-section-number">2.3</span> A Note on Variable Form</a></li>
+  <li><a href="#fitting-the-model" id="toc-fitting-the-model" class="nav-link" data-scroll-target="#fitting-the-model"><span class="header-section-number">2.4</span> Fitting the Model</a></li>
+  <li><a href="#confidence-intervals-for-coefficients" id="toc-confidence-intervals-for-coefficients" class="nav-link" data-scroll-target="#confidence-intervals-for-coefficients"><span class="header-section-number">2.5</span> Confidence Intervals for Coefficients</a></li>
+  <li><a href="#plotting-the-regression-line" id="toc-plotting-the-regression-line" class="nav-link" data-scroll-target="#plotting-the-regression-line"><span class="header-section-number">2.6</span> Plotting the Regression Line</a></li>
+  <li><a href="#model-diagnostics" id="toc-model-diagnostics" class="nav-link" data-scroll-target="#model-diagnostics"><span class="header-section-number">2.7</span> Model Diagnostics</a></li>
+  <li><a href="#influential-observations-cooks-distance" id="toc-influential-observations-cooks-distance" class="nav-link" data-scroll-target="#influential-observations-cooks-distance"><span class="header-section-number">2.8</span> Influential Observations: Cook’s Distance</a></li>
+  <li><a href="#anova-table" id="toc-anova-table" class="nav-link" data-scroll-target="#anova-table"><span class="header-section-number">2.9</span> ANOVA Table</a></li>
+  </ul></li>
+  <li><a href="#example-2-multiple-regression-fitness-dataset" id="toc-example-2-multiple-regression-fitness-dataset" class="nav-link" data-scroll-target="#example-2-multiple-regression-fitness-dataset"><span class="header-section-number">3</span> Example 2: Multiple Regression — FITNESS Dataset</a>
+  <ul class="collapse">
+  <li><a href="#the-dataset-1" id="toc-the-dataset-1" class="nav-link" data-scroll-target="#the-dataset-1"><span class="header-section-number">3.1</span> The Dataset</a></li>
+  <li><a href="#checking-variable-form-for-each-predictor" id="toc-checking-variable-form-for-each-predictor" class="nav-link" data-scroll-target="#checking-variable-form-for-each-predictor"><span class="header-section-number">3.2</span> Checking Variable Form for Each Predictor</a></li>
+  <li><a href="#full-model" id="toc-full-model" class="nav-link" data-scroll-target="#full-model"><span class="header-section-number">3.3</span> Full Model</a></li>
+  <li><a href="#model-selection" id="toc-model-selection" class="nav-link" data-scroll-target="#model-selection"><span class="header-section-number">3.4</span> Model Selection</a></li>
+  <li><a href="#final-model" id="toc-final-model" class="nav-link" data-scroll-target="#final-model"><span class="header-section-number">3.5</span> Final Model</a></li>
+  <li><a href="#confidence-intervals-for-coefficients-1" id="toc-confidence-intervals-for-coefficients-1" class="nav-link" data-scroll-target="#confidence-intervals-for-coefficients-1"><span class="header-section-number">3.6</span> Confidence Intervals for Coefficients</a></li>
+  <li><a href="#model-diagnostics-1" id="toc-model-diagnostics-1" class="nav-link" data-scroll-target="#model-diagnostics-1"><span class="header-section-number">3.7</span> Model Diagnostics</a></li>
+  <li><a href="#cooks-distance" id="toc-cooks-distance" class="nav-link" data-scroll-target="#cooks-distance"><span class="header-section-number">3.8</span> Cook’s Distance</a></li>
+  <li><a href="#prediction-intervals" id="toc-prediction-intervals" class="nav-link" data-scroll-target="#prediction-intervals"><span class="header-section-number">3.9</span> Prediction Intervals</a></li>
+  </ul></li>
+  <li><a href="#modeling-non-linear-relationships" id="toc-modeling-non-linear-relationships" class="nav-link" data-scroll-target="#modeling-non-linear-relationships"><span class="header-section-number">4</span> Modeling Non-Linear Relationships</a>
+  <ul class="collapse">
+  <li><a href="#when-linearity-fails" id="toc-when-linearity-fails" class="nav-link" data-scroll-target="#when-linearity-fails"><span class="header-section-number">4.1</span> When Linearity Fails</a></li>
+  <li><a href="#option-1-polynomial-terms-with-poly" id="toc-option-1-polynomial-terms-with-poly" class="nav-link" data-scroll-target="#option-1-polynomial-terms-with-poly"><span class="header-section-number">4.2</span> Option 1: Polynomial Terms with <code>poly()</code></a></li>
+  <li><a href="#option-2-natural-splines-with-splinesns" id="toc-option-2-natural-splines-with-splinesns" class="nav-link" data-scroll-target="#option-2-natural-splines-with-splinesns"><span class="header-section-number">4.3</span> Option 2: Natural Splines with <code>splines::ns()</code></a></li>
+  <li><a href="#applying-non-linear-terms-in-multiple-regression" id="toc-applying-non-linear-terms-in-multiple-regression" class="nav-link" data-scroll-target="#applying-non-linear-terms-in-multiple-regression"><span class="header-section-number">4.4</span> Applying Non-Linear Terms in Multiple Regression</a></li>
+  </ul></li>
+  </ul>
+</nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Day 6: Linear Regression</h1>
+<p class="subtitle lead">SC INBRE Biostatistics Summer Intensive 2026</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">May 29, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(this.path)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">setwd</span>(<span class="fu">this.dir</span>())</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>framingham <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"../../data/framingham.csv"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">male          =</span> <span class="fu">factor</span>(male,          <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Female"</span>,<span class="st">"Male"</span>)),</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">currentSmoker =</span> <span class="fu">factor</span>(currentSmoker, <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Non-smoker"</span>,<span class="st">"Smoker"</span>)),</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">prevalentHyp  =</span> <span class="fu">factor</span>(prevalentHyp,  <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>)),</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">diabetes      =</span> <span class="fu">factor</span>(diabetes,      <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>)),</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">TenYearCHD    =</span> <span class="fu">factor</span>(TenYearCHD,    <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>)),</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">education     =</span> <span class="fu">factor</span>(education,     <span class="at">levels =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>,</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>                           <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Some HS"</span>,<span class="st">"HS Diploma"</span>,<span class="st">"Some College"</span>,<span class="st">"College Degree"</span>))</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="overview" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Overview</h1>
+<p>This document covers simple and multiple linear regression using two datasets:</p>
+<ul>
+<li><strong>Example 1:</strong> Simple regression of systolic blood pressure on age (Framingham Heart Study)</li>
+<li><strong>Example 2:</strong> Multiple regression for a fitness outcome using physiological measurements (FITNESS dataset)</li>
+<li><strong>Example 3:</strong> Modeling non-linear relationships using polynomial terms and natural splines</li>
+</ul>
+<hr>
+</section>
+<section id="example-1-systolic-bp-and-age-framingham" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Example 1: Systolic BP and Age (Framingham)</h1>
+<section id="the-dataset" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="the-dataset"><span class="header-section-number">2.1</span> The Dataset</h2>
+<p>The Framingham Heart Study is a landmark longitudinal study of cardiovascular risk factors. We focus here on the relationship between age and systolic blood pressure.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>framingham <span class="sc">|&gt;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(age, sysBP) <span class="sc">|&gt;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summary</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>      age            sysBP      
+ Min.   :32.00   Min.   : 83.5  
+ 1st Qu.:42.00   1st Qu.:117.0  
+ Median :49.00   Median :128.0  
+ Mean   :49.58   Mean   :132.4  
+ 3rd Qu.:56.00   3rd Qu.:144.0  
+ Max.   :70.00   Max.   :295.0  </code></pre>
+</div>
+</div>
+</section>
+<section id="checking-variable-form-before-modeling" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="checking-variable-form-before-modeling"><span class="header-section-number">2.2</span> Checking Variable Form Before Modeling</h2>
+<p>Before fitting any regression model, the first step is to visually inspect the relationship between the predictor and the outcome. This answers the key question: <strong>is a linear model appropriate here?</strong></p>
+<p>We use <code>geom_smooth(method = "loess")</code> to overlay a flexible smoothed curve on the scatterplot. If the loess curve follows a roughly straight line, a linear model is appropriate. If it bends substantially, we may need to consider a non-linear approach (covered in Example 3).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(framingham, <span class="fu">aes</span>(<span class="at">x =</span> age, <span class="at">y =</span> sysBP)) <span class="sc">+</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.2</span>, <span class="at">color =</span> <span class="st">"steelblue"</span>) <span class="sc">+</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"loess"</span>, <span class="at">color =</span> <span class="st">"firebrick"</span>, <span class="at">se =</span> <span class="cn">TRUE</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Age (years)"</span>, <span class="at">y =</span> <span class="st">"Systolic BP (mmHg)"</span>,</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Systolic BP vs. Age with Loess Smoother"</span>,</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="st">"Loess curve shown in red; shaded band is 95% confidence interval"</span>) <span class="sc">+</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day6_LinearRegression_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The loess smoother follows a nearly straight path across the age range, confirming that a linear model is a reasonable choice here.</p>
+</section>
+<section id="a-note-on-variable-form" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="a-note-on-variable-form"><span class="header-section-number">2.3</span> A Note on Variable Form</h2>
+<p>A common modeling mistake is to take a continuous variable and convert it to categories. For example, splitting age into groups of 10 years. This:</p>
+<ul>
+<li>Throws away information by treating everyone in a group as identical</li>
+<li>Assumes a step change at the cutpoint rather than a smooth effect</li>
+<li>Reduces statistical power</li>
+<li>Can produce misleading conclusions depending on where cutpoints are placed</li>
+</ul>
+<p>The comparison below illustrates the issue:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># The wrong approach: categorize a continuous variable</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>framingham_grouped <span class="ot">&lt;-</span> framingham <span class="sc">|&gt;</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">age_group =</span> <span class="fu">cut</span>(age, <span class="at">breaks =</span> <span class="fu">c</span>(<span class="dv">30</span>, <span class="dv">40</span>, <span class="dv">50</span>, <span class="dv">60</span>, <span class="dv">70</span>),</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>                         <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"30-40"</span>, <span class="st">"40-50"</span>, <span class="st">"50-60"</span>, <span class="st">"60-70"</span>),</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>                         <span class="at">include.lowest =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Good model: treat age as continuous</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>good_model   <span class="ot">&lt;-</span> <span class="fu">lm</span>(sysBP <span class="sc">~</span> age,       <span class="at">data =</span> framingham)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Poor model: treat age as categorical</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>bad_model    <span class="ot">&lt;-</span> <span class="fu">lm</span>(sysBP <span class="sc">~</span> age_group, <span class="at">data =</span> framingham_grouped)</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare AIC: lower is better</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="fu">AIC</span>(good_model, bad_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>           df      AIC
+good_model  3 37546.97
+bad_model   5 37622.32</code></pre>
+</div>
+</div>
+<p>The continuous model has a lower AIC, meaning it fits the data better using fewer degrees of freedom. Use continuous variables as continuous unless there is a strong biological reason to categorize.</p>
+</section>
+<section id="fitting-the-model" class="level2" data-number="2.4">
+<h2 data-number="2.4" class="anchored" data-anchor-id="fitting-the-model"><span class="header-section-number">2.4</span> Fitting the Model</h2>
+<p>The simple linear regression model is:</p>
+<p><span class="math display">\[Y = \beta_0 + \beta_1 X + \varepsilon\]</span></p>
+<p>where <span class="math inline">\(Y\)</span> is systolic blood pressure, <span class="math inline">\(X\)</span> is age, <span class="math inline">\(\beta_0\)</span> is the intercept, <span class="math inline">\(\beta_1\)</span> is the slope, and <span class="math inline">\(\varepsilon\)</span> is the error term.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>sbp_model <span class="ot">&lt;-</span> <span class="fu">lm</span>(sysBP <span class="sc">~</span> age, <span class="at">data =</span> framingham)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(sbp_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = sysBP ~ age, data = framingham)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-57.382 -13.627  -2.627  10.182 148.042 
+
+Coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) 82.14199    1.82570   44.99   &lt;2e-16 ***
+age          1.01276    0.03628   27.91   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 20.25 on 4238 degrees of freedom
+Multiple R-squared:  0.1553,    Adjusted R-squared:  0.1551 
+F-statistic:   779 on 1 and 4238 DF,  p-value: &lt; 2.2e-16</code></pre>
+</div>
+</div>
+<p><strong>Interpreting the output:</strong></p>
+<ul>
+<li><strong>Intercept (<span class="math inline">\(\hat\beta_0\)</span> = 82.14):</strong> The estimated mean systolic BP for a participant aged zero — not directly interpretable here, but necessary to define the line.</li>
+<li><strong>Age (<span class="math inline">\(\hat\beta_1\)</span> = 1.01):</strong> For each additional year of age, systolic BP is estimated to increase by 1.01 mmHg on average, holding all else constant.</li>
+<li><strong>R²:</strong> The model explains 15.5% of the variability in systolic BP.</li>
+<li><strong>p-value:</strong> Age is a highly significant predictor of systolic BP.</li>
+</ul>
+</section>
+<section id="confidence-intervals-for-coefficients" class="level2" data-number="2.5">
+<h2 data-number="2.5" class="anchored" data-anchor-id="confidence-intervals-for-coefficients"><span class="header-section-number">2.5</span> Confidence Intervals for Coefficients</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">confint</span>(sbp_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                 2.5 %    97.5 %
+(Intercept) 78.5626554 85.721320
+age          0.9416181  1.083893</code></pre>
+</div>
+</div>
+<p>We are 95% confident that the true slope for age lies between the bounds above.</p>
+</section>
+<section id="plotting-the-regression-line" class="level2" data-number="2.6">
+<h2 data-number="2.6" class="anchored" data-anchor-id="plotting-the-regression-line"><span class="header-section-number">2.6</span> Plotting the Regression Line</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(framingham, <span class="fu">aes</span>(<span class="at">x =</span> age, <span class="at">y =</span> sysBP)) <span class="sc">+</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.2</span>, <span class="at">color =</span> <span class="st">"steelblue"</span>) <span class="sc">+</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">color =</span> <span class="st">"firebrick"</span>, <span class="at">se =</span> <span class="cn">TRUE</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Age (years)"</span>, <span class="at">y =</span> <span class="st">"Systolic BP (mmHg)"</span>,</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Simple Linear Regression: Systolic BP on Age"</span>,</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="st">"Shaded band is 95% confidence interval for the mean"</span>) <span class="sc">+</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day6_LinearRegression_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="model-diagnostics" class="level2" data-number="2.7">
+<h2 data-number="2.7" class="anchored" data-anchor-id="model-diagnostics"><span class="header-section-number">2.7</span> Model Diagnostics</h2>
+<p>After fitting the model, we check four standard diagnostic plots. Each tests a different assumption.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">2</span>))</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(sbp_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day6_LinearRegression_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p><strong>What to look for in each panel:</strong></p>
+<ul>
+<li><strong>Residuals vs.&nbsp;Fitted:</strong> Points should scatter randomly around zero with no pattern. A curved pattern suggests the linearity assumption is violated; a funnel shape suggests non-constant variance (heteroscedasticity).</li>
+<li><strong>Normal Q-Q:</strong> Points should fall approximately along the diagonal line. Heavy tails or systematic departure from the line suggest the normality assumption may be violated.</li>
+<li><strong>Scale-Location:</strong> The spread of standardized residuals should be roughly constant across fitted values. An upward or downward trend indicates heteroscedasticity.</li>
+<li><strong>Residuals vs.&nbsp;Leverage:</strong> Points in the upper or lower right have both high leverage (unusual predictor values) and high influence on the fitted line. Named points are worth investigating.</li>
+</ul>
+</section>
+<section id="influential-observations-cooks-distance" class="level2" data-number="2.8">
+<h2 data-number="2.8" class="anchored" data-anchor-id="influential-observations-cooks-distance"><span class="header-section-number">2.8</span> Influential Observations: Cook’s Distance</h2>
+<p>Cook’s distance measures how much the fitted values would change if a given observation were removed. Rather than applying a formula-based cutoff, look for observations that stand clearly apart from the rest.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>cooks_df <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">obs   =</span> <span class="fu">seq_along</span>(<span class="fu">cooks.distance</span>(sbp_model)),</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">cooks =</span> <span class="fu">cooks.distance</span>(sbp_model)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(cooks_df, <span class="fu">aes</span>(<span class="at">x =</span> obs, <span class="at">y =</span> cooks)) <span class="sc">+</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_segment</span>(<span class="fu">aes</span>(<span class="at">xend =</span> obs, <span class="at">yend =</span> <span class="dv">0</span>), <span class="at">color =</span> <span class="st">"steelblue"</span>, <span class="at">alpha =</span> <span class="fl">0.6</span>) <span class="sc">+</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">data =</span> <span class="fu">filter</span>(cooks_df, cooks <span class="sc">&gt;</span> <span class="fu">quantile</span>(cooks, <span class="fl">0.99</span>)),</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>             <span class="at">color =</span> <span class="st">"firebrick"</span>, <span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Observation index"</span>, <span class="at">y =</span> <span class="st">"Cook's distance"</span>,</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Cook's Distance — Simple Regression of SBP on Age"</span>,</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="st">"Red points are in the top 1% — worth investigating, not automatically removed"</span>) <span class="sc">+</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day6_LinearRegression_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Points with notably large Cook’s distances warrant investigation. Check whether they are data entry errors, legitimate extreme values, or part of a distinct subgroup. <strong>Do not remove them automatically.</strong></p>
+<p>Here, the largest Cook’s value is:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>framingham[<span class="fu">which.max</span>(cooks_df<span class="sc">$</span>cooks),<span class="fu">c</span>(<span class="st">"age"</span>,<span class="st">"sysBP"</span>)]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 2
+    age sysBP
+  &lt;dbl&gt; &lt;dbl&gt;
+1    64   295</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(framingham[,<span class="fu">c</span>(<span class="st">"age"</span>,<span class="st">"sysBP"</span>)])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>      age            sysBP      
+ Min.   :32.00   Min.   : 83.5  
+ 1st Qu.:42.00   1st Qu.:117.0  
+ Median :49.00   Median :128.0  
+ Mean   :49.58   Mean   :132.4  
+ 3rd Qu.:56.00   3rd Qu.:144.0  
+ Max.   :70.00   Max.   :295.0  </code></pre>
+</div>
+</div>
+</section>
+<section id="anova-table" class="level2" data-number="2.9">
+<h2 data-number="2.9" class="anchored" data-anchor-id="anova-table"><span class="header-section-number">2.9</span> ANOVA Table</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(bad_model)<span class="sc">$</span>coefficients</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                 Estimate Std. Error    t value      Pr(&gt;|t|)
+(Intercept)    120.789439  0.7469530 161.709553  0.000000e+00
+age_group40-50   7.270226  0.9040554   8.041792  1.138923e-15
+age_group50-60  17.094381  0.9370077  18.243586  1.207732e-71
+age_group60-70  25.988627  1.1308095  22.982320 3.003567e-110</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">anova</span>(bad_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Analysis of Variance Table
+
+Response: sysBP
+            Df  Sum Sq Mean Sq F value    Pr(&gt;F)    
+age_group    3  290047   96682  231.66 &lt; 2.2e-16 ***
+Residuals 4236 1767845     417                      
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+</div>
+</div>
+<p>The ANOVA F-test evaluates is useful when we have grouped variables (like here). Notice that the ANOVA gives one test for the significance of the grouped age variable. This is very useful for variables that are factors.</p>
+<hr>
+</section>
+</section>
+<section id="example-2-multiple-regression-fitness-dataset" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Example 2: Multiple Regression — FITNESS Dataset</h1>
+<section id="the-dataset-1" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="the-dataset-1"><span class="header-section-number">3.1</span> The Dataset</h2>
+<p>This dataset contains physiological measurements from 31 middle-aged men and a measure of oxygen uptake capacity (<code>Y</code>, in mL/kg/min) collected during a fitness test. The goal is to predict <code>Y</code> from exercise-related measurements.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>FITNESS <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">age          =</span> <span class="fu">c</span>(<span class="dv">44</span>,<span class="dv">40</span>,<span class="dv">44</span>,<span class="dv">42</span>,<span class="dv">38</span>,<span class="dv">47</span>,<span class="dv">40</span>,<span class="dv">43</span>,<span class="dv">44</span>,<span class="dv">38</span>,<span class="dv">44</span>,<span class="dv">45</span>,<span class="dv">45</span>,<span class="dv">47</span>,<span class="dv">54</span>,</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>                   <span class="dv">49</span>,<span class="dv">51</span>,<span class="dv">51</span>,<span class="dv">48</span>,<span class="dv">49</span>,<span class="dv">57</span>,<span class="dv">54</span>,<span class="dv">52</span>,<span class="dv">50</span>,<span class="dv">51</span>,<span class="dv">54</span>,<span class="dv">51</span>,<span class="dv">57</span>,<span class="dv">49</span>,<span class="dv">48</span>,<span class="dv">52</span>),</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">weight       =</span> <span class="fu">c</span>(<span class="fl">89.47</span>,<span class="fl">75.07</span>,<span class="fl">85.84</span>,<span class="fl">68.15</span>,<span class="fl">89.02</span>,<span class="fl">77.45</span>,<span class="fl">75.98</span>,<span class="fl">81.19</span>,</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>                   <span class="fl">81.42</span>,<span class="fl">81.87</span>,<span class="fl">73.03</span>,<span class="fl">87.66</span>,<span class="fl">66.45</span>,<span class="fl">79.15</span>,<span class="fl">83.12</span>,<span class="fl">81.42</span>,</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>                   <span class="fl">69.63</span>,<span class="fl">77.91</span>,<span class="fl">91.63</span>,<span class="fl">73.37</span>,<span class="fl">73.37</span>,<span class="fl">79.38</span>,<span class="fl">76.32</span>,<span class="fl">70.87</span>,</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>                   <span class="fl">67.25</span>,<span class="fl">91.63</span>,<span class="fl">73.71</span>,<span class="fl">59.08</span>,<span class="fl">76.32</span>,<span class="fl">61.24</span>,<span class="fl">82.78</span>),</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">runtime      =</span> <span class="fu">c</span>(<span class="fl">11.37</span>,<span class="fl">10.07</span>,<span class="fl">8.65</span>,<span class="fl">8.17</span>,<span class="fl">9.22</span>,<span class="fl">11.63</span>,<span class="fl">11.95</span>,<span class="fl">10.85</span>,</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>                   <span class="fl">13.08</span>,<span class="fl">8.63</span>,<span class="fl">10.13</span>,<span class="fl">14.03</span>,<span class="fl">11.12</span>,<span class="fl">10.60</span>,<span class="fl">10.33</span>,<span class="fl">8.95</span>,</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>                   <span class="fl">10.95</span>,<span class="fl">10.00</span>,<span class="fl">10.25</span>,<span class="fl">10.08</span>,<span class="fl">12.63</span>,<span class="fl">11.17</span>,<span class="fl">9.63</span>,<span class="fl">8.92</span>,</span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>                   <span class="fl">11.08</span>,<span class="fl">12.88</span>,<span class="fl">10.47</span>,<span class="fl">9.93</span>,<span class="fl">9.40</span>,<span class="fl">11.50</span>,<span class="fl">10.50</span>),</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">restpulse    =</span> <span class="fu">c</span>(<span class="dv">62</span>,<span class="dv">62</span>,<span class="dv">45</span>,<span class="dv">40</span>,<span class="dv">55</span>,<span class="dv">58</span>,<span class="dv">70</span>,<span class="dv">64</span>,<span class="dv">63</span>,<span class="dv">48</span>,<span class="dv">45</span>,<span class="dv">56</span>,<span class="dv">51</span>,<span class="dv">47</span>,<span class="dv">50</span>,</span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>                   <span class="dv">44</span>,<span class="dv">57</span>,<span class="dv">48</span>,<span class="dv">48</span>,<span class="dv">67</span>,<span class="dv">58</span>,<span class="dv">62</span>,<span class="dv">48</span>,<span class="dv">48</span>,<span class="dv">48</span>,<span class="dv">44</span>,<span class="dv">59</span>,<span class="dv">49</span>,<span class="dv">56</span>,<span class="dv">52</span>,<span class="dv">53</span>),</span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">runpulse     =</span> <span class="fu">c</span>(<span class="dv">178</span>,<span class="dv">185</span>,<span class="dv">156</span>,<span class="dv">166</span>,<span class="dv">178</span>,<span class="dv">176</span>,<span class="dv">176</span>,<span class="dv">162</span>,<span class="dv">174</span>,<span class="dv">170</span>,<span class="dv">168</span>,<span class="dv">186</span>,</span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>                   <span class="dv">176</span>,<span class="dv">162</span>,<span class="dv">166</span>,<span class="dv">180</span>,<span class="dv">168</span>,<span class="dv">162</span>,<span class="dv">162</span>,<span class="dv">168</span>,<span class="dv">174</span>,<span class="dv">156</span>,<span class="dv">164</span>,<span class="dv">146</span>,</span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>                   <span class="dv">172</span>,<span class="dv">168</span>,<span class="dv">186</span>,<span class="dv">148</span>,<span class="dv">186</span>,<span class="dv">170</span>,<span class="dv">170</span>),</span>
+<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">maxpulse     =</span> <span class="fu">c</span>(<span class="dv">182</span>,<span class="dv">185</span>,<span class="dv">168</span>,<span class="dv">172</span>,<span class="dv">180</span>,<span class="dv">176</span>,<span class="dv">180</span>,<span class="dv">170</span>,<span class="dv">176</span>,<span class="dv">186</span>,<span class="dv">168</span>,<span class="dv">192</span>,</span>
+<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>                   <span class="dv">176</span>,<span class="dv">164</span>,<span class="dv">170</span>,<span class="dv">185</span>,<span class="dv">172</span>,<span class="dv">168</span>,<span class="dv">164</span>,<span class="dv">168</span>,<span class="dv">176</span>,<span class="dv">165</span>,<span class="dv">166</span>,<span class="dv">155</span>,</span>
+<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>                   <span class="dv">172</span>,<span class="dv">172</span>,<span class="dv">188</span>,<span class="dv">155</span>,<span class="dv">188</span>,<span class="dv">176</span>,<span class="dv">172</span>),</span>
+<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a>  <span class="at">Y            =</span> <span class="fu">c</span>(<span class="fl">44.609</span>,<span class="fl">45.313</span>,<span class="fl">54.297</span>,<span class="fl">59.571</span>,<span class="fl">49.874</span>,<span class="fl">44.811</span>,<span class="fl">45.681</span>,</span>
+<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a>                   <span class="fl">49.091</span>,<span class="fl">39.442</span>,<span class="fl">60.055</span>,<span class="fl">50.541</span>,<span class="fl">37.388</span>,<span class="fl">44.754</span>,<span class="fl">47.273</span>,</span>
+<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a>                   <span class="fl">51.855</span>,<span class="fl">49.156</span>,<span class="fl">40.836</span>,<span class="fl">46.672</span>,<span class="fl">46.774</span>,<span class="fl">50.388</span>,<span class="fl">39.407</span>,</span>
+<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a>                   <span class="fl">46.080</span>,<span class="fl">45.441</span>,<span class="fl">54.625</span>,<span class="fl">45.118</span>,<span class="fl">39.203</span>,<span class="fl">45.790</span>,<span class="fl">50.545</span>,</span>
+<span id="cb23-24"><a href="#cb23-24" aria-hidden="true" tabindex="-1"></a>                   <span class="fl">48.730</span>,<span class="fl">47.920</span>,<span class="fl">47.467</span>)</span>
+<span id="cb23-25"><a href="#cb23-25" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb23-26"><a href="#cb23-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-27"><a href="#cb23-27" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(FITNESS)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 31
+Columns: 7
+$ age       &lt;dbl&gt; 44, 40, 44, 42, 38, 47, 40, 43, 44, 38, 44, 45, 45, 47, 54, …
+$ weight    &lt;dbl&gt; 89.47, 75.07, 85.84, 68.15, 89.02, 77.45, 75.98, 81.19, 81.4…
+$ runtime   &lt;dbl&gt; 11.37, 10.07, 8.65, 8.17, 9.22, 11.63, 11.95, 10.85, 13.08, …
+$ restpulse &lt;dbl&gt; 62, 62, 45, 40, 55, 58, 70, 64, 63, 48, 45, 56, 51, 47, 50, …
+$ runpulse  &lt;dbl&gt; 178, 185, 156, 166, 178, 176, 176, 162, 174, 170, 168, 186, …
+$ maxpulse  &lt;dbl&gt; 182, 185, 168, 172, 180, 176, 180, 170, 176, 186, 168, 192, …
+$ Y         &lt;dbl&gt; 44.609, 45.313, 54.297, 59.571, 49.874, 44.811, 45.681, 49.0…</code></pre>
+</div>
+</div>
+</section>
+<section id="checking-variable-form-for-each-predictor" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="checking-variable-form-for-each-predictor"><span class="header-section-number">3.2</span> Checking Variable Form for Each Predictor</h2>
+<p>Before fitting any model, inspect the relationship between each predictor and the outcome. We use a loess smoother to detect non-linearity. If the loess curve is approximately straight, a linear term is appropriate. If it bends substantially, a non-linear term may be needed (see Example 3).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>FITNESS <span class="sc">|&gt;</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(age, weight, runtime, restpulse, runpulse, maxpulse),</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>               <span class="at">names_to =</span> <span class="st">"predictor"</span>, <span class="at">values_to =</span> <span class="st">"value"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> value, <span class="at">y =</span> Y)) <span class="sc">+</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">color =</span> <span class="st">"steelblue"</span>) <span class="sc">+</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"loess"</span>, <span class="at">color =</span> <span class="st">"firebrick"</span>, <span class="at">se =</span> <span class="cn">TRUE</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span> predictor, <span class="at">scales =</span> <span class="st">"free_x"</span>, <span class="at">ncol =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Predictor value"</span>, <span class="at">y =</span> <span class="st">"Oxygen uptake (Y)"</span>,</span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Relationship Between Each Predictor and Oxygen Uptake"</span>,</span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="st">"Loess smoother — a roughly straight red line supports a linear term"</span>) <span class="sc">+</span></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day6_LinearRegression_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><strong>What to look for:</strong></p>
+<ul>
+<li><code>runtime</code> shows a clear negative linear relationship — faster runners have higher oxygen uptake. A linear term is appropriate.</li>
+<li><code>age</code>, <code>weight</code>, <code>runpulse</code>, and <code>maxpulse</code> show roughly linear relationships, though with more scatter.</li>
+<li><code>restpulse</code> shows the weakest and noisiest relationship.</li>
+</ul>
+<p>The loess curves do not reveal strong non-linearity for any predictor, so we proceed with linear terms throughout.</p>
+</section>
+<section id="full-model" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="full-model"><span class="header-section-number">3.3</span> Full Model</h2>
+<p>We begin with a model containing all six predictors.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>model_full <span class="ot">&lt;-</span> <span class="fu">lm</span>(Y <span class="sc">~</span> age <span class="sc">+</span> weight <span class="sc">+</span> runtime <span class="sc">+</span> restpulse <span class="sc">+</span> runpulse <span class="sc">+</span> maxpulse,</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>                 <span class="at">data =</span> FITNESS)</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model_full)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = Y ~ age + weight + runtime + restpulse + runpulse + 
+    maxpulse, data = FITNESS)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-5.4052 -0.8967  0.0744  1.0505  5.3804 
+
+Coefficients:
+             Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) 102.83508   12.40437   8.290 1.67e-08 ***
+age          -0.22629    0.09985  -2.266  0.03272 *  
+weight       -0.07417    0.05460  -1.359  0.18693    
+runtime      -2.63183    0.38460  -6.843 4.46e-07 ***
+restpulse    -0.02134    0.06606  -0.323  0.74943    
+runpulse     -0.36933    0.11986  -3.081  0.00511 ** 
+maxpulse      0.30345    0.13651   2.223  0.03589 *  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 2.317 on 24 degrees of freedom
+Multiple R-squared:  0.8487,    Adjusted R-squared:  0.8108 
+F-statistic: 22.43 on 6 and 24 DF,  p-value: 9.716e-09</code></pre>
+</div>
+</div>
+<p><strong>Initial observations from the full model:</strong></p>
+<ul>
+<li><code>runtime</code> is the strongest predictor by far (highly significant, large coefficient relative to its scale).</li>
+<li><code>weight</code> and <code>restpulse</code> appear non-significant individually.</li>
+<li><code>runpulse</code> and <code>maxpulse</code> are correlated — including both may cause redundancy (multicollinearity).</li>
+</ul>
+</section>
+<section id="model-selection" class="level2" data-number="3.4">
+<h2 data-number="3.4" class="anchored" data-anchor-id="model-selection"><span class="header-section-number">3.4</span> Model Selection</h2>
+<p>Rather than relying solely on individual p-values to drop predictors (which can be misleading), we use AIC-based stepwise selection. AIC (Akaike Information Criterion) balances model fit against complexity — lower is better.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>model_step <span class="ot">&lt;-</span> <span class="fu">step</span>(model_full, <span class="at">direction =</span> <span class="st">"both"</span>, <span class="at">trace =</span> <span class="dv">0</span>)</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model_step)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = Y ~ age + weight + runtime + runpulse + maxpulse, 
+    data = FITNESS)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-5.4744 -0.8457  0.0074  0.9989  5.3764 
+
+Coefficients:
+             Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) 102.11135   11.97990   8.524 7.26e-09 ***
+age          -0.21901    0.09551  -2.293  0.03053 *  
+weight       -0.07231    0.05331  -1.356  0.18709    
+runtime      -2.68522    0.34100  -7.874 3.13e-08 ***
+runpulse     -0.37307    0.11715  -3.185  0.00386 ** 
+maxpulse      0.30513    0.13394   2.278  0.03154 *  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 2.275 on 25 degrees of freedom
+Multiple R-squared:  0.848, Adjusted R-squared:  0.8176 
+F-statistic:  27.9 on 5 and 25 DF,  p-value: 1.809e-09</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">AIC</span>(model_full, model_step)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>           df      AIC
+model_full  8 148.1414
+model_step  7 146.2759</code></pre>
+</div>
+</div>
+<p>The stepwise procedure identifies a reduced model. We can also compare specific nested models directly using <code>anova()</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>model_reduced <span class="ot">&lt;-</span> <span class="fu">lm</span>(Y <span class="sc">~</span> age <span class="sc">+</span> runtime <span class="sc">+</span> runpulse <span class="sc">+</span> maxpulse, <span class="at">data =</span> FITNESS)</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Does adding weight and restpulse improve the model?</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a><span class="fu">anova</span>(model_reduced, model_full)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Analysis of Variance Table
+
+Model 1: Y ~ age + runtime + runpulse + maxpulse
+Model 2: Y ~ age + weight + runtime + restpulse + runpulse + maxpulse
+  Res.Df    RSS Df Sum of Sq      F Pr(&gt;F)
+1     26 138.95                           
+2     24 128.86  2    10.085 0.9392 0.4049</code></pre>
+</div>
+</div>
+<p>The ANOVA F-test compares the reduced and full models. A non-significant p-value means the extra predictors do not meaningfully improve fit — we prefer the simpler model.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Does including maxpulse improve the model over runtime + age + runpulse?</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>model_3pred <span class="ot">&lt;-</span> <span class="fu">lm</span>(Y <span class="sc">~</span> age <span class="sc">+</span> runtime <span class="sc">+</span> runpulse, <span class="at">data =</span> FITNESS)</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a><span class="fu">anova</span>(model_3pred, model_reduced)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Analysis of Variance Table
+
+Model 1: Y ~ age + runtime + runpulse
+Model 2: Y ~ age + runtime + runpulse + maxpulse
+  Res.Df    RSS Df Sum of Sq      F  Pr(&gt;F)  
+1     27 160.88                              
+2     26 138.95  1    21.936 4.1046 0.05314 .
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+</div>
+</div>
+<p>Based on both AIC and the formal F-test, we select the model with <code>age</code>, <code>runtime</code>, and <code>runpulse</code> as the final model.</p>
+</section>
+<section id="final-model" class="level2" data-number="3.5">
+<h2 data-number="3.5" class="anchored" data-anchor-id="final-model"><span class="header-section-number">3.5</span> Final Model</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>final_model <span class="ot">&lt;-</span> <span class="fu">lm</span>(Y <span class="sc">~</span> age <span class="sc">+</span> runtime <span class="sc">+</span> runpulse, <span class="at">data =</span> FITNESS)</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(final_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = Y ~ age + runtime + runpulse, data = FITNESS)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-4.8771 -1.2456  0.2661  1.0330  4.8952 
+
+Coefficients:
+             Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) 111.63525   10.23671  10.905 2.14e-11 ***
+age          -0.25583    0.09624  -2.658   0.0130 *  
+runtime      -2.82814    0.35834  -7.892 1.74e-08 ***
+runpulse     -0.13040    0.05060  -2.577   0.0157 *  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 2.441 on 27 degrees of freedom
+Multiple R-squared:  0.8111,    Adjusted R-squared:  0.7901 
+F-statistic: 38.64 on 3 and 27 DF,  p-value: 6.569e-10</code></pre>
+</div>
+</div>
+<p><strong>Interpreting the final model:</strong></p>
+<ul>
+<li><strong><code>runtime</code>:</strong> Each additional minute of runtime is associated with a decrease of 2.83 mL/kg/min in oxygen uptake, holding age and run pulse constant. Slower runners have lower fitness.</li>
+<li><strong><code>runpulse</code>:</strong> Each additional beat per minute in run pulse is associated with a decrease of 0.13 mL/kg/min in oxygen uptake, holding age and runtime constant.</li>
+<li><strong><code>age</code>:</strong> Each additional year of age is associated with a decrease of 0.26 mL/kg/min, holding runtime and run pulse constant.</li>
+<li><strong>R²:</strong> The model explains 81.1% of the variability in oxygen uptake.</li>
+</ul>
+</section>
+<section id="confidence-intervals-for-coefficients-1" class="level2" data-number="3.6">
+<h2 data-number="3.6" class="anchored" data-anchor-id="confidence-intervals-for-coefficients-1"><span class="header-section-number">3.6</span> Confidence Intervals for Coefficients</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">confint</span>(final_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                 2.5 %       97.5 %
+(Intercept) 90.6312557 132.63924859
+age         -0.4533043  -0.05835085
+runtime     -3.5633851  -2.09289059
+runpulse    -0.2342167  -0.02657913</code></pre>
+</div>
+</div>
+</section>
+<section id="model-diagnostics-1" class="level2" data-number="3.7">
+<h2 data-number="3.7" class="anchored" data-anchor-id="model-diagnostics-1"><span class="header-section-number">3.7</span> Model Diagnostics</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">2</span>))</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(final_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day6_LinearRegression_files/figure-html/unnamed-chunk-20-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The diagnostic plots for the final model should be interpreted as described in Example 1. Look for:</p>
+<ul>
+<li>No strong patterns in Residuals vs.&nbsp;Fitted</li>
+<li>Points roughly following the diagonal in the Q-Q plot</li>
+<li>Roughly constant spread in Scale-Location</li>
+<li>No points with simultaneously high leverage and large residuals</li>
+</ul>
+</section>
+<section id="cooks-distance" class="level2" data-number="3.8">
+<h2 data-number="3.8" class="anchored" data-anchor-id="cooks-distance"><span class="header-section-number">3.8</span> Cook’s Distance</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>cooks_fit <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">obs   =</span> <span class="fu">seq_along</span>(<span class="fu">cooks.distance</span>(final_model)),</span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">cooks =</span> <span class="fu">cooks.distance</span>(final_model)</span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(cooks_fit, <span class="fu">aes</span>(<span class="at">x =</span> obs, <span class="at">y =</span> cooks)) <span class="sc">+</span></span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_segment</span>(<span class="fu">aes</span>(<span class="at">xend =</span> obs, <span class="at">yend =</span> <span class="dv">0</span>), <span class="at">color =</span> <span class="st">"steelblue"</span>, <span class="at">alpha =</span> <span class="fl">0.7</span>) <span class="sc">+</span></span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">data =</span> <span class="fu">filter</span>(cooks_fit, cooks <span class="sc">&gt;</span> <span class="fu">quantile</span>(cooks, <span class="fl">0.95</span>)),</span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>             <span class="at">color =</span> <span class="st">"firebrick"</span>, <span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="at">data =</span> <span class="fu">filter</span>(cooks_fit, cooks <span class="sc">&gt;</span> <span class="fu">quantile</span>(cooks, <span class="fl">0.95</span>)),</span>
+<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a>            <span class="fu">aes</span>(<span class="at">label =</span> obs), <span class="at">nudge_y =</span> <span class="fl">0.003</span>, <span class="at">size =</span> <span class="dv">3</span>) <span class="sc">+</span></span>
+<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Observation index"</span>, <span class="at">y =</span> <span class="st">"Cook's distance"</span>,</span>
+<span id="cb42-13"><a href="#cb42-13" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Cook's Distance — FITNESS Final Model"</span>,</span>
+<span id="cb42-14"><a href="#cb42-14" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="st">"Red points are in the top 5% — labeled for investigation"</span>) <span class="sc">+</span></span>
+<span id="cb42-15"><a href="#cb42-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day6_LinearRegression_files/figure-html/unnamed-chunk-21-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Here, the largest Cook’s value is:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>FITNESS[<span class="fu">c</span>(<span class="dv">10</span>),]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 7
+    age weight runtime restpulse runpulse maxpulse     Y
+  &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt;
+1    38   81.9    8.63        48      170      186  60.1</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(FITNESS)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>      age            weight         runtime        restpulse    
+ Min.   :38.00   Min.   :59.08   Min.   : 8.17   Min.   :40.00  
+ 1st Qu.:44.00   1st Qu.:73.20   1st Qu.: 9.78   1st Qu.:48.00  
+ Median :48.00   Median :77.45   Median :10.47   Median :52.00  
+ Mean   :47.68   Mean   :77.44   Mean   :10.59   Mean   :53.45  
+ 3rd Qu.:51.00   3rd Qu.:82.33   3rd Qu.:11.27   3rd Qu.:58.50  
+ Max.   :57.00   Max.   :91.63   Max.   :14.03   Max.   :70.00  
+    runpulse        maxpulse           Y        
+ Min.   :146.0   Min.   :155.0   Min.   :37.39  
+ 1st Qu.:163.0   1st Qu.:168.0   1st Qu.:44.96  
+ Median :170.0   Median :172.0   Median :46.77  
+ Mean   :169.6   Mean   :173.8   Mean   :47.38  
+ 3rd Qu.:176.0   3rd Qu.:180.0   3rd Qu.:50.13  
+ Max.   :186.0   Max.   :192.0   Max.   :60.05  </code></pre>
+</div>
+</div>
+</section>
+<section id="prediction-intervals" class="level2" data-number="3.9">
+<h2 data-number="3.9" class="anchored" data-anchor-id="prediction-intervals"><span class="header-section-number">3.9</span> Prediction Intervals</h2>
+<p>We can generate predictions for new participants. Confidence intervals give the range for the <strong>mean</strong> response; prediction intervals give the range for an <strong>individual</strong> new observation (always wider).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>new_participants <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">age      =</span> <span class="fu">c</span>(<span class="dv">45</span>, <span class="dv">50</span>),</span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">runtime  =</span> <span class="fu">c</span>(<span class="fl">10.0</span>, <span class="fl">11.5</span>),</span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">runpulse =</span> <span class="fu">c</span>(<span class="dv">168</span>, <span class="dv">175</span>)</span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-7"><a href="#cb47-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Confidence interval for the mean response</span></span>
+<span id="cb47-8"><a href="#cb47-8" aria-hidden="true" tabindex="-1"></a><span class="fu">predict</span>(final_model, <span class="at">newdata =</span> new_participants, <span class="at">interval =</span> <span class="st">"confidence"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb47-9"><a href="#cb47-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
+<span id="cb47-10"><a href="#cb47-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_cols</span>(new_participants) <span class="sc">|&gt;</span></span>
+<span id="cb47-11"><a href="#cb47-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(age, runtime, runpulse, <span class="fu">everything</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb47-12"><a href="#cb47-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">round</span>(<span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 6
+    age runtime runpulse   fit   lwr   upr
+  &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+1    45    10        168  49.9  48.9  51.0
+2    50    11.5      175  43.5  42.3  44.7</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Prediction interval for individual observations</span></span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a><span class="fu">predict</span>(final_model, <span class="at">newdata =</span> new_participants, <span class="at">interval =</span> <span class="st">"prediction"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_cols</span>(new_participants) <span class="sc">|&gt;</span></span>
+<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(age, runtime, runpulse, <span class="fu">everything</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">round</span>(<span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 6
+    age runtime runpulse   fit   lwr   upr
+  &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+1    45    10        168  49.9  44.8  55.1
+2    50    11.5      175  43.5  38.3  48.7</code></pre>
+</div>
+</div>
+<p>Prediction intervals are substantially wider than confidence intervals because they must account for individual-level variability in addition to uncertainty in the mean.</p>
+<hr>
+</section>
+</section>
+<section id="modeling-non-linear-relationships" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Modeling Non-Linear Relationships</h1>
+<section id="when-linearity-fails" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="when-linearity-fails"><span class="header-section-number">4.1</span> When Linearity Fails</h2>
+<p>The loess-based checks above are key to detecting non-linearity. When the smoothed curve bends substantially, a linear model will be mis-specified and its predictions will be systematically biased.</p>
+<p>To illustrate, we use the <code>airquality</code> dataset (built into R), which records daily ozone levels and temperature in New York. The relationship between temperature and ozone is clearly non-linear.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>airquality_clean <span class="ot">&lt;-</span> airquality <span class="sc">|&gt;</span></span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(Ozone), <span class="sc">!</span><span class="fu">is.na</span>(Temp))</span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(airquality_clean, <span class="fu">aes</span>(<span class="at">x =</span> Temp, <span class="at">y =</span> Ozone)) <span class="sc">+</span></span>
+<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">color =</span> <span class="st">"steelblue"</span>) <span class="sc">+</span></span>
+<span id="cb51-7"><a href="#cb51-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"loess"</span>, <span class="at">color =</span> <span class="st">"firebrick"</span>, <span class="at">se =</span> <span class="cn">TRUE</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb51-8"><a href="#cb51-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Temperature (°F)"</span>, <span class="at">y =</span> <span class="st">"Ozone (ppb)"</span>,</span>
+<span id="cb51-9"><a href="#cb51-9" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Ozone vs. Temperature — New York, 1973"</span>,</span>
+<span id="cb51-10"><a href="#cb51-10" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="st">"Loess curve shows a clear non-linear (accelerating) relationship"</span>) <span class="sc">+</span></span>
+<span id="cb51-11"><a href="#cb51-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day6_LinearRegression_files/figure-html/unnamed-chunk-24-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The loess curve rises steeply at high temperatures, indicating that a linear term for temperature will underfit the data.</p>
+</section>
+<section id="option-1-polynomial-terms-with-poly" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="option-1-polynomial-terms-with-poly"><span class="header-section-number">4.2</span> Option 1: Polynomial Terms with <code>poly()</code></h2>
+<p><code>poly(x, degree)</code> adds powered versions of the predictor (<span class="math inline">\(x^2\)</span>, <span class="math inline">\(x^3\)</span>, etc.) to the model. This allows the regression line to bend.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>model_linear <span class="ot">&lt;-</span> <span class="fu">lm</span>(Ozone <span class="sc">~</span> Temp,         <span class="at">data =</span> airquality_clean)</span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>model_quad   <span class="ot">&lt;-</span> <span class="fu">lm</span>(Ozone <span class="sc">~</span> <span class="fu">poly</span>(Temp, <span class="dv">2</span>), <span class="at">data =</span> airquality_clean)</span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>model_cubic  <span class="ot">&lt;-</span> <span class="fu">lm</span>(Ozone <span class="sc">~</span> <span class="fu">poly</span>(Temp, <span class="dv">3</span>), <span class="at">data =</span> airquality_clean)</span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a><span class="fu">AIC</span>(model_linear, model_quad, model_cubic)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>             df      AIC
+model_linear  3 1067.706
+model_quad    4 1056.148
+model_cubic   5 1056.925</code></pre>
+</div>
+</div>
+<p>The quadratic model has the lowest AIC, suggesting that adding a squared term captures the non-linearity well without overfitting.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>temp_grid <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">Temp =</span> <span class="fu">seq</span>(<span class="fu">min</span>(airquality_clean<span class="sc">$</span>Temp),</span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>                               <span class="fu">max</span>(airquality_clean<span class="sc">$</span>Temp), <span class="at">length.out =</span> <span class="dv">200</span>))</span>
+<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb54-4"><a href="#cb54-4" aria-hidden="true" tabindex="-1"></a>preds <span class="ot">&lt;-</span> temp_grid <span class="sc">|&gt;</span></span>
+<span id="cb54-5"><a href="#cb54-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb54-6"><a href="#cb54-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">Linear    =</span> <span class="fu">predict</span>(model_linear, <span class="at">newdata =</span> temp_grid),</span>
+<span id="cb54-7"><a href="#cb54-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">Quadratic =</span> <span class="fu">predict</span>(model_quad,   <span class="at">newdata =</span> temp_grid),</span>
+<span id="cb54-8"><a href="#cb54-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">Cubic     =</span> <span class="fu">predict</span>(model_cubic,  <span class="at">newdata =</span> temp_grid)</span>
+<span id="cb54-9"><a href="#cb54-9" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb54-10"><a href="#cb54-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(Linear, Quadratic, Cubic),</span>
+<span id="cb54-11"><a href="#cb54-11" aria-hidden="true" tabindex="-1"></a>               <span class="at">names_to =</span> <span class="st">"Model"</span>, <span class="at">values_to =</span> <span class="st">"Ozone"</span>)</span>
+<span id="cb54-12"><a href="#cb54-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb54-13"><a href="#cb54-13" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(airquality_clean, <span class="fu">aes</span>(<span class="at">x =</span> Temp, <span class="at">y =</span> Ozone)) <span class="sc">+</span></span>
+<span id="cb54-14"><a href="#cb54-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.4</span>, <span class="at">color =</span> <span class="st">"gray50"</span>) <span class="sc">+</span></span>
+<span id="cb54-15"><a href="#cb54-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">data =</span> preds, <span class="fu">aes</span>(<span class="at">color =</span> Model), <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb54-16"><a href="#cb54-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"Linear"</span> <span class="ot">=</span> <span class="st">"steelblue"</span>,</span>
+<span id="cb54-17"><a href="#cb54-17" aria-hidden="true" tabindex="-1"></a>                                <span class="st">"Quadratic"</span> <span class="ot">=</span> <span class="st">"firebrick"</span>,</span>
+<span id="cb54-18"><a href="#cb54-18" aria-hidden="true" tabindex="-1"></a>                                <span class="st">"Cubic"</span> <span class="ot">=</span> <span class="st">"darkorange"</span>)) <span class="sc">+</span></span>
+<span id="cb54-19"><a href="#cb54-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Temperature (°F)"</span>, <span class="at">y =</span> <span class="st">"Ozone (ppb)"</span>,</span>
+<span id="cb54-20"><a href="#cb54-20" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Linear vs. Polynomial Regression — Ozone on Temperature"</span>,</span>
+<span id="cb54-21"><a href="#cb54-21" aria-hidden="true" tabindex="-1"></a>       <span class="at">color =</span> <span class="st">"Model"</span>) <span class="sc">+</span></span>
+<span id="cb54-22"><a href="#cb54-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day6_LinearRegression_files/figure-html/unnamed-chunk-26-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The linear fit systematically underestimates ozone at high and low temperatures. The quadratic and cubic fits both capture the curvature well.</p>
+</section>
+<section id="option-2-natural-splines-with-splinesns" class="level2" data-number="4.3">
+<h2 data-number="4.3" class="anchored" data-anchor-id="option-2-natural-splines-with-splinesns"><span class="header-section-number">4.3</span> Option 2: Natural Splines with <code>splines::ns()</code></h2>
+<p>Natural splines are a more flexible alternative to polynomials. Instead of a single polynomial across the whole range, splines fit separate polynomial pieces connected at <strong>knots</strong>, producing smoother curves that do not behave erratically at the extremes.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb55"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(splines)</span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a>model_spline3 <span class="ot">&lt;-</span> <span class="fu">lm</span>(Ozone <span class="sc">~</span> <span class="fu">ns</span>(Temp, <span class="at">df =</span> <span class="dv">3</span>), <span class="at">data =</span> airquality_clean)</span>
+<span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a>model_spline5 <span class="ot">&lt;-</span> <span class="fu">lm</span>(Ozone <span class="sc">~</span> <span class="fu">ns</span>(Temp, <span class="at">df =</span> <span class="dv">5</span>), <span class="at">data =</span> airquality_clean)</span>
+<span id="cb55-5"><a href="#cb55-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-6"><a href="#cb55-6" aria-hidden="true" tabindex="-1"></a><span class="fu">AIC</span>(model_linear, model_quad, model_spline3, model_spline5)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>              df      AIC
+model_linear   3 1067.706
+model_quad     4 1056.148
+model_spline3  5 1055.413
+model_spline5  7 1055.516</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb57"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a>preds2 <span class="ot">&lt;-</span> temp_grid <span class="sc">|&gt;</span></span>
+<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">Linear         =</span> <span class="fu">predict</span>(model_linear,  <span class="at">newdata =</span> temp_grid),</span>
+<span id="cb57-4"><a href="#cb57-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">Quadratic      =</span> <span class="fu">predict</span>(model_quad,    <span class="at">newdata =</span> temp_grid),</span>
+<span id="cb57-5"><a href="#cb57-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Spline (df=3)"</span> <span class="ot">=</span> <span class="fu">predict</span>(model_spline3, <span class="at">newdata =</span> temp_grid),</span>
+<span id="cb57-6"><a href="#cb57-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Spline (df=5)"</span> <span class="ot">=</span> <span class="fu">predict</span>(model_spline5, <span class="at">newdata =</span> temp_grid)</span>
+<span id="cb57-7"><a href="#cb57-7" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb57-8"><a href="#cb57-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">-</span>Temp, <span class="at">names_to =</span> <span class="st">"Model"</span>, <span class="at">values_to =</span> <span class="st">"Ozone"</span>)</span>
+<span id="cb57-9"><a href="#cb57-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-10"><a href="#cb57-10" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(airquality_clean, <span class="fu">aes</span>(<span class="at">x =</span> Temp, <span class="at">y =</span> Ozone)) <span class="sc">+</span></span>
+<span id="cb57-11"><a href="#cb57-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.4</span>, <span class="at">color =</span> <span class="st">"gray50"</span>) <span class="sc">+</span></span>
+<span id="cb57-12"><a href="#cb57-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">data =</span> preds2, <span class="fu">aes</span>(<span class="at">color =</span> Model), <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb57-13"><a href="#cb57-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(</span>
+<span id="cb57-14"><a href="#cb57-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Linear"</span>         <span class="ot">=</span> <span class="st">"steelblue"</span>,</span>
+<span id="cb57-15"><a href="#cb57-15" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Quadratic"</span>      <span class="ot">=</span> <span class="st">"firebrick"</span>,</span>
+<span id="cb57-16"><a href="#cb57-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Spline (df=3)"</span>  <span class="ot">=</span> <span class="st">"darkorange"</span>,</span>
+<span id="cb57-17"><a href="#cb57-17" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Spline (df=5)"</span>  <span class="ot">=</span> <span class="st">"purple"</span></span>
+<span id="cb57-18"><a href="#cb57-18" aria-hidden="true" tabindex="-1"></a>  )) <span class="sc">+</span></span>
+<span id="cb57-19"><a href="#cb57-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Temperature (°F)"</span>, <span class="at">y =</span> <span class="st">"Ozone (ppb)"</span>,</span>
+<span id="cb57-20"><a href="#cb57-20" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Polynomial vs. Natural Spline Regression"</span>,</span>
+<span id="cb57-21"><a href="#cb57-21" aria-hidden="true" tabindex="-1"></a>       <span class="at">color =</span> <span class="st">"Model"</span>) <span class="sc">+</span></span>
+<span id="cb57-22"><a href="#cb57-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day6_LinearRegression_files/figure-html/unnamed-chunk-28-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Which to use?</strong> Natural splines are generally preferred over polynomials for flexibility with fewer pathological behaviors at the extremes of the predictor range. For most biological applications, <code>df = 3</code> or <code>df = 4</code> is a reasonable starting point. Use AIC to compare and choose.</p>
+</div>
+</div>
+</section>
+<section id="applying-non-linear-terms-in-multiple-regression" class="level2" data-number="4.4">
+<h2 data-number="4.4" class="anchored" data-anchor-id="applying-non-linear-terms-in-multiple-regression"><span class="header-section-number">4.4</span> Applying Non-Linear Terms in Multiple Regression</h2>
+<p>Non-linear terms can be included in a multiple regression model just like any other term:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit the final FITNESS model but allow runtime to have a non-linear effect</span></span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a>fitness_spline <span class="ot">&lt;-</span> <span class="fu">lm</span>(Y <span class="sc">~</span> age <span class="sc">+</span> <span class="fu">ns</span>(runtime, <span class="at">df =</span> <span class="dv">3</span>) <span class="sc">+</span> runpulse, <span class="at">data =</span> FITNESS)</span>
+<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a><span class="fu">AIC</span>(final_model, fitness_spline)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>               df      AIC
+final_model     5 149.0213
+fitness_spline  7 149.0196</code></pre>
+</div>
+</div>
+<p>Compare the AIC of the spline model to the linear model. If the spline model does not meaningfully reduce AIC, the simpler linear term is preferred. This is how you decide whether non-linearity is worth modeling for a given predictor.</p>
+<p>Here, the AIC only reduces slightly, so I would keep the original final model. I tried non-linear fits for the other variables, and did not see any gains.</p>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+<script src="Day6_LinearRegression_files/libs/quarto-html/zenscroll-min.js"></script>
+</body></html>

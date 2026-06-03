@@ -175,7 +175,7 @@ framingham |>
   summarize(
     n          = n(),
     mean_sysBP = mean(sysBP, na.rm = TRUE),
-    sd_sysBP = sd(sysBP, na.rm = TRUE),
+    sd_sysBP   = sd(sysBP, na.rm = TRUE),
     chd_pct    = mean(TenYearCHD == "Yes", na.rm = TRUE) * 100,
     .groups    = "drop"
   ) |>

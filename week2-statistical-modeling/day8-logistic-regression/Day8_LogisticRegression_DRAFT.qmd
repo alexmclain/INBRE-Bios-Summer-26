@@ -1,0 +1,531 @@
+---
+title: "Logistic Regression Analysis Examples in R"
+
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    number-sections: false
+    smooth-scroll: true
+    
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+# Introduction
+
+This document demonstrates how to perform logistic regression analysis in R using generalized linear models (`glm`) with a binomial distribution and logit link function. The analyses include:
+
+-   Creating datasets
+-   Fitting logistic regression models
+-   Interpreting model summaries
+-   Computing odds ratios and confidence intervals
+-   Evaluating goodness-of-fit
+-   Generating predicted probabilities
+-   Visualizing logistic regression curves
+
+
+## Load Required Package
+
+The following packages are used for the ROC and the Hosmer-Lemeshow goodness-of-fit test.
+
+```{r}
+# Install packages if necessary
+# install.packages("ResourceSelection")
+# install.packages("pROC")
+
+# Load library
+library(ResourceSelection)
+library(pROC)
+```
+
+------------------------------------------------------------------------
+
+# Example 1: Logistic Regression Using Framingham Dataset
+
+## Read In the Dataset
+
+We will use the Framingham dataset again for this example. As a reminder, it contains demographic and cardiovascular risk factor information collected for the Framingham Heart Study, a longitudinal study investigating predictors of coronary heart disease (CHD). Variables include:
+
+- `age`: Age of the patient (in years)
+- `sysBP`: Systolic blood pressure (mmHg)
+- `totChol`: Total cholesterol level (mg/dL)
+- `cigsPerDay`: Number of cigarettes smoked per day
+- `currentSmoker`: Indicator of whether the patient is a current smoker (0 = no, 1 = yes)
+- `diabetes`: Whether the patient has diabetes (0 = no, 1 = yes)
+- `TenYearCHD`: Binary outcome indicating whether the patient developed coronary heart disease within 10 years:
+  - `0`: No coronary heart disease developed within 10 years
+  - `1`: Coronary heart disease developed within 10 years
+
+```{r}
+framingham <- read.csv("framingham.csv")
+
+head(framingham)
+```
+
+
+## Categorical vs. Continuous Predictors
+
+One important consideration in logistic regression is deciding whether a variable should be treated as:
+
+- **Continuous** (numeric relationship across values)
+- **Categorical** using `factor()` (separate groups/categories)
+
+Using the wrong variable type can lead to misleading interpretations and poor model performance.
+
+### When to Treat a Variable as Continuous
+
+A variable should generally remain numeric when:
+
+- The values represent a measurable quantity
+- The spacing between values is meaningful
+- A one-unit increase has a reasonable interpretation
+
+Examples include variables like age, blood pressure, cholesterol, or BMI.
+
+### When to Use `factor()`
+
+A variable should be converted to a factor when:
+
+- The variable represents categories or groups
+- Numeric labels do not imply meaningful distance
+- Categories should have separate effects
+
+Examples include variables like sex, smoking status, treatment group, education level, or disease stage.
+
+### What Can Go Wrong
+
+Suppose our `age` variable was incorrectly converted to a factor:
+
+```{r}
+
+framingham$age <- factor(framingham$age)
+
+glm(
+  TenYearCHD ~ age,
+  data = framingham,
+  family = binomial(link = "logit")
+)
+
+```
+Issues arise including:
+
+- A parameter being created for every age value
+- More difficulty interpreting the model
+- The model becomes unnecessarily large
+- Decreased statistical power
+- Predictions become unstable
+
+Continuous variables should typically remain numeric unless there is a strong scientific reason to group them.
+
+## Fit the Logistic Regression Model
+
+This model predicts the probability of coronary heart disease within 10 years (`TenYearCHD`) using systolic blood pressure (`sysBP`).
+
+The logistic regression equation is:
+
+$\log\left(\frac{p}{1-p}\right) = \beta_0 + \beta_1X$
+
+```{r}
+logit_model <- glm(
+  TenYearCHD ~ sysBP,
+  data = framingham,
+  family = binomial(link = "logit")
+)
+
+summary(logit_model)
+```
+
+------------------------------------------------------------------------
+
+## Compute Odds Ratios and Confidence Intervals
+
+The coefficients from logistic regression are in log-odds units. Exponentiating the coefficients converts them into odds ratios.
+
+
+```{r}
+
+odds_ratios <- exp(coef(logit_model))
+
+# Compute 95% confidence intervals
+conf_int <- exp(confint(logit_model))
+
+cat("\nOdds Ratios:\n")
+print(odds_ratios)
+
+cat("\n95% Confidence Intervals:\n")
+print(conf_int)
+```
+
+------------------------------------------------------------------------
+
+## Generate Predicted Probabilities
+
+Predicted probabilities estimate the likelihood of successful task completion for each observation.
+
+```{r}
+framingham$Predicted_Prob <- predict(
+  logit_model,
+  type = "response"
+)
+
+head(framingham)
+```
+
+------------------------------------------------------------------------
+
+## Plot Observed Outcomes and Logistic Curve
+
+This plot displays:
+
+-   Observed binary outcomes
+-   Predicted logistic regression probabilities
+
+```{r}
+plot(
+  framingham$sysBP,
+  framingham$TenYearCHD,
+  xlab = "Systolic Blood Pressure",
+  ylab = "Probability of CHD Within 10 Years",
+  main = "Logistic Regression Model",
+  pch = 19,
+  col = "blue",
+  ylim = c(-0.1, 1.1)
+)
+
+# Order values for smooth curve
+ordered_index <- order(framingham$sysBP)
+
+# Add logistic curve
+lines(
+  framingham$sysBP[ordered_index],
+  framingham$Predicted_Prob[ordered_index],
+  col = "red",
+  lwd = 2
+)
+
+legend(
+  "bottomright",
+  legend = c("Observed Y", "Predicted Probability"),
+  col = c("blue", "red"),
+  pch = c(19, NA),
+  lty = c(NA, 1),
+  lwd = c(NA, 2)
+)
+```
+
+
+
+------------------------------------------------------------------------
+
+## Deviance Residuals
+
+Deviance residuals are a tool to help us evaluate how well the logistic regression model fits individual observations.
+
+Large residuals could indicate:
+-   Poorly predicted observations
+-   Outliers
+-   Model misspecification
+
+We can find them using the `residuals()` function:
+
+```{r}
+
+dev_resid <- residuals(
+  logit_model,
+  type = "deviance"
+)
+
+head(dev_resid)
+
+```
+
+
+```{r}
+
+plot(
+  dev_resid,
+  ylab = "Deviance Residuals",
+  main = "Deviance Residual Plot",
+  pch = 19,
+  col = "darkblue"
+)
+
+abline(h = 0, lty = 2, col = "red")
+
+```
+
+Things to look for:
+
+- Residuals should be roughly centered around zero
+- Extremely large positive or negative residuals may indicate problematic observations
+- Systematic patterns suggest poor model fit
+
+## ROC and AUC
+
+The ROC curve evaluates how well the model distinguishes between individuals who experienced the outcome and individuals who did not.
+
+The AUC (Area Under the Curve) summarizes overall classification performance of the model.
+
+```{r}
+
+roc_curve <- roc(
+  framingham$TenYearCHD,
+  framingham$Predicted_Prob
+)
+
+plot(
+  roc_curve,
+  col = "blue",
+  lwd = 3,
+  main = "ROC Curve for Logistic Regression Model"
+)
+
+```
+```{r}
+
+auc(roc_curve)
+
+```
+
+The blue curve represents the model’s performance across different probability cutoffs used for classification. 
+
+The diagonal gray line represents random guessing. A model whose curve lies close to this line has very little ability to distinguish between the two groups.
+
+An AUC of 0.5 means the model performs no better than random guessing (gray line) when trying to distinguish between the two outcome groups, while an AUC of 1 indicates a perfect model.
+
+Generally, a higher AUC indicates that the model is better at distinguishing between individuals who develop CHD and those who do not.
+
+------------------------------------------------------------------------
+
+## Hosmer-Lemeshow Goodness-of-Fit Test
+
+The Hosmer-Lemeshow test evaluates whether the logistic regression model adequately fits the data.
+
+-   Null hypothesis: Model fits the data well
+-   Large p-value: Evidence of good fit
+
+```{r}
+hoslem.test(
+  framingham$TenYearCHD,
+  fitted(logit_model)
+)
+```
+
+
+------------------------------------------------------------------------
+
+## Model Fit Statistics
+
+The following statistics help evaluate overall model quality:
+
+-   AIC: Akaike Information Criterion
+-   BIC: Bayesian Information Criterion
+-   Log-likelihood: Overall model likelihood
+
+These measures are most useful when comparing multiple models:
+
+-   Lower AIC → better fit (penalizes models that include unnecessary predictors)
+-   Lower BIC → better fit (BIC tends to favor simpler models compared to AIC)
+-   Higher (less negative) log-likelihood → better fit
+
+```{r}
+cat("\nAIC:\n")
+print(AIC(logit_model))
+
+cat("\nBIC:\n")
+print(BIC(logit_model))
+
+cat("\nLog-Likelihood:\n")
+print(logLik(logit_model))
+```
+
+------------------------------------------------------------------------
+
+# Example 2: Donner Party Survival Dataset
+
+## Create the Dataset
+
+This dataset contains:
+-   `Age`: Age of individual
+-   `Sex`:
+    -   `0 = Female`
+    -   `1 = Male`
+-   `Survivor`:
+    -   `0 = Did not survive`
+    -   `1 = Survived`
+
+```{r}
+donner <- data.frame(
+  Age = c(23,40,40,30,28,40,45,62,65,45,
+          25,28,28,23,22,23,28,15,47,57,
+          20,18,25,60,25,20,32,32,24,30,
+          15,50,21,25,46,32,30,25,25,25,
+          30,35,23,24,25),
+
+  Sex = c(1,0,1,1,1,1,0,1,1,0,
+          0,1,1,1,0,0,1,0,0,1,
+          0,1,1,1,1,1,1,0,0,1,
+          1,0,0,1,1,0,1,1,1,1,
+          1,1,1,0,1),
+
+  Survivor = c(0,1,1,0,0,0,0,0,0,0,
+               0,1,0,0,1,1,1,1,0,0,
+               1,1,0,0,1,1,1,1,1,1,
+               0,0,1,0,1,1,0,0,0,0,
+               0,0,1,0,1)
+)
+
+head(donner)
+```
+
+------------------------------------------------------------------------
+
+## Logistic Regression Using Age
+
+This model predicts survival probability using age.
+
+```{r}
+model_age <- glm(
+  Survivor ~ Age,
+  data = donner,
+  family = binomial(link = "logit")
+)
+
+summary(model_age)
+```
+
+------------------------------------------------------------------------
+
+## Odds Ratios and Confidence Intervals for Age Model
+
+```{r}
+cat("\nOdds Ratios (Age Model):\n")
+print(exp(coef(model_age)))
+
+cat("\n95% Confidence Intervals (Age Model):\n")
+print(exp(confint(model_age)))
+```
+
+------------------------------------------------------------------------
+
+## Deviance Residuals and Goodness-of-Fit for Age Model
+
+```{r}
+
+dev_resid_age <- residuals(
+  model_age,
+  type = "deviance"
+)
+
+
+plot(
+  dev_resid_age,
+  ylab = "Deviance Residuals",
+  main = "Deviance Residual Plot",
+  pch = 19,
+  col = "darkblue"
+)
+
+abline(h = 0, lty = 2, col = "red")
+
+hoslem.test(
+  donner$Survivor,
+  fitted(model_age)
+)
+```
+
+
+------------------------------------------------------------------------
+
+## Logistic Regression Using Sex
+
+This model predicts survival probability using sex.
+
+```{r}
+model_sex <- glm(
+  Survivor ~ Sex,
+  data = donner,
+  family = binomial(link = "logit")
+)
+
+summary(model_sex)
+```
+
+------------------------------------------------------------------------
+
+## Odds Ratios and Confidence Intervals for Sex Model
+
+```{r}
+cat("\nOdds Ratios (Sex Model):\n")
+print(exp(coef(model_sex)))
+
+cat("\n95% Confidence Intervals (Sex Model):\n")
+print(exp(confint(model_sex)))
+```
+
+## Deviance Residuals for Sex Model
+
+```{r}
+
+dev_resid_sex <- residuals(
+  model_sex,
+  type = "deviance"
+)
+
+
+plot(
+  dev_resid_sex,
+  ylab = "Deviance Residuals",
+  main = "Deviance Residual Plot",
+  pch = 19,
+  col = "darkblue"
+)
+
+abline(h = 0, lty = 2, col = "red")
+
+
+```
+
+------------------------------------------------------------------------
+
+## Generalized Linear Model
+
+This final model demonstrates a generalized linear model.
+
+```{r}
+model_glm <- glm(
+  Survivor ~ Sex,
+  data = donner,
+  family = binomial(link = "logit")
+)
+
+cat("\nGeneralized Linear Model Summary:\n")
+summary(model_glm)
+
+cat("\nAIC:\n")
+print(AIC(model_glm))
+
+cat("\nBIC:\n")
+print(BIC(model_glm))
+
+cat("\nLog-Likelihood:\n")
+print(logLik(model_glm))
+```
+
+------------------------------------------------------------------------
+
+# Conclusion
+
+These examples demonstrated several applications of logistic regression in R, including:
+
+-   Binary outcome modeling
+-   Odds ratio interpretation
+-   Confidence interval estimation
+-   Model diagnostics
+-   Goodness-of-fit testing
+-   Logistic regression visualization
+
+These methods are commonly used in biostatistics, epidemiology, social sciences, and machine learning applications involving binary outcomes.
