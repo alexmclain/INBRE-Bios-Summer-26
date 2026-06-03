@@ -32,6 +32,7 @@ a. Use `str()` to check column types. Which variables are stored as `<dbl>` but
 Option 1: setting the working directory and just using `framingham.csv`.
 
 ```{r}
+#| eval: false
 setwd('/Users/mclainfamily/Library/CloudStorage/OneDrive-UniversityofSouthCarolina/Teaching/Summer Workshop/INBRE-Bios-Summer-26/data')
 framingham <- read_csv("framingham.csv")
 ```
@@ -40,23 +41,29 @@ framingham <- read_csv("framingham.csv")
 Option 2: not setting the working directory and using the full file path.
 
 ```{r}
+#| eval: false
 framingham <- read_csv("/Users/mclainfamily/Library/CloudStorage/OneDrive-UniversityofSouthCarolina/Teaching/Summer Workshop/INBRE-Bios-Summer-26/data/framingham.csv")
-head(framingham)
 ```
 
-Option 3: setting the working directory and using a partial file path. 
+Option 3: setting the working directory and using a partial file path.
 
 ```{r}
 this.dir <- this.dir()
 setwd(this.dir)
 framingham <- read_csv("../../data/framingham.csv")
 head(framingham)
+```
+
+::: {.callout-note}
+For option 3 to work, you need to have your lab saved in `INBRE-Bios-Summer-26-main/week1-foundations/day03-tidyverse/`. Also, option 3 is the only one that will work on everyone's machine, which is why I use this style in the notes.
+:::
+
+
+```{r}
 str(framingham)
 ```   
 
-::: {.callout-note}
-For option 3 to work, you need to have your lab saved in `INBRE-Bios-Summer-26-main/week1-foundations/day03-tidyverse/`
-:::
+
 
 
 b. Convert at least four binary or categorical variables to factors with
