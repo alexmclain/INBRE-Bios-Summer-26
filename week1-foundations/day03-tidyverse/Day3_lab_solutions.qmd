@@ -1,0 +1,208 @@
+---
+title: "Day 3 Lab: Importing, Tidying, and Joining"
+subtitle: "SC INBRE Biostatistics Summer Intensive 2026"
+date: today
+format:
+  html:
+    toc: true
+    theme: cosmo
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(nycflights13)
+library(this.path)
+this.dir <- this.dir()
+setwd(this.dir)
+```
+
+**Exercise 1 — Reading and Cleaning.**
+Read `framingham.csv` from the `data/` folder using `read_csv()`. The dataset
+uses blank cells for missing values, which `read_csv()` handles automatically.
+After reading in:
+
+a. Use `str()` to check column types. Which variables are stored as `<dbl>` but
+   should be factors?
+
+Option 1: setting the working directory and just using `framingham.csv`.
+
+```{r}
+setwd('/Users/mclainfamily/Library/CloudStorage/OneDrive-UniversityofSouthCarolina/Teaching/Summer Workshop/INBRE-Bios-Summer-26/data')
+framingham <- read_csv("framingham.csv")
+```
+
+
+Option 2: not setting the working directory and using the full file path.
+
+```{r}
+framingham <- read_csv("/Users/mclainfamily/Library/CloudStorage/OneDrive-UniversityofSouthCarolina/Teaching/Summer Workshop/INBRE-Bios-Summer-26/data/framingham.csv")
+head(framingham)
+```
+
+Option 3: setting the working directory and using a partial file path. 
+
+```{r}
+this.dir <- this.dir()
+setwd(this.dir)
+framingham <- read_csv("../../data/framingham.csv")
+head(framingham)
+str(framingham)
+```   
+
+::: {.callout-note}
+For option 3 to work, you need to have your lab saved in `INBRE-Bios-Summer-26-main/week1-foundations/day03-tidyverse/`
+:::
+
+
+b. Convert at least four binary or categorical variables to factors with
+   meaningful labels using `mutate()` and `factor()` (you did this on Day 2 ---
+   copy that block if you still have it).
+   
+   
+As we discussed in yesterdays AM session, many of the categorical variables are coded as numeric (e.g., male, currentSmoker, education)
+
+```{r}
+framingham <- framingham |>
+  mutate(
+    male            = factor(male,            levels = c(0, 1),
+                                              labels = c("Female", "Male")),
+    currentSmoker   = factor(currentSmoker,   levels = c(0, 1),
+                                              labels = c("Non-smoker", "Smoker")),
+    BPMeds          = factor(BPMeds,          levels = c(0, 1),
+                                              labels = c("No", "Yes")),
+    prevalentStroke = factor(prevalentStroke, levels = c(0, 1),
+                                              labels = c("No", "Yes")),
+    prevalentHyp    = factor(prevalentHyp,    levels = c(0, 1),
+                                              labels = c("No", "Yes")),
+    diabetes        = factor(diabetes,        levels = c(0, 1),
+                                              labels = c("No", "Yes")),
+    TenYearCHD      = factor(TenYearCHD,      levels = c(0, 1),
+                                              labels = c("No", "Yes")),
+    education       = factor(education,       levels = 1:4,
+                                              labels = c("Some HS", "HS Diploma",
+                                                         "Some College",
+                                                         "College Degree"))
+  )
+```
+
+
+   
+c. Write the cleaned dataset to a new file called `framingham_clean.csv` using
+   `write_csv()`.
+
+Writing is easy. This file will be saved in your working directory.
+
+```{r}
+getwd()
+write_csv(framingham,"framingham_clean.csv")
+```
+
+
+
+---
+
+**Exercise 4 — Left Joins.**
+Using `flights` and the other `nycflights13` tables:
+
+a. Add the full airline name (from `airlines`) to `flights`. Then compute the
+   mean departure delay by airline name. Which airline has the worst average
+   departure delay?
+
+```{r}
+flights |>
+left_join(airlines) |> 
+  group_by(name) |> 
+  summarise(
+    mn_dep_delay = mean(dep_delay, na.rm = TRUE)
+  ) |> 
+  arrange(desc(mn_dep_delay))
+```
+
+b. Add the plane's number of seats (from `planes`) to `flights` using
+   `left_join()` with `by = "tailnum"`. What proportion of flights are missing
+   seat information (i.e., had no matching record in `planes`)?
+
+
+```{r}
+flights |>
+left_join(planes, by = "tailnum") |> 
+  mutate(
+    miss_seat = is.na(seats)
+  ) |> 
+  summarise(
+    mn_miss_seat = mean(miss_seat, na.rm = TRUE)
+  ) 
+```
+
+c. Add the destination airport's full name and time zone (from `airports`) to
+   `flights`. Which time zone has the most flight destinations from NYC?
+
+```{r}
+flights |>
+left_join(airports, by = c("dest" = "faa")) |> 
+  group_by(tzone) |> 
+  summarise(
+    total = n()
+  ) |> 
+  arrange(
+    desc(total)
+  )
+
+```
+
+---
+
+**Exercise 5 — Joins and Grouped Summaries.**
+This exercise combines joining with the `group_by()` / `summarize()` workflow
+from Day 2.
+
+a. Join `flights` with `weather` (using `origin` and `time_hour` as the
+   compound key) to add temperature (`temp`) and visibility (`visib`) to each
+   flight.
+
+```{r}
+flights |>
+left_join(weather |> select(origin, time_hour, temp, visib)) 
+```
+
+b. Compute the mean arrival delay by visibility level. Round visibility to the
+   nearest integer first using `mutate(visib = round(visib))`. Sort from worst
+   to best delay. Is there a relationship between visibility and delays?
+
+```{r}
+flights |>
+left_join(weather |> select(origin, time_hour, temp, visib)) |> 
+  mutate(visib = round(visib)) |> 
+  group_by(visib) |> 
+  summarise(
+    mn_delay = mean(arr_delay, na.rm = TRUE)
+  ) |> 
+  arrange(
+    desc(mn_delay)
+  )
+```
+
+Yes, there definetly appears to be a relationship between visibility and the delay. Lower visibility the higher the delay.
+
+c. Repeat (b) but compute separately for each origin airport. Use
+   `group_by(origin, visib)`. Describe in 1--2 sentences what you find.
+   
+```{r}
+flights |>
+left_join(weather |> select(origin, time_hour, temp, visib)) |> 
+  mutate(visib = round(visib)) |> 
+  group_by(origin,visib) |> 
+  summarise(
+    mn_delay = mean(arr_delay, na.rm = TRUE)
+  ) |> 
+  arrange(
+    desc(mn_delay)
+  )
+```
+
+Visibility equals 1 has the largest delay for all airports. LGA seems to have less (lower) delays for visibility 0 and 2 than EWR and JFK.
