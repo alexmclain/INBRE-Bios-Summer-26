@@ -1,0 +1,282 @@
+---
+title: "Day 4 Lab: Data Visualization"
+subtitle: "SC INBRE Biostatistics Summer Intensive 2026"
+date: today
+format:
+  html:
+    toc: true
+    theme: cosmo
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+```{r}
+library(tidyverse)
+library(this.path)
+library(nycflights13)
+setwd(this.dir())
+
+framingham <- read_csv("../../data/framingham.csv") |>
+  mutate(
+    male          = factor(male,          levels = c(0,1), labels = c("Female","Male")),
+    currentSmoker = factor(currentSmoker, levels = c(0,1), labels = c("Non-smoker","Smoker")),
+    prevalentHyp  = factor(prevalentHyp,  levels = c(0,1), labels = c("No","Yes")),
+    diabetes      = factor(diabetes,      levels = c(0,1), labels = c("No","Yes")),
+    TenYearCHD    = factor(TenYearCHD,    levels = c(0,1), labels = c("No","Yes")),
+    education     = factor(education,     levels = 1:4,
+                           labels = c("Some HS","HS Diploma","Some College","College Degree"))
+  )
+```
+
+
+**Exercise 1 — Distributions.**
+
+Using the Framingham data:
+
+a. Make a histogram of BMI. Experiment with at least two `binwidth` values and
+   pick the one that reveals the most useful structure. Add a vertical line at
+   BMI = 30 (obesity threshold) using `geom_vline()` and label it with
+   `annotate()`.
+   
+   
+   Here are histograms with binwidths equal to 1/2, 1 and 2. Personally, I like the version with 1 the best.
+   
+```{r}
+ggplot(framingham, aes(x = BMI)) +
+  geom_histogram(binwidth = 1/2, fill = "steelblue", color = "white") +
+  labs(x = "Body Mass Index (BMI)", y = "Count",
+       title = "Distribution of BMI")
+```
+
+```{r}
+ggplot(framingham, aes(x = BMI)) +
+  geom_histogram(binwidth = 1, fill = "steelblue", color = "white") +
+  labs(x = "Body Mass Index (BMI)", y = "Count",
+       title = "Distribution of BMI")
+```
+
+```{r}
+ggplot(framingham, aes(x = BMI)) +
+  geom_histogram(binwidth = 2, fill = "steelblue", color = "white")+
+  labs(x = "Body Mass Index (BMI)", y = "Count",
+       title = "Distribution of BMI")
+```
+
+Next i'll add the verticle line at 30:
+
+```{r}
+ggplot(framingham, aes(x = BMI)) +
+  geom_histogram(fill = "steelblue", color = "white") +
+  geom_vline(xintercept = 30, color = "red",
+             linewidth = 1, linetype = "dashed") +
+  labs(x = "Body Mass Index (BMI)", y = "Count",
+       title = "Distribution of BMI")
+```
+
+Finally, i'll add the annotation labeling the line.
+
+```{r}
+ggplot(framingham, aes(x = BMI)) +
+  geom_histogram(fill = "steelblue", color = "white") +
+  geom_vline(xintercept = 30, color = "red",
+             linewidth = 1, linetype = "dashed") +
+  annotate("text", x = 31, y = 600,
+           label = "Obesity threshold",
+           color = "red", hjust = 0, size = 4) +
+  labs(x = "Body Mass Index (BMI)", y = "Count",
+       title = "Distribution of BMI")
+```
+   
+
+b. Overlay density plots of BMI separately for diabetic and non-diabetic
+   participants using `geom_density()` with `fill` mapped to `diabetes` and
+   `alpha = 0.4`. Use `scale_fill_brewer(palette = "Set1")`. What do you
+   notice about the distributions?
+
+```{r}
+ggplot(framingham, aes(x = BMI, fill = diabetes)) +
+  geom_density(alpha = 0.4) +
+  scale_fill_brewer(palette = "Set1") +
+  labs(x = "Body Mass Index (BMI)", y = "Count",
+       title = "Distribution of BMI")
+```
+
+c. Make a bar chart showing the count of participants at each education level.
+   Tilt the x-axis labels so they don't overlap (`angle = 20, hjust = 1` inside
+   `element_text()`). Then make a second version showing the **percentage**
+   at each level rather than the count (compute percentages first with `dplyr`,
+   then use `geom_col()`).
+
+```{r}
+framingham |>
+  filter(!is.na(education)) |>
+  ggplot(aes(x = education)) +
+  geom_bar(fill = "steelblue") +
+  labs(x = "Education Level", y = "Percent (%)",
+       title = "Education Distribution") +
+  theme(axis.text.x = element_text(angle = 20, hjust = 1))
+
+framingham |>
+  filter(!is.na(education)) |>
+  count(education) |>
+  mutate(pct = n / sum(n) * 100) |>
+  ggplot(aes(x = education, y = pct)) +
+  geom_col(fill = "steelblue") +
+  labs(x = "Education Level", y = "Percent (%)",
+       title = "Education Distribution (%)") +
+  theme(axis.text.x = element_text(angle = 20, hjust = 1))
+```
+
+
+---
+
+**Exercise 3 — Scatterplots and Smoothers.**
+
+a. Make a scatterplot of age vs. total cholesterol (`totChol`). With over 4,000
+   points there will be overplotting --- use `alpha` to address it. Add a loess
+   smoother (`method = "loess"`) in red with `se = TRUE`. Describe the overall
+   trend.
+   
+```{r}
+ggplot(framingham, aes(x = age, y = totChol)) +
+  geom_point(alpha = 0.2) +
+  # method = "loess" lines can show non-linear trends.
+  geom_smooth(method = "loess", color = "red", se = TRUE) +
+  labs(x = "Age (years)", y = "Total Cholesterol",
+       title = "Total Cholesterol vs. Age with Loess Smoother")
+```
+   
+
+b. Repeat but color points by `currentSmoker` and add **separate** linear trend
+   lines for each group (`method = "lm"`, `se = FALSE`). Does the relationship
+   between age and cholesterol differ between smokers and non-smokers?
+
+
+```{r}
+ggplot(framingham, aes(x = age, y = totChol, color = currentSmoker)) +
+  geom_point(alpha = 0.2) +
+  # method = "loess" lines can show non-linear trends.
+  geom_smooth(method = "lm",se = FALSE) +
+  labs(x = "Age (years)", y = "Total Cholesterol",
+       title = "Total Cholesterol vs. Age with Loess Smoother")
+```
+
+c. Facet the plot from (b) by sex (`facet_wrap(~ male)`). Add a complete set
+   of labels and apply `theme_minimal()`. Are there any sex differences in the
+   smoking–cholesterol relationship?
+
+```{r}
+ggplot(framingham, aes(x = age, y = totChol, color = currentSmoker)) +
+  geom_point(alpha = 0.2) +
+  # method = "loess" lines can show non-linear trends.
+  geom_smooth(method = "lm",se = FALSE) +
+  facet_wrap(~male) +
+  labs(x = "Age (years)", y = "Total Cholesterol",
+       title = "Total Cholesterol vs. Age with Loess Smoother") +
+  theme_minimal()
+```
+
+---
+
+**Exercise 5 — Joining Before Plotting.**
+
+This exercise combines Day 3 joins with Day 4 visualization using `nycflights13`.
+
+a. Join `flights` with `weather` on `origin` and `time_hour` to add visibility
+   (`visib`) and temperature (`temp`) to each flight. Call this `flights_wx`.
+
+```{r}
+library(nycflights13)
+
+flights_wx <- flights |> 
+  left_join(weather |> select(origin, time_hour, visib, temp), 
+            )
+```
+
+
+b. Compute the mean arrival delay by rounded visibility level
+   (`mutate(visib = round(visib))`), grouped by origin airport. Then plot mean
+   delay (y) vs. visibility (x) with a separate colored line per origin airport
+   using `geom_line()` and `geom_point()`. Use `scale_color_brewer(palette = "Dark2")`.
+   Is there a relationship between visibility and delays? Does it differ by airport?
+   
+   
+   First, i'm going to get the data that we we'll end up plotting.
+```{r}
+mn_delay_vis_origin = flights_wx |> 
+  # Creating rounded visibility variable.
+  mutate(visib = round(visib)) |> 
+  # Grouping by origin and visibility
+  group_by(origin, visib) |> 
+  # Getting the average delay
+  summarise(
+    mean_delay = mean(arr_delay, na.rm = TRUE),
+    .groups = "drop"
+  )
+mn_delay_vis_origin
+```
+
+Now, I'm going to plot this data:
+
+```{r}
+#| warning: false
+# Give ggplot the data along with the x, y, and color variables.
+  ggplot(mn_delay_vis_origin, aes(x = visib, y = mean_delay, color = origin)) +
+  # Add lines and points
+  geom_line() + geom_point() +
+  # Fancy colors
+  scale_color_brewer(palette = "Dark2") +
+  # Nicer labels
+  labs(x = "Visibility", y = "Average Delay",
+       title = "Average Delay vs. Visibility by Airport") +
+  theme_minimal()
+```
+   
+   If you were so inclined, you could do the above all at once:
+   
+```{r}
+#| eval: false
+flights_wx |> 
+  # Creating rounded visibility variable.
+  mutate(visib = round(visib)) |> 
+  # Grouping by origin and visibility
+  group_by(origin, visib) |> 
+  # Getting the average delay
+  summarise(
+    mean_delay = mean(arr_delay, na.rm = TRUE),
+    .groups = "drop"
+  ) |> 
+# Give ggplot the data along with the x, y, and color variables.
+  ggplot(aes(x = visib, y = mean_delay, color = origin)) +
+  # Add lines and points
+  geom_line() + geom_point() +
+  # Fancy colors
+  scale_color_brewer(palette = "Dark2") +
+  # Nicer labels
+  labs(x = "Visibility", y = "Average Delay",
+       title = "Average Delay vs. Visibility by Airport") +
+  theme_minimal()
+```   
+
+c. Make a boxplot of departure delay (`dep_delay`) by `origin` airport, limited
+   to delays between --20 and 120 minutes (use `filter()` first, or
+   `coord_cartesian()`). Order the boxes by median delay, apply
+   `theme_classic()`, and add proper labels.
+
+```{r}
+flights_wx |> 
+  # filter to delays between 20 and 120
+  filter(arr_delay >= -20 & arr_delay <= 120) |> 
+  # Giving ggplot the x variable (reorder by increaseing median arrival delay) and y variable
+  ggplot(aes(x = reorder(origin, arr_delay, FUN = median), y = arr_delay)) +
+  # Adding the boxplot
+  geom_boxplot() +
+  # Classic Theme
+  theme_classic() +
+  # Adding labels
+  labs(x = "Origin Airport", y = "Arrival Delay",
+       title = "Boxplot of Arrival Delay by Origin Airport")
+```
+
