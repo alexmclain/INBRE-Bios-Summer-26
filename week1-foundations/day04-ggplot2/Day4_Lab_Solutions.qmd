@@ -280,3 +280,97 @@ flights_wx |>
        title = "Boxplot of Arrival Delay by Origin Airport")
 ```
 
+
+---
+
+**Exercise 6 (Challenge) — A Complete Figure.**
+
+Build a single polished figure that answers this question: **How does the
+10-year coronary heart disease rate in the Framingham cohort vary by age group,
+sex, and hypertension status?**
+
+Steps:
+
+a. Create an age group variable using `case_when()`:
+   "40--44", "45--49", "50--54", "55--59", "60--64", "65+"
+   (or similar grouping of your choosing). Make it a factor with levels in
+   the right order.
+
+```{r}
+framingham <- framingham |>
+  mutate(
+    age_group = factor(case_when(
+      age < 45 ~ "40-44", 
+      age < 50 ~ "45-49", 
+      age < 55 ~ "50-54", 
+      age < 60 ~ "55-59", 
+      age < 65 ~ "60-64", 
+      age >= 65 ~ "65+"
+    ))
+  )
+# Check the ordering of the factor
+framingham$age_group[1:5]
+```
+
+
+b. Compute the CHD rate (proportion with `TenYearCHD == "Yes"`) for each
+   combination of age group, sex, and hypertension status using
+   `group_by()` and `summarize()`. Keep only groups with at least 20
+   participants.
+
+```{r}
+avg_CHD_data <- framingham |> 
+  group_by(age_group, male, prevalentHyp) |> 
+  summarise(
+    N = n(),
+    avg_CHD = mean(TenYearCHD == "Yes")
+  ) |> 
+  filter(N >=20)
+```
+ 
+c. Plot the result. A grouped bar chart (`geom_col()` with `position = "dodge"`)
+   or a line plot (`geom_line()` + `geom_point()`) with age group on the x-axis
+   works well here. Color by hypertension status, facet by sex.
+
+```{r}
+ggplot(avg_CHD_data, aes(x = age_group, y = avg_CHD, fill = prevalentHyp)) +
+  geom_col(position = "dodge") +
+  facet_wrap(~male)
+```
+
+
+d. Add a full set of labels, a meaningful color palette, and a clean theme.
+
+```{r}
+ggplot(avg_CHD_data, aes(x = age_group, y = avg_CHD, fill = prevalentHyp)) +
+  geom_col(position = "dodge") +
+  facet_wrap(~male) +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set1") +
+  theme(
+    legend.position  = "bottom",
+    panel.grid.minor = element_blank(),
+    strip.text       = element_text(face = "bold")
+  ) +
+  labs(
+    title    = "Average 10 Year CHD Rates by Age",
+    subtitle = "Framingham Heart Study cohort",
+    caption  = "Source: Framingham Heart Study",
+    x        = "Age Group (years)",
+    y        = "10 CHD Rates",
+    fill     = "Hypertension Status"
+  )
+```
+
+e. Save the figure with `ggsave()` at 300 dpi.
+
+```{r}
+ggsave("figures/chd_vs_age.png", width = 7, height = 5, dpi = 300)
+ggsave("figures/chd_vs_age.pdf", width = 7, height = 5)
+```
+
+
+f. Write a 3--4 sentence caption summarizing the main findings as if this were
+   going into a manuscript.
+
+First, the CHD rates increase by age group for males and females. Overall, the CHD rates for males are higher than they are for females. Lastly, it appears that the different in CHD rates between those with and without hypertension, is different for males and females. For females, having hypertension is a bigger risk factor for CHD than for males (especially for the older age groups). 
