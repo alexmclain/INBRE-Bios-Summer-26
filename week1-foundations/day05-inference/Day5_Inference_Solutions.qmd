@@ -1,0 +1,329 @@
+---
+title: "Day 5 Lab: Inference"
+subtitle: "SC INBRE Biostatistics Summer Intensive 2026"
+date: today
+format:
+  html:
+    toc: true
+    theme: cosmo
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+```{r}
+library(tidyverse)
+library(this.path)
+this.dir <- this.dir()
+setwd(this.dir)
+
+framingham <- read_csv("../../data/framingham.csv") |>
+  mutate(
+    male            = factor(male,            levels = c(0, 1),
+                                              labels = c("Female", "Male")),
+    currentSmoker   = factor(currentSmoker,   levels = c(0, 1),
+                                              labels = c("Non-smoker", "Smoker")),
+    BPMeds          = factor(BPMeds,          levels = c(0, 1),
+                                              labels = c("No", "Yes")),
+    prevalentStroke = factor(prevalentStroke, levels = c(0, 1),
+                                              labels = c("No", "Yes")),
+    prevalentHyp    = factor(prevalentHyp,    levels = c(0, 1),
+                                              labels = c("No", "Yes")),
+    diabetes        = factor(diabetes,        levels = c(0, 1),
+                                              labels = c("No", "Yes")),
+    TenYearCHD      = factor(TenYearCHD,      levels = c(0, 1),
+                                              labels = c("No", "Yes")),
+    education       = factor(education,       levels = 1:4,
+                                              labels = c("Some HS", "HS Diploma",
+                                                         "Some College",
+                                                         "College Degree"))
+  )
+```
+
+
+**Exercise 1 — One-Sample t-Test.**
+
+The normal resting diastolic blood pressure for adults is considered to be
+around 80 mmHg.
+
+a. Make a histogram of `diaBP` in the Framingham cohort. Does the distribution
+   look approximately Normal? Add a vertical line at 80 mmHg.
+
+
+```{r}
+ggplot(framingham, aes(x = diaBP)) +
+  geom_histogram(binwidth = 3) +
+  geom_vline(xintercept = 80, linetype = "dashed",
+             color = "red", linewidth = 1.5) +
+  annotate("text", x = 85, y = 500,
+           label = "80 mmHg",
+           hjust = 0, size = 5, color = "red") +
+  theme_minimal() +
+  labs(
+    title    = "Histogram of Diastolic Blood Pressure",
+    subtitle = "Framingham Heart Study",
+    caption  = "Dashed line indicates at 80 mmHg)",
+    x        = "Diastolic Blood Pressure (mmHg)"
+  )
+```
+
+
+b. Run a one-sample t-test testing whether mean diastolic BP in the cohort
+   differs from 80 mmHg. Report the test statistic, degrees of freedom,
+   p-value, and 95% CI.
+
+
+```{r}
+t.test(framingham$diaBP, mu = 80)
+```
+
+The p-value is $<2.2 x 10^{-16}$ (clearly significant), and the 95% CI is (82.5, 83.3).
+
+c. Write a 2--3 sentence interpretation of the result. Is the difference
+   statistically significant? Is it practically meaningful? (Think about what
+   a difference of a few mmHg means clinically.)
+
+The mean diastolic BP is clearly greater than 80 in the Framingham cohort. While statistically significant, the  95% CI (82.5, 83.3) indicate the mean is only a few points larger than 80 mmHg.
+
+
+---
+
+**Exercise 4 — Chi-Square Test.**
+
+Is smoking status associated with prevalent hypertension in this cohort?
+
+a. Create a contingency table of `currentSmoker` by `prevalentHyp` using
+   `table()`. What are the cell counts? Do all expected counts look large
+   enough for a chi-square test (rule: all expected counts ≥ 5)?
+
+
+```{r}
+# Always look at the raw counts first
+tab <- table(Smoker = framingham$currentSmoker,
+             Hypertension = framingham$prevalentHyp)
+tab
+```
+
+Let's look at the expected cell counts:
+
+```{r}
+chisq.test(tab)$expected
+```
+
+Clearly they are all greater than 5.
+
+
+b. Run `chisq.test()` on the table. Report $\chi^2$, degrees of freedom, and
+   p-value.
+   
+```{r}
+result_chisq <- chisq.test(tab)
+result_chisq
+```
+
+```{r}
+# Always check expected counts -- all should be >= 5
+result_chisq$expected
+```
+
+
+c. Compute the proportion with hypertension separately for smokers and
+   non-smokers using `group_by()` and `summarize()`. How large is the
+   difference in proportions?
+
+```{r}
+# Get the proportions for smokers and non-smokers.
+prop_values <- framingham |>
+  filter(!is.na(currentSmoker), !is.na(prevalentHyp)) |>
+  group_by(currentSmoker) |> 
+  summarise(
+    prop_hyper = mean(prevalentHyp == "Yes")
+  )
+prop_values
+```
+
+Now, calculate the difference:
+
+```{r}
+round(prop_values$prop_hyper[1] - prop_values$prop_hyper[2], 4)
+```
+
+The difference in proportions is 0.096 (9.6% difference) where smokers have a lower prevalance of hypertension.
+
+d. Make a grouped bar chart showing hypertension prevalence by smoking status.
+   Use `geom_col()` after computing proportions with `dplyr`.
+
+
+```{r}
+framingham |>
+  filter(!is.na(currentSmoker), !is.na(prevalentHyp)) |>
+  group_by(currentSmoker, prevalentHyp) |>
+  summarize(n = n(), .groups = "drop") |>
+  group_by(currentSmoker) |>
+  mutate(pct = n / sum(n) * 100) |>
+  ggplot(aes(x = currentSmoker, y = pct, fill = prevalentHyp)) +
+  geom_col(position = "dodge") +
+  scale_fill_brewer(palette = "Set2") +
+  labs(x = "Smoking Status", y = "Percent (%)",
+       fill = "Hypertension",
+       title = "Hypertension Prevalence by Smoking Status") +
+  theme_bw()
+```
+
+
+e. Write a 2--3 sentence interpretation. Is the association statistically
+   significant? Is the effect size meaningful?
+
+The difference in hypertension prevalance is statistically and practically significant. The overall difference in prevalance is 9.6% indicating a markedly smaller prevalance of hypertension in the smoking group.... weird. 
+
+
+---
+
+**Exercise 5 — Choose the Right Test.**
+
+For each of the following questions, (i) state which test you would use and
+why, (ii) check the relevant assumption(s), and (iii) run the test and
+interpret the result.
+
+**Question A.** Is mean BMI different between diabetic and non-diabetic
+participants?
+
+Here we have a countinuous outcome variable (BMI) and we want to test if it is different by a categorical (yes/no) variable. A two sample t-test is appropriate here.
+
+To run a two sample t-test we need a large sample size or data that are relatively normally distributed. As a result, we'll look at the histogram of BMI by diabetes status.
+
+
+```{r}
+framingham |>
+  ggplot(aes(x = BMI, fill = diabetes)) +
+  geom_histogram(alpha = 0.7, show.legend = FALSE) +
+  facet_wrap(~diabetes, scales = "free") +
+  labs(y = "Body Mass Index",
+       title = "Body Mass Index by Diabetes Status") +
+  theme_bw()
+```
+
+We have a large enough sample of non-diabetics that we don't need to worry about the distribution. There are not as many diabetics (only 109), so the distribution (which is right skewed) is more worrisome. However, with 109 we should be OK.
+
+```{r}
+# Group-level summaries first
+framingham |>
+  group_by(diabetes) |>
+  summarize(
+    n        = n(),
+    mean_bp  = mean(BMI, na.rm = TRUE),
+    sd_bp    = sd(BMI, na.rm = TRUE)
+  )
+```
+
+```{r}
+# Welch two-sample t-test (default -- does not assume equal variances)
+t.test(BMI ~ diabetes, data = framingham)
+```
+
+We can see that we get a significant difference between the groups. We can repeat with the Wilcoxon test, if we are worried about the normality assumption.
+
+```{r}
+wilcox.test(BMI ~ diabetes, data = framingham,
+            conf.int = TRUE)   # request the Hodges-Lehmann CI
+```
+
+Which gives the same result. Diabetics appear to have a larger average BMI than non-diabetics.
+
+**Question B.** Is mean glucose different between diabetic and non-diabetic
+participants? (Make a histogram of `glucose` within each group first. Does the
+distribution look Normal? Does your answer change which test you use?)
+
+
+Again, we have a countinuous outcome variable (glucose) and we want to test if it is different by a categorical (yes/no) variable. A two sample t-test is appropriate here.
+
+Let's look at the histogram of the outcome.
+
+
+```{r}
+framingham |>
+  ggplot(aes(x = glucose, fill = diabetes)) +
+  geom_histogram(alpha = 0.7, show.legend = FALSE) +
+  facet_wrap(~diabetes, scales = "free") +
+  labs(y = "Glucose",
+       title = "Glucose by Diabetes Status") +
+  theme_bw()
+```
+
+
+```{r}
+# Group-level summaries first
+framingham |>
+  group_by(diabetes) |>
+  summarize(
+    n        = n(),
+    mean_glu  = mean(glucose, na.rm = TRUE),
+    sd_glu    = sd(glucose, na.rm = TRUE)
+  )
+```
+
+Similar to before, the diabetic group might lead us to use the Wilcoxon since the sample size is smaller and the data are right skewed. Again, with n=109 we should be ok though.
+
+Also, notice that the standard deviation is 13.0 for non-diabetics and 84.2 for diabetics. This is a situation where we don't want to assume equal variances --`t.test` doesn't assume equal variances by default, so we don't have to do anything.
+
+```{r}
+# Welch two-sample t-test 
+t.test(glucose ~ diabetes, data = framingham)
+
+wilcox.test(glucose ~ diabetes, data = framingham,
+            conf.int = TRUE)   # request the Hodges-Lehmann CI
+```
+
+Clearly, the average glucose values are much higher in the diabetic group (as expected).
+
+
+**Question C.** Is education level associated with smoking status? (Both
+variables are categorical -- what test applies here?)
+
+Since these are both categorical, we'll use a chi-squared test.
+
+
+```{r}
+# Always look at the raw counts first
+tab <- table(Education = framingham$education,
+             Smoking = framingham$currentSmoker)
+tab
+```
+
+```{r}
+# Proportions within each education group (row proportions)
+prop.table(tab, margin = 1) |> round(3)
+```
+
+```{r}
+# Visualize before testing
+framingham |>
+  filter(!is.na(currentSmoker), !is.na(education)) |>
+  group_by(currentSmoker, education) |>
+  summarize(n = n(), .groups = "drop") |>
+  group_by(education) |>
+  mutate(pct = n / sum(n) * 100) |>
+  ggplot(aes(x = education, y = pct, fill = currentSmoker)) +
+  geom_col(position = "dodge") +
+  scale_fill_brewer(palette = "Set2") +
+  labs(x = "Education", y = "Percent (%)",
+       fill = "Smoking Status",
+       title = "Smoking Status by Education Level") +
+  theme_bw()
+```
+
+```{r}
+result_chisq <- chisq.test(tab)
+result_chisq
+```
+
+```{r}
+# Always check expected counts -- all should be >= 5
+result_chisq$expected
+```
+
+All expected counts are well above 5, so the chi-square approximation is valid.
+
+
+The chi-squared test shows that there is a significant association between education level and smoking status. However, the difference in the proportion of smokers doesn't follow an obvious pattern by the natural ordering of education level. For example, `Some HS` and `Some College` have the highest proportion of non-smokers, while `HS Diploma` has the lowest.
