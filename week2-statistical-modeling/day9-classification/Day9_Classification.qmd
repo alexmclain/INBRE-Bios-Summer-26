@@ -1,0 +1,328 @@
+---
+title: "Day 9: Classification and Predictive Performance"
+subtitle: "SC INBRE Biostatistics Summer Intensive 2026"
+date: today
+format:
+  html:
+    toc: true
+    toc-location: left
+    toc-depth: 3
+    number-sections: true
+    smooth-scroll: true
+    theme: cosmo
+    code-fold: false
+    highlight-style: github
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+```{r}
+library(tidyverse)
+library(this.path)
+library(pROC)
+setwd(this.dir())
+
+framingham <- read_csv("../../data/framingham.csv") |>
+  mutate(
+    male          = factor(male,          levels = c(0,1), labels = c("Female","Male")),
+    currentSmoker = factor(currentSmoker, levels = c(0,1), labels = c("Non-smoker","Smoker")),
+    prevalentHyp  = factor(prevalentHyp,  levels = c(0,1), labels = c("No","Yes")),
+    diabetes      = factor(diabetes,      levels = c(0,1), labels = c("No","Yes")),
+    TenYearCHD    = factor(TenYearCHD,    levels = c(0,1), labels = c("No","Yes")),
+    education     = factor(education,     levels = 1:4,
+                           labels = c("Some HS","HS Diploma","Some College","College Degree"))
+  )
+```
+
+# Overview
+
+Yesterday we fit logistic regression models and learned how to interpret odds ratios. Each model gives us a predicted probability $\hat\pi_i$ for every participant. Today we ask three questions:
+
+1. **How do we turn predicted probabilities into yes/no decisions?** That requires choosing a threshold.
+2. **How do we evaluate whether those decisions are any good?** That requires sensitivity, specificity, and the confusion matrix.
+3. **How do we compare two competing models?** That requires ROC curves and AUC.
+
+These tools apply to any model that produces predicted probabilities, not just logistic regression.
+
+We will work through three examples:
+
+- **Example 1:** From predicted probabilities to classifications, using a simple and a multiple logistic model.
+- **Example 2:** ROC curves and AUC, including a head-to-head model comparison.
+- **Example 3:** Choosing a threshold and the difference between training and honest AUC.
+
+---
+
+# Quick Recap: Rebuilding Our Models
+
+We re-fit two models from yesterday to use throughout today's examples. A simple model (age only) and a multiple model (age, smoking, BP, cholesterol, diabetes).
+
+```{r}
+# Complete cases for the full model
+vars_used <- c("TenYearCHD", "age", "currentSmoker", "sysBP",
+               "totChol", "diabetes")
+
+framingham_cc <- framingham |>
+  drop_na(all_of(vars_used))
+
+# Simple model: age only
+model_simple <- glm(TenYearCHD ~ age,
+                    data = framingham_cc,
+                    family = binomial)
+
+# Multiple model: five predictors
+model_full <- glm(TenYearCHD ~ age + currentSmoker + sysBP + totChol + diabetes,
+                  data = framingham_cc,
+                  family = binomial)
+
+# Add predicted probabilities from both models
+framingham_cc <- framingham_cc |>
+  mutate(
+    p_simple = predict(model_simple, type = "response"),
+    p_full   = predict(model_full,   type = "response")
+  )
+```
+
+```{r}
+framingham_cc |>
+  select(TenYearCHD, p_simple, p_full) |>
+  summary()
+```
+
+Both sets of predicted probabilities range from near 0 to near 0.6. Most values are below 0.2, which makes sense: only about 15% of the cohort develops CHD.
+
+---
+
+# Example 1: From Probabilities to Classifications
+
+## Choosing a Threshold
+
+To turn a predicted probability into a yes/no classification, we pick a threshold $\pi_0$:
+
+$$\hat Y_i = \begin{cases} \text{Yes} & \text{if } \hat\pi_i > \pi_0 \\ \text{No} & \text{if } \hat\pi_i \le \pi_0 \end{cases}$$
+
+The threshold is a **choice**, not a property of the model. Different thresholds produce different tradeoffs between types of mistakes.
+
+## Confusion Matrix at Threshold = 0.5
+
+```{r}
+framingham_cc <- framingham_cc |>
+  mutate(pred_50 = factor(if_else(p_full > 0.50, "Yes", "No"),
+                          levels = c("No", "Yes")))
+
+table(Predicted = framingham_cc$pred_50, Actual = framingham_cc$TenYearCHD)
+```
+
+At a threshold of 0.5, almost no one gets classified as a predicted CHD case. The model is right about most non-cases but misses nearly all the actual cases. When the event is rare (15%), a 0.5 threshold is almost useless.
+
+## Confusion Matrix at Threshold = 0.15
+
+```{r}
+framingham_cc <- framingham_cc |>
+  mutate(pred_15 = factor(if_else(p_full > 0.15, "Yes", "No"),
+                          levels = c("No", "Yes")))
+
+table(Predicted = framingham_cc$pred_15, Actual = framingham_cc$TenYearCHD)
+```
+
+Lowering the threshold to 0.15 (roughly the event rate) flags many more people as predicted CHD cases. We now catch more true cases, but we also create more false alarms. This is the fundamental tradeoff.
+
+## Confusion Matrix at Threshold = 0.10
+
+```{r}
+framingham_cc <- framingham_cc |>
+  mutate(pred_10 = factor(if_else(p_full > 0.10, "Yes", "No"),
+                          levels = c("No", "Yes")))
+
+table(Predicted = framingham_cc$pred_10, Actual = framingham_cc$TenYearCHD)
+```
+
+At 0.10 we cast an even wider net. We catch most true CHD cases, but at the cost of flagging many healthy people.
+
+## Sensitivity, Specificity, PPV, NPV
+
+For a given confusion matrix, four numbers describe performance:
+
+- **Sensitivity** (true positive rate): of all truly sick, what fraction did we catch?
+- **Specificity** (true negative rate): of all truly healthy, what fraction did we correctly clear?
+- **PPV** (positive predictive value): of everyone we flagged, what fraction were really sick?
+- **NPV** (negative predictive value): of everyone we cleared, what fraction were really healthy?
+
+```{r}
+compute_metrics <- function(pred, actual) {
+  tab <- table(Predicted = pred, Actual = actual)
+  TP <- tab["Yes", "Yes"]
+  FP <- tab["Yes", "No"]
+  TN <- tab["No",  "No"]
+  FN <- tab["No",  "Yes"]
+  tibble(
+    Sensitivity = TP / (TP + FN),
+    Specificity = TN / (TN + FP),
+    PPV         = TP / (TP + FP),
+    NPV         = TN / (TN + FN)
+  )
+}
+```
+
+```{r}
+bind_rows(
+  compute_metrics(framingham_cc$pred_50, framingham_cc$TenYearCHD) |> mutate(Threshold = 0.50),
+  compute_metrics(framingham_cc$pred_15, framingham_cc$TenYearCHD) |> mutate(Threshold = 0.15),
+  compute_metrics(framingham_cc$pred_10, framingham_cc$TenYearCHD) |> mutate(Threshold = 0.10)
+) |>
+  select(Threshold, everything()) |>
+  round(3)
+```
+
+**Reading the table:**
+
+- As the threshold decreases, sensitivity goes up and specificity goes down. This is the fundamental tradeoff, and it always runs in this direction.
+- PPV is low at every threshold because the event is rare (15%). Even a good model produces many false positives when most of the population is healthy.
+- NPV is high at every threshold for the same reason: when most people are healthy, a negative prediction is usually correct.
+
+---
+
+# Example 2: ROC Curves and AUC
+
+## What Is an ROC Curve?
+
+The confusion-matrix summary at three thresholds is informative but incomplete. The **ROC curve** shows sensitivity vs. (1 - specificity) for every possible threshold, sweeping from 0 to 1.
+
+```{r}
+#| fig-width: 6
+#| fig-height: 6
+roc_full <- roc(framingham_cc$TenYearCHD, framingham_cc$p_full,
+                levels = c("No", "Yes"), direction = "<")
+
+plot(roc_full, col = "firebrick", lwd = 2,
+     main = "ROC Curve: Multiple Logistic Model")
+auc(roc_full)
+```
+
+The AUC for the full model is about `r round(auc(roc_full), 3)`. This is in the "acceptable" range.
+
+**Interpreting the AUC:** it is the probability that the model assigns a higher predicted probability to a randomly chosen CHD case than to a randomly chosen non-case. An AUC of 0.72 means the model gets this ranking right about 72% of the time.
+
+| AUC | Discriminative ability |
+|---|---|
+| $\approx$ 0.5 | No discrimination (coin flip) |
+| 0.6 -- 0.7 | Poor |
+| 0.7 -- 0.8 | Acceptable |
+| 0.8 -- 0.9 | Excellent |
+| > 0.9 | Outstanding |
+
+## Comparing Two Models: Simple vs. Full
+
+Does adding smoking, blood pressure, cholesterol, and diabetes improve the model's ability to discriminate? We can compare by overlaying their ROC curves.
+
+```{r}
+#| fig-width: 6
+#| fig-height: 6
+roc_simple <- roc(framingham_cc$TenYearCHD, framingham_cc$p_simple,
+                  levels = c("No", "Yes"), direction = "<")
+
+plot(roc_full,   col = "firebrick",  lwd = 2, main = "ROC Comparison")
+plot(roc_simple, col = "steelblue",  lwd = 2, add = TRUE)
+legend("bottomright",
+       legend = c(paste0("Full model (AUC = ", round(auc(roc_full), 3), ")"),
+                  paste0("Age only (AUC = ", round(auc(roc_simple), 3), ")")),
+       col = c("firebrick", "steelblue"), lwd = 2)
+```
+
+The full model's curve lies above the simple model's curve at most thresholds, confirming that the additional predictors improve discrimination. The AUC improves from `r round(auc(roc_simple), 3)` to `r round(auc(roc_full), 3)`.
+
+## Is the AUC Difference Statistically Significant?
+
+The `pROC` package can test whether two AUCs from correlated samples are significantly different:
+
+```{r}
+roc.test(roc_simple, roc_full)
+```
+
+A small p-value means the full model discriminates significantly better than the simple model. This is the ROC-curve equivalent of comparing nested models.
+
+---
+
+# Example 3: Choosing a Threshold and Honest Evaluation
+
+## Youden's J Statistic
+
+When you have no strong prior about the relative cost of false positives vs. false negatives, **Youden's J statistic** provides a reasonable default: it picks the threshold that maximizes sensitivity + specificity - 1.
+
+```{r}
+coords(roc_full, "best", best.method = "youden")
+```
+
+This returns the threshold, along with the sensitivity and specificity at that threshold. It is a balanced choice, but not necessarily the right choice for every application.
+
+## The Threshold Is a Clinical Decision
+
+The "right" threshold depends on the consequences of each type of error:
+
+- **For CHD screening:** missing a true case (false negative) means the patient does not get preventive treatment. False positives mean unnecessary follow-up tests. Most screening programs set the threshold low (high sensitivity).
+- **For a costly one-time intervention:** the threshold is set higher, so that only people very likely to benefit are treated.
+- **For equal costs:** Youden's J is a reasonable starting point.
+
+No threshold is "correct" in the abstract. The choice is a clinical decision informed by the statistical tradeoff.
+
+## Training AUC vs. Honest AUC
+
+The AUC we have computed so far uses the same data to fit the model and evaluate it. This is **optimistic**: the model has already seen these observations, so it looks better than it will on new data.
+
+For an honest estimate, evaluate on data the model has not seen:
+
+- **Train/test split:** fit on one subset, evaluate AUC on the other.
+- **Cross-validation:** rotate the test set across folds and average the AUCs. We covered this in Day 7.
+
+```{r}
+# Quick demonstration: 70/30 train/test split
+set.seed(2026)
+n <- nrow(framingham_cc)
+train_idx <- sample(seq_len(n), size = round(0.7 * n))
+
+train <- framingham_cc[train_idx, ]
+test  <- framingham_cc[-train_idx, ]
+
+# Fit on training data
+model_train <- glm(TenYearCHD ~ age + currentSmoker + sysBP + totChol + diabetes,
+                   data = train,
+                   family = binomial)
+
+# Predict on test data
+test <- test |>
+  mutate(p_test = predict(model_train, newdata = test, type = "response"))
+
+# AUC on training data
+roc_train <- roc(train$TenYearCHD,
+                 predict(model_train, type = "response"),
+                 levels = c("No", "Yes"), direction = "<")
+
+# AUC on test data
+roc_test <- roc(test$TenYearCHD, test$p_test,
+                levels = c("No", "Yes"), direction = "<")
+
+tibble(
+  Dataset     = c("Training", "Test"),
+  AUC         = c(auc(roc_train), auc(roc_test)),
+  N           = c(nrow(train), nrow(test))
+) 
+```
+
+The test AUC is typically a bit lower than the training AUC. The gap tells you how much the model is over-fitting. If the gap is large, the model may be too complex for the sample size.
+
+::: {.callout-warning}
+**Always report which evaluation scheme was used.** A training AUC of 0.75 and a test AUC of 0.70 tell very different stories. Published studies should report the honest (test or cross-validated) AUC.
+:::
+
+---
+
+# Summary
+
+Three key skills from today:
+
+1. **Classify and evaluate.** Choose a threshold, build a confusion matrix, and compute sensitivity, specificity, PPV, and NPV. Understand that the threshold is a clinical decision, not a statistical one.
+
+2. **Build and compare ROC curves.** Use `pROC::roc()` to build curves, `auc()` to summarize them, and `roc.test()` to compare two models. The model whose curve lies higher has better discrimination.
+
+3. **Get an honest AUC.** Always evaluate on held-out data or via cross-validation. Training AUC is optimistic.

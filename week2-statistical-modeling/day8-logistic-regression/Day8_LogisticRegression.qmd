@@ -18,10 +18,10 @@ execute:
   message: false
 ---
 
+
 ```{r}
 library(tidyverse)
 library(this.path)
-library(pROC)
 setwd(this.dir())
 
 framingham <- read_csv("../../data/framingham.csv") |>
@@ -40,11 +40,12 @@ framingham <- read_csv("../../data/framingham.csv") |>
 
 So far we have modeled continuous outcomes with linear regression. Many of the most important questions in biomedical research, however, involve **binary outcomes**: did the patient develop the disease, did the screening test return positive, did the treatment succeed?
 
-Today we extend regression to binary outcomes using **logistic regression**. We will work through three examples using the Framingham Heart Study:
+Today we extend regression to binary outcomes using **logistic regression**:
 
 - **Example 1:** Simple logistic regression of `TenYearCHD` on `sysBP`. Fitting, interpretation, and visualization.
 - **Example 2:** Multiple logistic regression with several risk factors. Adjusted odds ratios, model comparison, and selection.
-- **Example 3:** Classification performance. ROC curves, AUC, and the sensitivity/specificity tradeoff.
+
+Tomorrow we will take the predicted probabilities from these models and ask: how do we turn them into yes/no decisions, and how do we evaluate whether those decisions are any good?
 
 ---
 
@@ -143,13 +144,8 @@ The log-odds scale is hard to interpret. Exponentiating converts it to **odds ra
 ## Odds Ratios and Confidence Intervals
 
 ```{r}
-exp(cbind(OR = coef(chd_simple), confint(chd_simple)))
+round(exp(cbind(OR = coef(chd_simple), confint(chd_simple))), 3)
 ```
-
-**Reading the odds ratios:**
-
-- For each additional 1 mmHg of systolic BP, the **odds** of CHD are multiplied by `r round(exp(coef(chd_simple))[2], 3)`. A 1 mmHg increase is small, so the OR is close to 1.
-- The CI of `r paste0("(", round(exp(confint(chd_simple))[2,1], 3), ", ", round(exp(confint(chd_simple))[2,2], 3), ")")` does not include 1, so we reject the null of no association.
 
 A 1 mmHg increase is a trivial change clinically. To make this more interpretable, rescale to a **20 mmHg increase** (roughly one standard deviation):
 
@@ -169,24 +165,13 @@ A 20 mmHg increase in systolic BP roughly **doubles** the odds of developing CHD
 `predict()` returns the linear predictor (log-odds) by default. Add `type = "response"` to get probabilities.
 
 ```{r}
-framingham <- framingham |>
-  mutate(p_chd = predict(chd_simple, type = "response"))
-
-framingham |>
-  select(sysBP, TenYearCHD, p_chd) |>
-  slice_sample(n = 6)
-```
-
-To predict for new individuals, build a small tibble with the relevant predictors and pass it to `predict()`:
-
-```{r}
 new_subjects <- tibble(sysBP = c(110, 130, 150, 180))
 
 new_subjects |>
   mutate(p_chd = predict(chd_simple, newdata = new_subjects, type = "response"))
 ```
 
-At `sysBP = 110`, the predicted CHD probability is about 8%. At `sysBP = 180`, it climbs to about 28%. A 70 mmHg increase in BP roughly triples the predicted risk.
+At `sysBP = 110`, the predicted CHD probability is about 8%. At `sysBP = 180`, it climbs to about 28%.
 
 ## Visualizing the Fitted Curve
 
@@ -207,17 +192,9 @@ framingham |>
   theme_minimal()
 ```
 
-The fitted logistic curve rises smoothly from near 0 at low BP to about 0.4 at very high BP. The curve is bounded between 0 and 1 by construction, unlike a linear regression line.
-
 ## A Note on Categorizing Continuous Predictors
 
-A common modeling mistake is to chop a continuous variable like age or BP into categories before fitting. The same warning we issued for linear regression applies here:
-
-- Categorization throws away information.
-- It assumes a step change at the cutpoint rather than a smooth effect.
-- It reduces statistical power.
-
-To illustrate, here is what happens if we wrongly treat `sysBP` as a factor:
+The same warning we issued for linear regression applies here. Categorization throws away information, reduces statistical power, and assumes a step change at the cutpoint.
 
 ```{r}
 framingham_bad <- framingham |>
@@ -233,46 +210,110 @@ bad_model <- glm(TenYearCHD ~ sysBP_factor,
 AIC(chd_simple, bad_model)
 ```
 
-The continuous model has a lower AIC because it captures the smooth dose-response without spending degrees of freedom on dummy variables. Keep continuous variables continuous unless there is a strong reason to categorize.
+The continuous model has a lower AIC. Keep continuous variables continuous unless there is a strong reason to categorize.
 
 ---
-
-# Example 2: Multiple Logistic Regression
-
-In practice we rarely have a single predictor. The real value of regression is the ability to adjust for multiple risk factors simultaneously.
+# Example 2: Adjusting for Confounders
 
 ## The Question
 
-How do age, smoking status, blood pressure, cholesterol, and diabetes jointly predict CHD risk? Which factors remain important after adjusting for the others?
+From Example 1, we know that higher systolic BP is associated with higher CHD risk. But what about **age**? We saw in the Day 8 PM lab that age is a strong predictor of CHD on its own. The question we really want to answer is:
 
-## Checking Variable Form for Each Predictor
+> **What is the effect of age on 10-year CHD risk, after removing the influence of other risk factors that are tangled up with age?**
 
-Before fitting a multivariable model, inspect each continuous predictor's relationship with the outcome.
+This is a question about **confounding**. A confounder is a variable that is related to both the exposure of interest (age) and the outcome (CHD). If we do not adjust for confounders, our estimate of the age effect may be biased, absorbing effects that actually belong to other variables.
+
+## Step 1: Which Variables Are Related to Age?
+
+Before deciding what to adjust for, we need to know which variables in the dataset are associated with age. If a variable is unrelated to age, it cannot confound the age-CHD relationship, and including it is unnecessary (though usually harmless).
 
 ```{r}
 #| fig-width: 9
 #| fig-height: 6
 #| message: false
 framingham |>
-  mutate(CHD_numeric = as.numeric(TenYearCHD) - 1) |>
-  pivot_longer(cols = c(age, sysBP, totChol, BMI),
-               names_to = "predictor", values_to = "value") |>
-  ggplot(aes(x = value, y = CHD_numeric)) +
-  geom_jitter(alpha = 0.05, height = 0.04, color = "steelblue") +
-  geom_smooth(method = "loess", color = "firebrick", se = TRUE, linewidth = 1) +
-  facet_wrap(~ predictor, scales = "free_x") +
-  labs(x = "Predictor value", y = "Probability of CHD",
-       title = "Empirical CHD Probability by Each Predictor") +
+  pivot_longer(cols = c(sysBP, diaBP, totChol, BMI, heartRate, glucose),
+               names_to = "variable", values_to = "value") |>
+  ggplot(aes(x = age, y = value)) +
+  geom_point(alpha = 0.08, color = "steelblue") +
+  geom_smooth(method = "loess", color = "firebrick", se = FALSE, linewidth = 1) +
+  facet_wrap(~ variable, scales = "free_y") +
+  labs(x = "Age (years)", y = "Variable value",
+       title = "Relationship Between Age and Potential Confounders") +
   theme_minimal()
 ```
 
-`age` and `sysBP` show clear monotonic increases. `totChol` shows a weaker positive trend. `BMI` rises and then flattens (worth keeping in mind, but not strong enough to require a spline for this example).
+Systolic BP rises clearly with age. Diastolic BP rises and then levels off. Total cholesterol rises modestly. BMI, heart rate, and glucose show weak or flat trends.
 
-## Fitting the Full Model
+For categorical variables, we check whether the distribution of age differs across groups:
 
-We are going to restrict to complete cases on all the variables we plan to use before fitting anything. This way the data will have the same observations for all models.
+```{r}
+framingham |>
+  group_by(currentSmoker) |>
+  summarize(mean_age = mean(age), sd_age = sd(age), n = n(), .groups = "drop")
 
-For example, there are some missing `BMI` values. If we don't do this step and we were to remove `BMI` from the predictor list, then we would have a different dataset.
+framingham |>
+  group_by(diabetes) |>
+  summarize(mean_age = mean(age, na.rm = TRUE), sd_age = sd(age, na.rm = TRUE),
+            n = n(), .groups = "drop")
+
+framingham |>
+  group_by(male) |>
+  summarize(mean_age = mean(age), sd_age = sd(age), n = n(), .groups = "drop")
+```
+
+Smokers are slightly younger on average than non-smokers. Diabetic participants are slightly older. Sex is roughly balanced across ages.
+
+## Step 2: Which of Those Are Also Related to CHD?
+
+A confounder must be related to both age **and** CHD. We already know that `sysBP`, `totChol`, `currentSmoker`, and `diabetes` are all associated with CHD (from the morning slides and the literature). Let's verify with the empirical CHD rates:
+
+```{r}
+framingham |>
+  group_by(currentSmoker) |>
+  summarize(chd_pct = mean(TenYearCHD == "Yes", na.rm = TRUE) * 100,
+            .groups = "drop")
+
+framingham |>
+  group_by(diabetes) |>
+  summarize(chd_pct = mean(TenYearCHD == "Yes", na.rm = TRUE) * 100,
+            .groups = "drop")
+```
+
+```{r}
+#| fig-width: 7
+#| fig-height: 4
+#| message: false
+framingham |>
+  mutate(CHD_numeric = as.numeric(TenYearCHD) - 1) |>
+  pivot_longer(cols = c(sysBP, totChol),
+               names_to = "variable", values_to = "value") |>
+  ggplot(aes(x = value, y = CHD_numeric)) +
+  geom_jitter(alpha = 0.04, height = 0.04, color = "steelblue") +
+  geom_smooth(method = "loess", color = "firebrick", se = TRUE, linewidth = 1) +
+  facet_wrap(~ variable, scales = "free_x") +
+  labs(x = "Variable value", y = "Probability of CHD",
+       title = "CHD Probability by Potential Confounders") +
+  theme_minimal()
+```
+
+Both `sysBP` and `totChol` are positively associated with CHD probability. Diabetes has a sharply higher CHD rate. Smoking shows a modest difference.
+
+**Summary of confounding assessment:**
+
+| Variable | Related to age? | Related to CHD? | Potential confounder? |
+|---|---|---|---|
+| sysBP | Yes (strong) | Yes (strong) | **Yes** |
+| totChol | Weakly | Yes (moderate) | **Yes** (marginal) |
+| currentSmoker | Weakly (younger) | Yes (moderate) | **Yes** |
+| diabetes | Weakly (older) | Yes (strong) | **Yes** |
+| BMI | Not much | Weak | Unlikely |
+
+We will include `sysBP`, `totChol`, `currentSmoker`, and `diabetes` as confounders in our adjusted model. We include `BMI` as well to be thorough, knowing it is unlikely to change the age estimate much.
+
+## Step 3: The Unadjusted Age Effect
+
+Before adjusting, record the unadjusted OR for age so we can compare.
 
 ```{r}
 vars_used <- c("TenYearCHD", "age", "currentSmoker", "sysBP",
@@ -281,215 +322,111 @@ vars_used <- c("TenYearCHD", "age", "currentSmoker", "sysBP",
 framingham_cc <- framingham |>
   drop_na(all_of(vars_used))
 
-nrow(framingham) - nrow(framingham_cc)  # how many rows were dropped
+nrow(framingham) - nrow(framingham_cc)
 ```
+
+```{r}
+chd_age_only <- glm(TenYearCHD ~ age,
+                    data = framingham_cc,
+                    family = binomial)
+
+round(exp(cbind(OR = coef(chd_age_only), confint(chd_age_only))), 3)
+```
+
+The unadjusted OR for age is about 1.07 per year, or roughly `r round(exp(10 * coef(chd_age_only)["age"]), 2)` per decade.
+
+## Step 4: The Adjusted Model
+
+Now we add the confounders identified above. The adjusted OR for age tells us how much age matters **after removing the influence of blood pressure, cholesterol, smoking, diabetes, and BMI**.
 
 
 ```{r}
-chd_full <- glm(TenYearCHD ~ age + currentSmoker + sysBP + totChol +
-                              diabetes + BMI,
-                data = framingham_cc,
-                family = binomial)
-
-summary(chd_full)
+chd_adjusted <- glm(
+  formula = TenYearCHD ~ age + currentSmoker + sysBP + totChol + diabetes + BMI,
+  data = framingham_cc,
+  family = binomial
+)
 ```
 
 ## Adjusted Odds Ratios
 
 ```{r}
-exp(cbind(OR = coef(chd_full), confint(chd_full))) |>
-  round(3)
+round(exp(cbind(OR = coef(chd_adjusted), confint(chd_adjusted))),3) 
 ```
 
-**Interpretation of each coefficient:**
+## Comparing the Unadjusted and Adjusted Age Effects
 
-- **age:** Each additional year of age multiplies the odds of CHD by about 1.06, holding the other variables constant. Over a decade, that's $1.06^{10} \approx 1.8$, so the odds roughly double.
-- **currentSmokerSmoker:** Smokers have about 50% higher odds of CHD than non-smokers of the same age, BP, cholesterol, BMI, and diabetes status. This is the "Smoker vs Non-smoker" contrast, with non-smokers as the reference.
-- **sysBP:** Per 1 mmHg, the OR is just above 1. The 20-mmHg-scaled OR is `r round(exp(20 * coef(chd_full)["sysBP"]), 2)`.
-- **totChol:** Per mg/dL, the OR is essentially 1. Scaled to a 40 mg/dL change, the OR becomes `r round(exp(40 * coef(chd_full)["totChol"]), 2)`.
-- **diabetesYes:** Diabetic participants have substantially higher CHD odds even after adjusting for the other risk factors.
-- **BMI:** The CI typically includes 1 in this dataset, meaning BMI does not add much once the other variables are accounted for.
+```{r}
+tibble(
+  Model    = c("Unadjusted", "Adjusted"),
+  OR_age   = c(exp(coef(chd_age_only)["age"]),
+               exp(coef(chd_adjusted)["age"])),
+  CI_lower = c(exp(confint(chd_age_only)["age", 1]),
+               exp(confint(chd_adjusted)["age", 1])),
+  CI_upper = c(exp(confint(chd_age_only)["age", 2]),
+               exp(confint(chd_adjusted)["age", 2]))
+) 
+```
+
+The adjusted OR for age is **smaller** than the unadjusted OR. This tells us that part of the apparent age effect was actually driven by confounders: older people have higher blood pressure, higher cholesterol, and more diabetes. Once we hold those factors constant, the direct association between age and CHD is weaker, though still substantial.
+
+This is the central lesson of multivariable regression: the unadjusted estimate mixes together the effect of age with the effects of everything correlated with age. The adjusted estimate isolates the piece attributable to age itself, to the extent that we have measured and included the relevant confounders.
 
 ::: {.callout-important}
-The coefficient for sysBP in the multiple model is **smaller** than in the simple model from Example 1. This is because part of the sysBP effect we saw earlier was actually attributable to age (older participants tend to have higher BP and more CHD). Once we adjust for age, the unique contribution of sysBP is smaller. This is the entire point of multivariable regression.
+**Confounding can go in either direction.** Here, the adjusted OR was smaller than the unadjusted one (positive confounding: the confounders inflated the apparent effect of age). In other settings, confounders can mask a true effect, making the unadjusted OR smaller than the adjusted one (negative confounding). The direction depends on the specific relationships in your data.
 :::
 
-## Comparing Nested Models: Likelihood Ratio Test
+## Interpreting the Full Set of Adjusted ORs
 
-To test whether a group of predictors adds anything jointly, use the **likelihood ratio test (LRT)**, the logistic-regression analog of the partial F-test.
+Even though our primary interest is the age effect, the adjusted ORs for the other variables are also interpretable:
 
-```{r}
-# Reduced model: drop diabetes and BMI
-chd_reduced <- glm(TenYearCHD ~ age + currentSmoker + sysBP + totChol,
-                   data = framingham_cc,
-                   family = binomial)
+- **currentSmokerSmoker:** About 50% higher odds of CHD than non-smokers of the same age, BP, cholesterol, BMI, and diabetes status.
+- **sysBP:** Per 20 mmHg, the adjusted OR is `r round(exp(20 * coef(chd_adjusted)["sysBP"]), 2)`.
+- **totChol:** Per 40 mg/dL, the adjusted OR is `r round(exp(40 * coef(chd_adjusted)["totChol"]), 2)`.
+- **diabetesYes:** Substantially higher CHD odds even after adjusting for everything else.
+- **BMI:** The CI includes 1. As expected from our confounder assessment, BMI does not add much once the other variables are accounted for.
 
-anova(chd_reduced, chd_full, test = "LRT")
-```
+## Does BMI Belong in the Model?
 
-The LRT compares the deviances of the two models. A small p-value means the dropped variables (diabetes and BMI) collectively add useful information. A large p-value would suggest we can simplify.
-
-Use `anova(reduced, full, test = "LRT")` whenever you want to test:
-
-- A multi-level categorical predictor (all its dummy variables jointly).
-- A polynomial or spline expansion of a variable.
-- A group of related predictors entering or leaving together.
-
-## Model Selection with AIC
-
-For exploratory model building, AIC-based stepwise selection often works well as a starting point.
+We suspected BMI would not be a meaningful confounder. We can test this formally by comparing the model with and without it.
 
 ```{r}
-chd_step <- step(chd_full, direction = "both", trace = 0)
-summary(chd_step)
-AIC(chd_full, chd_step)
+chd_no_bmi <- glm(TenYearCHD ~ age + currentSmoker + sysBP + totChol + diabetes,
+                  data = framingham_cc,
+                  family = binomial)
+
+anova(chd_no_bmi, chd_adjusted, test = "LRT")
 ```
 
-The stepwise procedure typically drops `BMI` from this model. The selected model has a slightly lower AIC than the full model, suggesting a small improvement after removing the weakest predictor.
+If the LRT p-value is large, BMI does not significantly improve the model. More importantly, check whether dropping BMI changes the age OR:
 
-::: {.callout-tip}
-**A warning about stepwise selection.** AIC-based stepwise procedures are a reasonable exploratory tool but are known to over-fit and produce overly confident p-values on the selected variables. For inference about a specific scientific question, decide on your model based on subject-matter knowledge, not on stepwise output. For prediction, methods like LASSO (Day 14) are usually preferable.
-:::
+```{r}
+tibble(
+  Model      = c("With BMI", "Without BMI"),
+  OR_age     = c(exp(coef(chd_adjusted)["age"]),
+                 exp(coef(chd_no_bmi)["age"]))
+)
+```
+
+If the age OR barely changes, BMI is not confounding the age-CHD relationship and can be dropped without concern.
 
 ## Final Model and Its Odds Ratios
 
 ```{r}
-chd_final <- chd_step
-exp(cbind(OR = coef(chd_final), confint(chd_final))) |>
-  round(3)
+chd_final <- chd_no_bmi
+round(exp(cbind(OR = coef(chd_final), confint(chd_final))),3)
 ```
 
-This is the table you would report in a paper, after rescaling continuous predictors to clinically meaningful units.
-
----
-
-# Example 3: Classification and Predictive Performance
-
-Logistic regression gives a predicted probability $\hat\pi_i$ for each subject. To turn this into a yes/no classification, we pick a **threshold** $\pi_0$ and classify:
-
-$$\hat Y_i = \begin{cases} 1 & \text{if } \hat\pi_i > \pi_0 \\ 0 & \text{if } \hat\pi_i \le \pi_0 \end{cases}$$
-
-The threshold is a choice, not a property of the model. Different thresholds produce different tradeoffs between sensitivity and specificity.
-
-## Generating Predicted Probabilities
-
-```{r}
-framingham_cc <- framingham_cc |>
-  mutate(p_chd_final = predict(chd_final, type = "response"))
-
-framingham_cc |>
-  select(TenYearCHD, p_chd_final) |>
-  summary()
-```
-
-The predicted probabilities range from very low (about 1%) to relatively high (about 65%). Most people are below 0.5, which makes sense: only 15% of the cohort actually develops CHD.
-
-## Confusion Matrix at Threshold = 0.5
-
-```{r}
-threshold_05 <- 0.5
-framingham_cc <- framingham_cc |>
-  mutate(pred_class_05 = factor(if_else(p_chd_final > threshold_05, "Yes", "No"),
-                                levels = c("No", "Yes")))
-
-table(Predicted = framingham_cc$pred_class_05, Actual = framingham_cc$TenYearCHD)
-```
-
-At a threshold of 0.5, almost no one gets classified as a predicted CHD case. The model is right about most non-cases but misses almost all the actual cases. A 0.5 threshold is rarely a good default when the event is rare.
-
-## Confusion Matrix at Threshold = 0.15 (the Event Rate)
-
-```{r}
-threshold_15 <- 0.15
-framingham_cc <- framingham_cc |>
-  mutate(pred_class_15 = factor(if_else(p_chd_final > threshold_15, "Yes", "No"),
-                                levels = c("No", "Yes")))
-
-table(Predicted = framingham_cc$pred_class_15, Actual = framingham_cc$TenYearCHD)
-```
-
-Lowering the threshold to 0.15 means we now flag many more people as predicted CHD cases. Sensitivity goes up; specificity goes down. The right tradeoff depends on the relative cost of missing a true case versus a false alarm.
-
-## Sensitivity, Specificity, PPV, NPV
-
-For a given confusion matrix, four summary numbers describe performance:
-
-```{r}
-tab <- table(Predicted = framingham_cc$pred_class_15, Actual = framingham_cc$TenYearCHD)
-tab
-
-TP <- tab["Yes", "Yes"]
-FP <- tab["Yes", "No"]
-TN <- tab["No",  "No"]
-FN <- tab["No",  "Yes"]
-
-tibble(
-  Sensitivity = TP / (TP + FN),  # of actual CHD cases, fraction we caught
-  Specificity = TN / (TN + FP),  # of actual non-cases, fraction we cleared
-  PPV         = TP / (TP + FP),  # of flagged cases, fraction that are true
-  NPV         = TN / (TN + FN)   # of cleared cases, fraction that are true
-) |> round(3)
-```
-
-## ROC Curve and AUC
-
-The **ROC curve** plots sensitivity against (1 - specificity) for every possible threshold. It summarizes the full sensitivity-specificity tradeoff in one picture.
-
-The **AUC** (area under the ROC curve) is a single-number summary. It can be interpreted as the probability that the model assigns a higher predicted probability to a randomly chosen CHD case than to a randomly chosen non-case.
-
-```{r}
-#| fig-width: 6
-#| fig-height: 6
-roc_obj <- roc(framingham_cc$TenYearCHD, framingham_cc$p_chd_final,
-               levels = c("No", "Yes"), direction = "<")
-
-plot(roc_obj, col = "firebrick", lwd = 2,
-     main = "ROC Curve for CHD Prediction")
-auc(roc_obj)
-```
-
-The AUC for this model is around 0.72, which is in the "acceptable" range for clinical risk prediction. Models with AUC below 0.6 rarely provide clinical value; models above 0.8 are excellent for many applications.
-
-| AUC | Discriminative ability |
-|---|---|
-| $\approx$ 0.5 | No discrimination (coin flip) |
-| 0.6 -- 0.7 | Poor |
-| 0.7 -- 0.8 | Acceptable |
-| 0.8 -- 0.9 | Excellent |
-| > 0.9 | Outstanding |
-
-::: {.callout-warning}
-**A caution on AUC values reported from the training data.** The AUC we just computed was evaluated on the same data used to fit the model. This is **optimistic**: it overestimates how well the model will perform on new data. For an honest assessment, evaluate on held-out data or use cross-validation (Day 7).
-:::
-
-## Choosing a Threshold
-
-The threshold is a clinical decision, not a statistical one. It depends on the cost of false positives versus false negatives.
-
-- **For CHD screening:** Missing a true case (false negative) means a patient doesn't get preventive treatment for a serious condition. False positives mean unnecessary follow-up. Most screening programs accept many false positives to catch as many true cases as possible, so the threshold is set low (high sensitivity).
-- **For a one-time, costly intervention:** The threshold is set higher so that only people very likely to benefit are treated.
-
-You can use the ROC object to find the threshold that maximizes some criterion of interest:
-
-```{r}
-# Youden's J statistic: maximize sensitivity + specificity - 1
-coords(roc_obj, "best", best.method = "youden")
-```
-
-This returns the threshold that achieves the best balance of sensitivity and specificity by Youden's J criterion. The clinician's job is to decide whether that balance is the right one for the application.
-
----
+This is the table you would report in a paper. The age OR, adjusted for the identified confounders, is the headline result. The confounders' ORs provide supporting context.
 
 # Summary
 
-Logistic regression extends the regression framework to binary outcomes. The model has the same shape as linear regression but on the log-odds scale.
-
-Three key skills from this lecture:
+Three key skills from today:
 
 1. **Fit and interpret.** Use `glm()` with `family = binomial`. Report exponentiated coefficients (odds ratios), rescaled to clinically meaningful units, with confidence intervals.
 
-2. **Compare and select models.** Use `anova(reduced, full, test = "LRT")` for nested model tests. Use `AIC()` or `step()` for exploratory selection, but recognize their limitations.
+2. **Compare and select models.** Use `anova(reduced, full, test = "LRT")` for nested model tests. Use `AIC()` or `step()` for exploratory selection.
 
-3. **Evaluate predictive performance.** Predicted probabilities turn into classifications via a threshold. ROC curves and AUC summarize the full tradeoff. The choice of threshold is application-specific.
+3. **Predicted probabilities.** Use `predict(model, type = "response")` to get $\hat\pi$ for each observation or for new individuals.
 
-Tomorrow we extend regression in a different direction: instead of binary outcomes, we will look at **time-to-event** outcomes (survival analysis), where we track not just whether the event happened but when.
+Tomorrow we will take these predicted probabilities and evaluate their **classification performance**: turning them into yes/no decisions, building confusion matrices, and summarizing the tradeoff with ROC curves and AUC.

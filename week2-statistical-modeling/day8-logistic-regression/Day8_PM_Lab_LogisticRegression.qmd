@@ -21,14 +21,14 @@ execute:
 # Overview
 
 This lab puts the Day 8 morning material into practice. You will fit, interpret,
-and evaluate logistic regression models on the Framingham Heart Study data.
+and compare logistic regression models on the Framingham Heart Study data.
 
 **How this lab works:**
 
 - **Part 1 (instructor demo, ~20 min):** Follow along as the instructor works
   through a complete simple logistic regression with a different predictor than
   the morning example.
-- **Part 2 (on your own, ~90 min):** Six exercises of increasing difficulty.
+- **Part 2 (on your own, ~90 min):** Five exercises of increasing difficulty.
   Create a new `.qmd` file, work through each exercise, render when done.
 
 The **Quick Reference Card** in Section 3 has the key functions.
@@ -42,7 +42,6 @@ The **Quick Reference Card** in Section 3 has the key functions.
 ```{r}
 library(tidyverse)
 library(this.path)
-library(pROC)
 setwd(this.dir())
 
 framingham <- read_csv("../../data/framingham.csv") |>
@@ -75,9 +74,8 @@ framingham |>
   theme_minimal()
 ```
 
-The loess curve rises steadily from low risk in younger participants to higher
-risk in older participants. A logistic regression with age as a linear term on
-the log-odds scale looks appropriate.
+The loess curve rises steadily. A logistic regression with age as a linear term
+on the log-odds scale looks appropriate.
 
 ## Step 2: Fit the Model and Interpret
 
@@ -95,7 +93,7 @@ The coefficient on `age` is in log-odds units. To get the odds ratio:
 exp(cbind(OR = coef(chd_age), confint(chd_age)))
 ```
 
-Each additional year of age multiplies the odds of CHD by about 1.10. Rescaled
+Each additional year of age multiplies the odds of CHD by about 1.07. Rescaled
 to a decade:
 
 ```{r}
@@ -103,8 +101,8 @@ exp(10 * coef(chd_age)["age"])
 exp(10 * confint(chd_age)["age", ])
 ```
 
-A 10-year age difference is associated with roughly a 2.5-fold increase in the
-odds of CHD over 10 years of follow-up.
+A 10-year age difference is associated with roughly a 2-fold increase in the
+odds of CHD.
 
 ## Step 3: Visualize the Fitted Curve
 
@@ -122,7 +120,7 @@ framingham |>
   theme_minimal()
 ```
 
-## Step 4: Predicted Probabilities and Classification
+## Step 4: Predicted Probabilities
 
 ```{r}
 new_ages <- tibble(age = c(35, 45, 55, 65))
@@ -130,20 +128,8 @@ new_ages |>
   mutate(p_chd = predict(chd_age, newdata = new_ages, type = "response"))
 ```
 
-Predicted probability of CHD rises from about 7% at age 35 to about 28% at age
-65.
-
-```{r}
-framingham <- framingham |>
-  mutate(p_age = predict(chd_age, type = "response"))
-
-roc_age <- roc(framingham$TenYearCHD, framingham$p_age,
-               levels = c("No","Yes"), direction = "<")
-auc(roc_age)
-```
-
-The AUC for age alone is around 0.68. Age is a reasonable single predictor but
-far from perfect. Adding more predictors should improve discrimination.
+Predicted probability of CHD rises from about 7% at age 35 to about 28% at
+age 65.
 
 ---
 
@@ -151,7 +137,7 @@ far from perfect. Adding more predictors should improve discrimination.
 
 ## Instructions
 
-**Step 1.** Open a new Quarto document: File → New File → Quarto Document.
+**Step 1.** Open a new Quarto document: File -> New File -> Quarto Document.
 Title it `"Day 8 Lab: Logistic Regression"`, select HTML, click **Create**.
 
 **Step 2.** Replace the template content with this YAML and setup chunk:
@@ -174,7 +160,6 @@ execute:
 ```{{r}}
 library(tidyverse)
 library(this.path)
-library(pROC)
 setwd(this.dir())
 
 framingham <- read_csv("../../data/framingham.csv") |>
@@ -190,27 +175,14 @@ framingham <- read_csv("../../data/framingham.csv") |>
 ```
 ````
 
-**Step 3.** Work through Exercises 1--6 in order. For each one:
+**Step 3.** Work through Exercises 1--5 in order. For each one, add a code
+chunk, run your code, and write 2--3 sentences interpreting the results.
 
-- Add a new code chunk (`Ctrl+Alt+I` / `Cmd+Option+I`)
-- Write and run your code
-- Add 2--3 sentences below each result describing what you found in plain
-  language, including the clinical interpretation of any odds ratios
-
-**Step 4.** Render (`Ctrl+Shift+K` / `Cmd+Shift+K`) when finished and fix
-any errors before you are done.
-
-::: {.callout-tip}
-**Before asking for help**, check two things: (1) the **Quick Reference Card**
-in Section 3, and (2) whether your factor variables are coded with the right
-reference level. For `TenYearCHD`, "No" should be the reference (level 1) so
-that `glm()` models the probability of "Yes".
-:::
+**Step 4.** Render when finished and fix any errors.
 
 ::: {.callout-note}
-Exercises 1--4 cover the core material. Exercise 5 puts everything together in
-a complete model-building workflow. Exercise 6 is a challenge problem on
-classification performance.
+Exercises 1--3 cover the core material. Exercise 4 introduces confounding.
+Exercise 5 is a full model-building workflow.
 :::
 
 ---
@@ -221,12 +193,11 @@ a. Use `count()` to tabulate `TenYearCHD` by `currentSmoker`. What proportion
    of smokers develop CHD? What proportion of non-smokers do?
 
 b. Fit a simple logistic regression model predicting `TenYearCHD` from
-   `currentSmoker`. Report the coefficient on `currentSmokerSmoker` from
-   `summary()`.
+   `currentSmoker`. Report the coefficient from `summary()`.
 
 c. Compute the odds ratio (OR) and its 95% confidence interval using
    `exp(cbind(OR = coef(model), confint(model)))`. Interpret the OR in plain
-   language: how do the odds of CHD compare for smokers versus non-smokers?
+   language.
 
 d. Confirm that this OR matches what you would get from a 2x2 table:
    ```r
@@ -234,7 +205,6 @@ d. Confirm that this OR matches what you would get from a 2x2 table:
    tab
    (tab[2,2] * tab[1,1]) / (tab[1,2] * tab[2,1])
    ```
-   Does it match the OR from `glm()`?
 
 ```{r}
 # your code here
@@ -245,21 +215,17 @@ d. Confirm that this OR matches what you would get from a 2x2 table:
 **Exercise 2 -- Simple Logistic Regression with a Continuous Predictor.**
 
 a. Use `geom_jitter()` and `geom_smooth(method = "loess")` to inspect the
-   relationship between `sysBP` and `TenYearCHD`. Convert `TenYearCHD` to numeric
-   with `as.numeric(TenYearCHD) - 1` before plotting.
+   relationship between `sysBP` and `TenYearCHD`.
 
 b. Fit a simple logistic regression of `TenYearCHD` on `sysBP`. Report the
    coefficient, OR, and 95% CI.
 
 c. The OR per 1 mmHg is hard to interpret. Compute the OR for a **20 mmHg
-   increase** in systolic BP using `exp(20 * coef(model)["sysBP"])`. Compute
-   the corresponding CI using `exp(20 * confint(model)["sysBP", ])`. Write
-   one sentence interpreting this rescaled OR clinically.
+   increase** using `exp(20 * coef(model)["sysBP"])` and the corresponding CI.
+   Write one sentence interpreting this rescaled OR clinically.
 
-d. Plot the fitted logistic curve overlaid on the data using
+d. Plot the fitted logistic curve using
    `geom_smooth(method = "glm", method.args = list(family = "binomial"))`.
-   Roughly what predicted probability does the model give for a person with
-   a systolic BP of 180?
 
 ```{r}
 # your code here
@@ -267,34 +233,7 @@ d. Plot the fitted logistic curve overlaid on the data using
 
 ---
 
-**Exercise 3 -- Continuous vs Categorical Predictors.**
-
-This exercise demonstrates the same point we made for linear regression:
-categorizing a continuous predictor wastes information.
-
-a. Create a new variable called `age_cat` using `cut()` with breaks
-   `c(30, 45, 60, 75)` and labels `c("30-45", "45-60", "60-75")`. Use
-   `include.lowest = TRUE`.
-
-b. Fit two logistic regression models predicting `TenYearCHD`:
-   - `m_continuous`: uses `age` as a continuous predictor
-   - `m_categorical`: uses `age_cat` as a factor
-
-c. Compare AIC values with `AIC(m_continuous, m_categorical)`. Which fits
-   better?
-
-d. From `m_categorical`, what is the OR for the oldest age group (60-75)
-   compared with the youngest (30-45)? How does this compare with the OR
-   estimated by `m_continuous` for a 22.5-year age difference (the midpoint
-   gap between the two extreme groups)?
-
-```{r}
-# your code here
-```
-
----
-
-**Exercise 4 -- Multiple Logistic Regression and Confounding.**
+**Exercise 3 -- Multiple Logistic Regression and Confounding.**
 
 a. Fit a model predicting `TenYearCHD` from `currentSmoker` alone. Note the OR
    for smoking.
@@ -303,9 +242,8 @@ b. Now fit a model predicting `TenYearCHD` from both `currentSmoker` and `age`.
    Compute the **adjusted** OR for smoking (controlling for age).
 
 c. Compare the unadjusted and adjusted ORs for smoking. Did the OR get larger,
-   smaller, or stay the same? Why do you think this happened? (Hint: are
-   smokers in this cohort younger or older on average than non-smokers? Check
-   with `framingham |> group_by(currentSmoker) |> summarize(mean_age = mean(age))`.)
+   smaller, or stay the same? Why do you think this happened? (Hint: check
+   `framingham |> group_by(currentSmoker) |> summarize(mean_age = mean(age))`.)
 
 d. Test whether age is a useful addition to the model using
    `anova(model_smoker, model_smoker_age, test = "LRT")`. Interpret the
@@ -315,74 +253,6 @@ d. Test whether age is a useful addition to the model using
 # your code here
 ```
 
----
-
-**Exercise 5 -- Full Workflow: Building a CHD Risk Model.**
-
-Build a multivariable logistic regression model for CHD risk.
-
-a. Start with a full model including: `age`, `male`, `currentSmoker`, `sysBP`,
-   `totChol`, `BMI`, `diabetes`, and `prevalentHyp`. Fit it with `glm()` and
-   examine `summary()`. Which predictors appear most strongly associated with
-   CHD?
-
-b. Use `step(model_full, direction = "both", trace = 0)` to perform AIC-based
-   model selection. Which variables are retained?
-
-c. Use `anova(reduced, full, test = "LRT")` to formally test whether the
-   variables dropped by `step()` could be removed. Does the LRT agree with the
-   AIC-based selection?
-
-d. Report the adjusted ORs and 95% CIs for your final model. For each predictor
-   retained, write one sentence interpreting the OR in clinical terms. Rescale
-   continuous predictors to meaningful units (10 years for age, 20 mmHg for
-   sysBP, 40 mg/dL for totChol).
-
-e. Generate predicted probabilities for the final model and add them to the
-   dataset as `p_final`.
-
-```{r}
-# your code here
-```
-
----
-
-**Exercise 6 (Challenge) -- Classification Performance and ROC.**
-
-Continuing with the final model from Exercise 5, evaluate its predictive
-performance.
-
-a. Build a confusion matrix at three thresholds: 0.10, 0.20, and 0.50. Use
-   `table(predicted, actual)` with predicted classes from
-   `if_else(p_final > threshold, "Yes", "No")`.
-
-b. For each threshold, compute sensitivity and specificity by hand from the
-   confusion matrix. As the threshold increases, what happens to each? Does
-   this match the tradeoff described in the morning lecture?
-
-c. Compute the ROC curve and AUC using the `pROC` package:
-   ```r
-   roc_final <- roc(framingham$TenYearCHD, framingham$p_final,
-                    levels = c("No","Yes"), direction = "<")
-   plot(roc_final, col = "firebrick", lwd = 2)
-   auc(roc_final)
-   ```
-   How would you describe the model's discriminative ability (poor,
-   acceptable, excellent, outstanding)?
-
-d. Use `coords(roc_final, "best", best.method = "youden")` to find the
-   threshold that maximizes Youden's J statistic (sensitivity + specificity - 1).
-   What is the "optimal" threshold by this criterion? How does it compare to
-   the baseline event rate (about 0.15)?
-
-e. **Discussion question.** The AUC you computed is on the same data used to
-   fit the model. Why is this an optimistic estimate of how the model will
-   perform on new data? What technique from earlier in the course could give
-   a more honest estimate?
-
-```{r}
-# your code here
-```
 
 ---
 
@@ -393,7 +263,6 @@ e. **Discussion question.** The AUC you computed is on the same data used to
 ```r
 library(tidyverse)
 library(this.path)
-library(pROC)
 setwd(this.dir())
 framingham <- read_csv("../../data/framingham.csv")
 ```
@@ -401,7 +270,6 @@ framingham <- read_csv("../../data/framingham.csv")
 ## Checking Variable Form on a Binary Outcome
 
 ```r
-# Empirical probability curve for one predictor
 df |>
   mutate(Y_numeric = as.numeric(Y) - 1) |>
   ggplot(aes(x = predictor, y = Y_numeric)) +
@@ -416,25 +284,12 @@ df |>
 | `glm(y ~ x, data = df, family = binomial)` | Simple logistic regression |
 | `glm(y ~ x1 + x2, data = df, family = binomial)` | Multiple logistic regression |
 | `summary(model)` | Coefficients, z-tests, deviance |
-| `coef(model)` | Just the estimated coefficients |
-| `confint(model)` | 95% CIs for coefficients (on log-odds scale) |
-| `exp(coef(model))` | Odds ratios |
-| `exp(confint(model))` | 95% CIs for ORs |
 | `exp(cbind(OR = coef(m), confint(m)))` | OR table in one go |
 | `AIC(m1, m2)` | Compare models, lower is better |
-| `anova(m_small, m_large, test = "LRT")` | Likelihood ratio test for nested models |
-| `step(model, direction = "both", trace = 0)` | AIC-based stepwise selection |
-
-## Predicted Probabilities
-
-```r
-# Add fitted probabilities to the dataset
-df <- df |> mutate(p_hat = predict(model, type = "response"))
-
-# Predict for new individuals
-new_data <- tibble(age = c(45, 55), sysBP = c(120, 140))
-predict(model, newdata = new_data, type = "response")
-```
+| `anova(m_small, m_large, test = "LRT")` | Likelihood ratio test |
+| `step(model, direction = "both", trace = 0)` | AIC-based stepwise |
+| `predict(model, type = "response")` | Predicted probabilities |
+| `drop_na(all_of(vars))` | Complete cases for model comparison |
 
 ## Plotting the Fitted Curve
 
@@ -447,35 +302,11 @@ df |>
               color = "firebrick", se = TRUE)
 ```
 
-## Classification and Performance
-
-```r
-# Build a confusion matrix at a chosen threshold
-df <- df |>
-  mutate(pred_class = factor(if_else(p_hat > 0.15, "Yes", "No"),
-                             levels = c("No", "Yes")))
-tab <- table(Predicted = df$pred_class, Actual = df$Y)
-tab
-
-# Sensitivity = TP / (TP + FN)
-# Specificity = TN / (TN + FP)
-
-# ROC and AUC
-roc_obj <- roc(df$Y, df$p_hat, levels = c("No", "Yes"), direction = "<")
-plot(roc_obj, col = "firebrick", lwd = 2)
-auc(roc_obj)
-
-# Best threshold by Youden's J
-coords(roc_obj, "best", best.method = "youden")
-```
-
 ## Rescaling Odds Ratios to Meaningful Units
 
 ```r
-# For a continuous predictor, the per-1-unit OR is often uninterpretable.
-# Multiply the coefficient by the meaningful unit before exponentiating.
 exp(10 * coef(model)["age"])           # 10-year OR
-exp(20 * confint(model)["sysBP", ])    # 20 mmHg CI for sysBP
+exp(20 * confint(model)["sysBP", ])    # 20 mmHg CI
 exp(40 * coef(model)["totChol"])       # 40 mg/dL OR
 ```
 

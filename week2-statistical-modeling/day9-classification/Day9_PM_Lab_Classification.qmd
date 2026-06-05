@@ -1,0 +1,400 @@
+---
+title: "Day 9 (PM) Lab: Classification and Predictive Performance"
+subtitle: "SC INBRE Biostatistics Summer Intensive 2026"
+date: today
+format:
+  html:
+    toc: true
+    toc-location: left
+    toc-depth: 3
+    number-sections: true
+    smooth-scroll: true
+    theme: cosmo
+    code-fold: false
+    highlight-style: github
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+# Overview
+
+This lab puts the Day 9 morning material into practice. You will turn predicted
+probabilities into classifications, build confusion matrices, compute
+performance metrics, construct ROC curves, and compare models.
+
+**How this lab works:**
+
+- **Part 1 (instructor demo, ~20 min):** Follow along as the instructor walks
+  through a complete classification evaluation using a simple logistic model.
+- **Part 2 (on your own, ~90 min):** Six exercises of increasing difficulty.
+  Create a new `.qmd` file, work through each exercise, render when done.
+
+The **Quick Reference Card** in Section 3 has the key functions.
+
+---
+
+# Part 1: Instructor Demo
+
+## Setup
+
+```{r}
+library(tidyverse)
+library(this.path)
+library(pROC)
+setwd(this.dir())
+
+framingham <- read_csv("../../data/framingham.csv") |>
+  mutate(
+    male          = factor(male,          levels = c(0,1), labels = c("Female","Male")),
+    currentSmoker = factor(currentSmoker, levels = c(0,1), labels = c("Non-smoker","Smoker")),
+    prevalentHyp  = factor(prevalentHyp,  levels = c(0,1), labels = c("No","Yes")),
+    diabetes      = factor(diabetes,      levels = c(0,1), labels = c("No","Yes")),
+    TenYearCHD    = factor(TenYearCHD,    levels = c(0,1), labels = c("No","Yes")),
+    education     = factor(education,     levels = 1:4,
+                           labels = c("Some HS","HS Diploma","Some College","College Degree"))
+  )
+```
+
+## Step 1: Fit a Model and Get Predicted Probabilities
+
+We re-fit a simple logistic model predicting CHD from `sysBP` and add predicted
+probabilities to the dataset.
+
+```{r}
+model_bp <- glm(TenYearCHD ~ sysBP,
+                data = framingham,
+                family = binomial)
+
+framingham <- framingham |>
+  mutate(p_bp = predict(model_bp, type = "response"))
+
+framingham |>
+  select(TenYearCHD, sysBP, p_bp) |>
+  summary()
+```
+
+## Step 2: Classify at Two Thresholds
+
+```{r}
+# Threshold = 0.50
+framingham <- framingham |>
+  mutate(pred_50 = factor(if_else(p_bp > 0.50, "Yes", "No"),
+                          levels = c("No", "Yes")))
+
+table(Predicted = framingham$pred_50, Actual = framingham$TenYearCHD)
+```
+
+Almost nobody gets classified as positive at 0.50. Now try 0.15:
+
+```{r}
+framingham <- framingham |>
+  mutate(pred_15 = factor(if_else(p_bp > 0.15, "Yes", "No"),
+                          levels = c("No", "Yes")))
+
+tab_15 <- table(Predicted = framingham$pred_15, Actual = framingham$TenYearCHD)
+tab_15
+```
+
+## Step 3: Compute Sensitivity and Specificity
+
+```{r}
+TP <- tab_15["Yes", "Yes"]
+FP <- tab_15["Yes", "No"]
+TN <- tab_15["No",  "No"]
+FN <- tab_15["No",  "Yes"]
+
+tibble(
+  Sensitivity = TP / (TP + FN),
+  Specificity = TN / (TN + FP),
+  PPV         = TP / (TP + FP),
+  NPV         = TN / (TN + FN)
+) |> round(3)
+```
+
+## Step 4: ROC Curve and AUC
+
+```{r}
+#| fig-width: 5
+#| fig-height: 5
+roc_bp <- roc(framingham$TenYearCHD, framingham$p_bp,
+              levels = c("No", "Yes"), direction = "<")
+
+plot(roc_bp, col = "firebrick", lwd = 2,
+     main = "ROC Curve: CHD ~ sysBP")
+auc(roc_bp)
+```
+
+The AUC for sysBP alone is modest. Adding more predictors (tomorrow's model
+comparison) should improve this.
+
+---
+
+# Part 2: Exercises
+
+## Instructions
+
+**Step 1.** Open a new Quarto document. Title it
+`"Day 9 Lab: Classification and Predictive Performance"`.
+
+**Step 2.** Replace the template content with this YAML and setup chunk:
+
+````markdown
+---
+title: "Day 9 Lab: Classification and Predictive Performance"
+subtitle: "SC INBRE Biostatistics Summer Intensive 2026"
+date: today
+format:
+  html:
+    toc: true
+    theme: cosmo
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+```{{r}}
+library(tidyverse)
+library(this.path)
+library(pROC)
+setwd(this.dir())
+
+framingham <- read_csv("../../data/framingham.csv") |>
+  mutate(
+    male          = factor(male,          levels = c(0,1), labels = c("Female","Male")),
+    currentSmoker = factor(currentSmoker, levels = c(0,1), labels = c("Non-smoker","Smoker")),
+    prevalentHyp  = factor(prevalentHyp,  levels = c(0,1), labels = c("No","Yes")),
+    diabetes      = factor(diabetes,      levels = c(0,1), labels = c("No","Yes")),
+    TenYearCHD    = factor(TenYearCHD,    levels = c(0,1), labels = c("No","Yes")),
+    education     = factor(education,     levels = 1:4,
+                           labels = c("Some HS","HS Diploma","Some College","College Degree"))
+  )
+```
+````
+
+**Step 3.** Work through Exercises 1--6 in order.
+
+**Step 4.** Render when finished.
+
+::: {.callout-note}
+Exercises 1--4 cover the core material. Exercise 5 compares two models
+head-to-head. Exercise 6 is a challenge on honest evaluation.
+:::
+
+---
+
+**Exercise 1 -- Predicted Probabilities from Two Models.**
+
+a. Restrict to complete cases on `TenYearCHD`, `age`, `currentSmoker`, `sysBP`,
+   `totChol`, and `diabetes` using `drop_na()`.
+
+b. Fit two logistic regression models:
+   - `model_simple`: `TenYearCHD ~ age`
+   - `model_full`: `TenYearCHD ~ age + currentSmoker + sysBP + totChol + diabetes`
+
+c. Add predicted probabilities from both models to the dataset as `p_simple`
+   and `p_full` using `predict(..., type = "response")`.
+
+d. Use `summary()` on both columns. What is the range of predicted probabilities
+   for each model? Which model produces a wider spread?
+
+```{r}
+# your code here
+```
+
+---
+
+**Exercise 2 -- Confusion Matrices at Different Thresholds.**
+
+Using the `p_full` probabilities from Exercise 1:
+
+a. Create classifications at three thresholds: 0.10, 0.20, and 0.50, using
+   `if_else(p_full > threshold, "Yes", "No")` wrapped in `factor()`.
+
+b. Build a confusion matrix at each threshold with
+   `table(Predicted = ..., Actual = ...)`.
+
+c. As the threshold increases from 0.10 to 0.50, what happens to the number
+   of predicted positives? What about predicted negatives?
+
+```{r}
+# your code here
+```
+
+---
+
+**Exercise 3 -- Computing Sensitivity, Specificity, PPV, NPV.**
+
+a. For each of the three confusion matrices from Exercise 2, compute
+   sensitivity, specificity, PPV, and NPV by hand. Extract TP, FP, TN, FN
+   from the confusion matrix, then compute:
+   ```r
+   Sensitivity = TP / (TP + FN)
+   Specificity = TN / (TN + FP)
+   PPV         = TP / (TP + FP)
+   NPV         = TN / (TN + FN)
+   ```
+
+b. Which threshold gives the highest sensitivity? Which gives the highest
+   specificity? Can you have both at the same time?
+
+
+```{r}
+# your code here
+```
+
+---
+
+**Exercise 4 -- ROC Curve and AUC.**
+
+a. Use `roc()` from the `pROC` package to build an ROC curve for the full model:
+   ```r
+   roc_full <- roc(your_data$TenYearCHD, your_data$p_full,
+                   levels = c("No", "Yes"), direction = "<")
+   ```
+
+b. Plot the ROC curve with `plot(roc_full, col = "firebrick", lwd = 2)`.
+   Describe the shape of the curve. Does it bow far from the diagonal?
+
+c. Compute the AUC with `auc(roc_full)`. Using the interpretation table from
+   the morning lecture (0.5 = coin flip, 0.7--0.8 = acceptable, 0.8--0.9 =
+   excellent, >0.9 = outstanding), how would you describe this model?
+
+
+```{r}
+# your code here
+```
+
+
+---
+
+**Exercise 5 (Challenge) -- Honest AUC via Train/Test Split.**
+
+The AUC values in Exercise 4 were computed on the same data used to fit the
+models. This overestimates how well the model will perform on new data.
+
+a. Set a random seed with `set.seed(2026)` for reproducibility. Split your
+   complete-cases dataset into 70% training and 30% test:
+   ```r
+   n <- nrow(your_data)
+   train_idx <- sample(seq_len(n), size = round(0.7 * n))
+   train <- your_data[train_idx, ]
+   test  <- your_data[-train_idx, ]
+   ```
+
+b. Fit the full model on the **training** data only.
+
+c. Use `predict()` to get predicted probabilities on the **test** data.
+
+d. Compute the training AUC and the test AUC. Is the test AUC lower? By how
+   much?
+
+e. **Discussion.** Why is the test AUC a more honest measure of model
+   performance? If the gap between training and test AUC were very large
+   (e.g., 0.85 vs. 0.65), what would that suggest about the model?
+
+```{r}
+# your code here
+```
+
+---
+
+# Quick Reference Card
+
+## Setup
+
+```r
+library(tidyverse)
+library(this.path)
+library(pROC)
+setwd(this.dir())
+framingham <- read_csv("../../data/framingham.csv")
+```
+
+## Predicted Probabilities
+
+```r
+# Add fitted probabilities to the dataset
+df <- df |> mutate(p_hat = predict(model, type = "response"))
+
+# Predict for new individuals
+predict(model, newdata = new_data, type = "response")
+```
+
+## Classification at a Threshold
+
+```r
+df <- df |>
+  mutate(pred_class = factor(if_else(p_hat > 0.15, "Yes", "No"),
+                             levels = c("No", "Yes")))
+
+tab <- table(Predicted = df$pred_class, Actual = df$TenYearCHD)
+tab
+```
+
+## Computing Metrics from a Confusion Matrix
+
+```r
+TP <- tab["Yes", "Yes"]
+FP <- tab["Yes", "No"]
+TN <- tab["No",  "No"]
+FN <- tab["No",  "Yes"]
+
+Sensitivity <- TP / (TP + FN)
+Specificity <- TN / (TN + FP)
+PPV         <- TP / (TP + FP)
+NPV         <- TN / (TN + FN)
+```
+
+## ROC Curves and AUC
+
+```r
+# Build ROC curve
+roc_obj <- roc(df$Y, df$p_hat, levels = c("No", "Yes"), direction = "<")
+
+# Plot
+plot(roc_obj, col = "firebrick", lwd = 2)
+
+# AUC
+auc(roc_obj)
+
+# Best threshold by Youden's J
+coords(roc_obj, "best", best.method = "youden")
+
+# Compare two ROC curves
+plot(roc1, col = "firebrick", lwd = 2)
+plot(roc2, col = "steelblue", lwd = 2, add = TRUE)
+
+# Test whether AUCs differ significantly
+roc.test(roc1, roc2)
+```
+
+## Train/Test Split
+
+```r
+set.seed(2026)
+n <- nrow(df)
+train_idx <- sample(seq_len(n), size = round(0.7 * n))
+train <- df[train_idx, ]
+test  <- df[-train_idx, ]
+
+# Fit on training, predict on test
+model_train <- glm(Y ~ x1 + x2, data = train, family = binomial)
+test$p_hat  <- predict(model_train, newdata = test, type = "response")
+
+# AUC on test
+roc_test <- roc(test$Y, test$p_hat, levels = c("No", "Yes"), direction = "<")
+auc(roc_test)
+```
+
+## AUC Interpretation
+
+| AUC | Discriminative ability |
+|---|---|
+| $\approx$ 0.5 | No discrimination (coin flip) |
+| 0.6 -- 0.7 | Poor |
+| 0.7 -- 0.8 | Acceptable |
+| 0.8 -- 0.9 | Excellent |
+| > 0.9 | Outstanding |

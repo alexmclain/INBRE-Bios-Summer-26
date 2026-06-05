@@ -6,7 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="dcterms.date" content="2026-06-02">
+<meta name="dcterms.date" content="2026-06-05">
 
 <title>Day 8 (PM) Lab: Logistic Regression</title>
 <style>
@@ -90,7 +90,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#step-1-check-variable-form" id="toc-step-1-check-variable-form" class="nav-link" data-scroll-target="#step-1-check-variable-form"><span class="header-section-number">2.2</span> Step 1: Check Variable Form</a></li>
   <li><a href="#step-2-fit-the-model-and-interpret" id="toc-step-2-fit-the-model-and-interpret" class="nav-link" data-scroll-target="#step-2-fit-the-model-and-interpret"><span class="header-section-number">2.3</span> Step 2: Fit the Model and Interpret</a></li>
   <li><a href="#step-3-visualize-the-fitted-curve" id="toc-step-3-visualize-the-fitted-curve" class="nav-link" data-scroll-target="#step-3-visualize-the-fitted-curve"><span class="header-section-number">2.4</span> Step 3: Visualize the Fitted Curve</a></li>
-  <li><a href="#step-4-predicted-probabilities-and-classification" id="toc-step-4-predicted-probabilities-and-classification" class="nav-link" data-scroll-target="#step-4-predicted-probabilities-and-classification"><span class="header-section-number">2.5</span> Step 4: Predicted Probabilities and Classification</a></li>
+  <li><a href="#step-4-predicted-probabilities" id="toc-step-4-predicted-probabilities" class="nav-link" data-scroll-target="#step-4-predicted-probabilities"><span class="header-section-number">2.5</span> Step 4: Predicted Probabilities</a></li>
   </ul></li>
   <li><a href="#part-2-exercises" id="toc-part-2-exercises" class="nav-link" data-scroll-target="#part-2-exercises"><span class="header-section-number">3</span> Part 2: Exercises</a>
   <ul class="collapse">
@@ -101,11 +101,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#setup-1" id="toc-setup-1" class="nav-link" data-scroll-target="#setup-1"><span class="header-section-number">4.1</span> Setup</a></li>
   <li><a href="#checking-variable-form-on-a-binary-outcome" id="toc-checking-variable-form-on-a-binary-outcome" class="nav-link" data-scroll-target="#checking-variable-form-on-a-binary-outcome"><span class="header-section-number">4.2</span> Checking Variable Form on a Binary Outcome</a></li>
   <li><a href="#fitting-models" id="toc-fitting-models" class="nav-link" data-scroll-target="#fitting-models"><span class="header-section-number">4.3</span> Fitting Models</a></li>
-  <li><a href="#predicted-probabilities" id="toc-predicted-probabilities" class="nav-link" data-scroll-target="#predicted-probabilities"><span class="header-section-number">4.4</span> Predicted Probabilities</a></li>
-  <li><a href="#plotting-the-fitted-curve" id="toc-plotting-the-fitted-curve" class="nav-link" data-scroll-target="#plotting-the-fitted-curve"><span class="header-section-number">4.5</span> Plotting the Fitted Curve</a></li>
-  <li><a href="#classification-and-performance" id="toc-classification-and-performance" class="nav-link" data-scroll-target="#classification-and-performance"><span class="header-section-number">4.6</span> Classification and Performance</a></li>
-  <li><a href="#rescaling-odds-ratios-to-meaningful-units" id="toc-rescaling-odds-ratios-to-meaningful-units" class="nav-link" data-scroll-target="#rescaling-odds-ratios-to-meaningful-units"><span class="header-section-number">4.7</span> Rescaling Odds Ratios to Meaningful Units</a></li>
-  <li><a href="#common-interpretive-phrases" id="toc-common-interpretive-phrases" class="nav-link" data-scroll-target="#common-interpretive-phrases"><span class="header-section-number">4.8</span> Common Interpretive Phrases</a></li>
+  <li><a href="#plotting-the-fitted-curve" id="toc-plotting-the-fitted-curve" class="nav-link" data-scroll-target="#plotting-the-fitted-curve"><span class="header-section-number">4.4</span> Plotting the Fitted Curve</a></li>
+  <li><a href="#rescaling-odds-ratios-to-meaningful-units" id="toc-rescaling-odds-ratios-to-meaningful-units" class="nav-link" data-scroll-target="#rescaling-odds-ratios-to-meaningful-units"><span class="header-section-number">4.5</span> Rescaling Odds Ratios to Meaningful Units</a></li>
+  <li><a href="#common-interpretive-phrases" id="toc-common-interpretive-phrases" class="nav-link" data-scroll-target="#common-interpretive-phrases"><span class="header-section-number">4.6</span> Common Interpretive Phrases</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -128,7 +126,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">June 2, 2026</p>
+      <p class="date">June 5, 2026</p>
     </div>
   </div>
   
@@ -142,11 +140,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="overview" class="level1" data-number="1">
 <h1 data-number="1"><span class="header-section-number">1</span> Overview</h1>
-<p>This lab puts the Day 8 morning material into practice. You will fit, interpret, and evaluate logistic regression models on the Framingham Heart Study data.</p>
+<p>This lab puts the Day 8 morning material into practice. You will fit, interpret, and compare logistic regression models on the Framingham Heart Study data.</p>
 <p><strong>How this lab works:</strong></p>
 <ul>
 <li><strong>Part 1 (instructor demo, ~20 min):</strong> Follow along as the instructor works through a complete simple logistic regression with a different predictor than the morning example.</li>
-<li><strong>Part 2 (on your own, ~90 min):</strong> Six exercises of increasing difficulty. Create a new <code>.qmd</code> file, work through each exercise, render when done.</li>
+<li><strong>Part 2 (on your own, ~90 min):</strong> Five exercises of increasing difficulty. Create a new <code>.qmd</code> file, work through each exercise, render when done.</li>
 </ul>
 <p>The <strong>Quick Reference Card</strong> in Section 3 has the key functions.</p>
 <hr>
@@ -158,19 +156,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(this.path)</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(pROC)</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">setwd</span>(<span class="fu">this.dir</span>())</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>framingham <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"../../data/framingham.csv"</span>) <span class="sc">|&gt;</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">male          =</span> <span class="fu">factor</span>(male,          <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Female"</span>,<span class="st">"Male"</span>)),</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">currentSmoker =</span> <span class="fu">factor</span>(currentSmoker, <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Non-smoker"</span>,<span class="st">"Smoker"</span>)),</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">prevalentHyp  =</span> <span class="fu">factor</span>(prevalentHyp,  <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>)),</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">diabetes      =</span> <span class="fu">factor</span>(diabetes,      <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>)),</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">TenYearCHD    =</span> <span class="fu">factor</span>(TenYearCHD,    <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>)),</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">education     =</span> <span class="fu">factor</span>(education,     <span class="at">levels =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>,</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>                           <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Some HS"</span>,<span class="st">"HS Diploma"</span>,<span class="st">"Some College"</span>,<span class="st">"College Degree"</span>))</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">setwd</span>(<span class="fu">this.dir</span>())</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>framingham <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"../../data/framingham.csv"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">male          =</span> <span class="fu">factor</span>(male,          <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Female"</span>,<span class="st">"Male"</span>)),</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">currentSmoker =</span> <span class="fu">factor</span>(currentSmoker, <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Non-smoker"</span>,<span class="st">"Smoker"</span>)),</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">prevalentHyp  =</span> <span class="fu">factor</span>(prevalentHyp,  <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>)),</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">diabetes      =</span> <span class="fu">factor</span>(diabetes,      <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>)),</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">TenYearCHD    =</span> <span class="fu">factor</span>(TenYearCHD,    <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>)),</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">education     =</span> <span class="fu">factor</span>(education,     <span class="at">levels =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>,</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>                           <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Some HS"</span>,<span class="st">"HS Diploma"</span>,<span class="st">"Some College"</span>,<span class="st">"College Degree"</span>))</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="step-1-check-variable-form" class="level2" data-number="2.2">
@@ -194,7 +191,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<p>The loess curve rises steadily from low risk in younger participants to higher risk in older participants. A logistic regression with age as a linear term on the log-odds scale looks appropriate.</p>
+<p>The loess curve rises steadily. A logistic regression with age as a linear term on the log-odds scale looks appropriate.</p>
 </section>
 <section id="step-2-fit-the-model-and-interpret" class="level2" data-number="2.3">
 <h2 data-number="2.3" class="anchored" data-anchor-id="step-2-fit-the-model-and-interpret"><span class="header-section-number">2.3</span> Step 2: Fit the Model and Interpret</h2>
@@ -234,7 +231,7 @@ Number of Fisher Scoring iterations: 5</code></pre>
 age         1.077507075 1.066517962 1.088765650</code></pre>
 </div>
 </div>
-<p>Each additional year of age multiplies the odds of CHD by about 1.10. Rescaled to a decade:</p>
+<p>Each additional year of age multiplies the odds of CHD by about 1.07. Rescaled to a decade:</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">exp</span>(<span class="dv">10</span> <span class="sc">*</span> <span class="fu">coef</span>(chd_age)[<span class="st">"age"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -247,7 +244,7 @@ age         1.077507075 1.066517962 1.088765650</code></pre>
 1.904065 2.340691 </code></pre>
 </div>
 </div>
-<p>A 10-year age difference is associated with roughly a 2.5-fold increase in the odds of CHD over 10 years of follow-up.</p>
+<p>A 10-year age difference is associated with roughly a 2-fold increase in the odds of CHD.</p>
 </section>
 <section id="step-3-visualize-the-fitted-curve" class="level2" data-number="2.4">
 <h2 data-number="2.4" class="anchored" data-anchor-id="step-3-visualize-the-fitted-curve"><span class="header-section-number">2.4</span> Step 3: Visualize the Fitted Curve</h2>
@@ -271,8 +268,8 @@ age         1.077507075 1.066517962 1.088765650</code></pre>
 </div>
 </div>
 </section>
-<section id="step-4-predicted-probabilities-and-classification" class="level2" data-number="2.5">
-<h2 data-number="2.5" class="anchored" data-anchor-id="step-4-predicted-probabilities-and-classification"><span class="header-section-number">2.5</span> Step 4: Predicted Probabilities and Classification</h2>
+<section id="step-4-predicted-probabilities" class="level2" data-number="2.5">
+<h2 data-number="2.5" class="anchored" data-anchor-id="step-4-predicted-probabilities"><span class="header-section-number">2.5</span> Step 4: Predicted Probabilities</h2>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>new_ages <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">age =</span> <span class="fu">c</span>(<span class="dv">35</span>, <span class="dv">45</span>, <span class="dv">55</span>, <span class="dv">65</span>))</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>new_ages <span class="sc">|&gt;</span></span>
@@ -288,18 +285,6 @@ age         1.077507075 1.066517962 1.088765650</code></pre>
 </div>
 </div>
 <p>Predicted probability of CHD rises from about 7% at age 35 to about 28% at age 65.</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>framingham <span class="ot">&lt;-</span> framingham <span class="sc">|&gt;</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">p_age =</span> <span class="fu">predict</span>(chd_age, <span class="at">type =</span> <span class="st">"response"</span>))</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>roc_age <span class="ot">&lt;-</span> <span class="fu">roc</span>(framingham<span class="sc">$</span>TenYearCHD, framingham<span class="sc">$</span>p_age,</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>               <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>), <span class="at">direction =</span> <span class="st">"&lt;"</span>)</span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="fu">auc</span>(roc_age)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Area under the curve: 0.6792</code></pre>
-</div>
-</div>
-<p>The AUC for age alone is around 0.68. Age is a reasonable single predictor but far from perfect. Adding more predictors should improve discrimination.</p>
 <hr>
 </section>
 </section>
@@ -307,59 +292,40 @@ age         1.077507075 1.066517962 1.088765650</code></pre>
 <h1 data-number="3"><span class="header-section-number">3</span> Part 2: Exercises</h1>
 <section id="instructions" class="level2" data-number="3.1">
 <h2 data-number="3.1" class="anchored" data-anchor-id="instructions"><span class="header-section-number">3.1</span> Instructions</h2>
-<p><strong>Step 1.</strong> Open a new Quarto document: File → New File → Quarto Document. Title it <code>"Day 8 Lab: Logistic Regression"</code>, select HTML, click <strong>Create</strong>.</p>
+<p><strong>Step 1.</strong> Open a new Quarto document: File -&gt; New File -&gt; Quarto Document. Title it <code>"Day 8 Lab: Logistic Regression"</code>, select HTML, click <strong>Create</strong>.</p>
 <p><strong>Step 2.</strong> Replace the template content with this YAML and setup chunk:</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Day 8 Lab: Logistic Regression"</span></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="an">subtitle:</span><span class="co"> "SC INBRE Biostatistics Summer Intensive 2026"</span></span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> today</span></span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="an">format:</span></span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="co">  html:</span></span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="co">    toc: true</span></span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="co">    theme: cosmo</span></span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="an">execute:</span></span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a><span class="co">  echo: true</span></span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="co">  warning: false</span></span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a><span class="co">  message: false</span></span>
-<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
-<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
-<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
-<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(this.path)</span>
-<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(pROC)</span>
-<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a><span class="fu">setwd</span>(<span class="fu">this.dir</span>())</span>
-<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>framingham <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"../../data/framingham.csv"</span>) <span class="sc">|&gt;</span></span>
-<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">male          =</span> <span class="fu">factor</span>(male,          <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Female"</span>,<span class="st">"Male"</span>)),</span>
-<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">currentSmoker =</span> <span class="fu">factor</span>(currentSmoker, <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Non-smoker"</span>,<span class="st">"Smoker"</span>)),</span>
-<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">prevalentHyp  =</span> <span class="fu">factor</span>(prevalentHyp,  <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>)),</span>
-<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">diabetes      =</span> <span class="fu">factor</span>(diabetes,      <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>)),</span>
-<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">TenYearCHD    =</span> <span class="fu">factor</span>(TenYearCHD,    <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>)),</span>
-<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">education     =</span> <span class="fu">factor</span>(education,     <span class="at">levels =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>,</span>
-<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>                           <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Some HS"</span>,<span class="st">"HS Diploma"</span>,<span class="st">"Some College"</span>,<span class="st">"College Degree"</span>))</span>
-<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p><strong>Step 3.</strong> Work through Exercises 1–6 in order. For each one:</p>
-<ul>
-<li>Add a new code chunk (<code>Ctrl+Alt+I</code> / <code>Cmd+Option+I</code>)</li>
-<li>Write and run your code</li>
-<li>Add 2–3 sentences below each result describing what you found in plain language, including the clinical interpretation of any odds ratios</li>
-</ul>
-<p><strong>Step 4.</strong> Render (<code>Ctrl+Shift+K</code> / <code>Cmd+Shift+K</code>) when finished and fix any errors before you are done.</p>
-<div class="callout callout-style-default callout-tip callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Tip
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p><strong>Before asking for help</strong>, check two things: (1) the <strong>Quick Reference Card</strong> in Section 3, and (2) whether your factor variables are coded with the right reference level. For <code>TenYearCHD</code>, “No” should be the reference (level 1) so that <code>glm()</code> models the probability of “Yes”.</p>
-</div>
-</div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Day 8 Lab: Logistic Regression"</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="an">subtitle:</span><span class="co"> "SC INBRE Biostatistics Summer Intensive 2026"</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> today</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="an">format:</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="co">  html:</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="co">    toc: true</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="co">    theme: cosmo</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="an">execute:</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a><span class="co">  echo: true</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a><span class="co">  warning: false</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="co">  message: false</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(this.path)</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a><span class="fu">setwd</span>(<span class="fu">this.dir</span>())</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>framingham <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"../../data/framingham.csv"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">male          =</span> <span class="fu">factor</span>(male,          <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Female"</span>,<span class="st">"Male"</span>)),</span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">currentSmoker =</span> <span class="fu">factor</span>(currentSmoker, <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Non-smoker"</span>,<span class="st">"Smoker"</span>)),</span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">prevalentHyp  =</span> <span class="fu">factor</span>(prevalentHyp,  <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>)),</span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">diabetes      =</span> <span class="fu">factor</span>(diabetes,      <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>)),</span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">TenYearCHD    =</span> <span class="fu">factor</span>(TenYearCHD,    <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>)),</span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">education     =</span> <span class="fu">factor</span>(education,     <span class="at">levels =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>,</span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>                           <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Some HS"</span>,<span class="st">"HS Diploma"</span>,<span class="st">"Some College"</span>,<span class="st">"College Degree"</span>))</span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><strong>Step 3.</strong> Work through Exercises 1–5 in order. For each one, add a code chunk, run your code, and write 2–3 sentences interpreting the results.</p>
+<p><strong>Step 4.</strong> Render when finished and fix any errors.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -370,92 +336,44 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Exercises 1–4 cover the core material. Exercise 5 puts everything together in a complete model-building workflow. Exercise 6 is a challenge problem on classification performance.</p>
+<p>Exercises 1–3 cover the core material. Exercise 4 introduces confounding. Exercise 5 is a full model-building workflow.</p>
 </div>
 </div>
 <hr>
 <p><strong>Exercise 1 – Simple Logistic Regression with a Binary Predictor.</strong></p>
 <ol type="a">
 <li><p>Use <code>count()</code> to tabulate <code>TenYearCHD</code> by <code>currentSmoker</code>. What proportion of smokers develop CHD? What proportion of non-smokers do?</p></li>
-<li><p>Fit a simple logistic regression model predicting <code>TenYearCHD</code> from <code>currentSmoker</code>. Report the coefficient on <code>currentSmokerSmoker</code> from <code>summary()</code>.</p></li>
-<li><p>Compute the odds ratio (OR) and its 95% confidence interval using <code>exp(cbind(OR = coef(model), confint(model)))</code>. Interpret the OR in plain language: how do the odds of CHD compare for smokers versus non-smokers?</p></li>
+<li><p>Fit a simple logistic regression model predicting <code>TenYearCHD</code> from <code>currentSmoker</code>. Report the coefficient from <code>summary()</code>.</p></li>
+<li><p>Compute the odds ratio (OR) and its 95% confidence interval using <code>exp(cbind(OR = coef(model), confint(model)))</code>. Interpret the OR in plain language.</p></li>
 <li><p>Confirm that this OR matches what you would get from a 2x2 table:</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>tab <span class="ot">&lt;-</span> <span class="fu">table</span>(framingham<span class="sc">$</span>currentSmoker, framingham<span class="sc">$</span>TenYearCHD)</span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>tab</span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>(tab[<span class="dv">2</span>,<span class="dv">2</span>] <span class="sc">*</span> tab[<span class="dv">1</span>,<span class="dv">1</span>]) <span class="sc">/</span> (tab[<span class="dv">1</span>,<span class="dv">2</span>] <span class="sc">*</span> tab[<span class="dv">2</span>,<span class="dv">1</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Does it match the OR from <code>glm()</code>?</p></li>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>tab <span class="ot">&lt;-</span> <span class="fu">table</span>(framingham<span class="sc">$</span>currentSmoker, framingham<span class="sc">$</span>TenYearCHD)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>tab</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>(tab[<span class="dv">2</span>,<span class="dv">2</span>] <span class="sc">*</span> tab[<span class="dv">1</span>,<span class="dv">1</span>]) <span class="sc">/</span> (tab[<span class="dv">1</span>,<span class="dv">2</span>] <span class="sc">*</span> tab[<span class="dv">2</span>,<span class="dv">1</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div></li>
 </ol>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># your code here</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># your code here</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <hr>
 <p><strong>Exercise 2 – Simple Logistic Regression with a Continuous Predictor.</strong></p>
 <ol type="a">
-<li><p>Use <code>geom_jitter()</code> and <code>geom_smooth(method = "loess")</code> to inspect the relationship between <code>sysBP</code> and <code>TenYearCHD</code>. Convert <code>TenYearCHD</code> to numeric with <code>as.numeric(TenYearCHD) - 1</code> before plotting.</p></li>
+<li><p>Use <code>geom_jitter()</code> and <code>geom_smooth(method = "loess")</code> to inspect the relationship between <code>sysBP</code> and <code>TenYearCHD</code>.</p></li>
 <li><p>Fit a simple logistic regression of <code>TenYearCHD</code> on <code>sysBP</code>. Report the coefficient, OR, and 95% CI.</p></li>
-<li><p>The OR per 1 mmHg is hard to interpret. Compute the OR for a <strong>20 mmHg increase</strong> in systolic BP using <code>exp(20 * coef(model)["sysBP"])</code>. Compute the corresponding CI using <code>exp(20 * confint(model)["sysBP", ])</code>. Write one sentence interpreting this rescaled OR clinically.</p></li>
-<li><p>Plot the fitted logistic curve overlaid on the data using <code>geom_smooth(method = "glm", method.args = list(family = "binomial"))</code>. Roughly what predicted probability does the model give for a person with a systolic BP of 180?</p></li>
+<li><p>The OR per 1 mmHg is hard to interpret. Compute the OR for a <strong>20 mmHg increase</strong> using <code>exp(20 * coef(model)["sysBP"])</code> and the corresponding CI. Write one sentence interpreting this rescaled OR clinically.</p></li>
+<li><p>Plot the fitted logistic curve using <code>geom_smooth(method = "glm", method.args = list(family = "binomial"))</code>.</p></li>
 </ol>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># your code here</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># your code here</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <hr>
-<p><strong>Exercise 3 – Continuous vs Categorical Predictors.</strong></p>
-<p>This exercise demonstrates the same point we made for linear regression: categorizing a continuous predictor wastes information.</p>
-<ol type="a">
-<li><p>Create a new variable called <code>age_cat</code> using <code>cut()</code> with breaks <code>c(30, 45, 60, 75)</code> and labels <code>c("30-45", "45-60", "60-75")</code>. Use <code>include.lowest = TRUE</code>.</p></li>
-<li><p>Fit two logistic regression models predicting <code>TenYearCHD</code>:</p>
-<ul>
-<li><code>m_continuous</code>: uses <code>age</code> as a continuous predictor</li>
-<li><code>m_categorical</code>: uses <code>age_cat</code> as a factor</li>
-</ul></li>
-<li><p>Compare AIC values with <code>AIC(m_continuous, m_categorical)</code>. Which fits better?</p></li>
-<li><p>From <code>m_categorical</code>, what is the OR for the oldest age group (60-75) compared with the youngest (30-45)? How does this compare with the OR estimated by <code>m_continuous</code> for a 22.5-year age difference (the midpoint gap between the two extreme groups)?</p></li>
-</ol>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># your code here</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<hr>
-<p><strong>Exercise 4 – Multiple Logistic Regression and Confounding.</strong></p>
+<p><strong>Exercise 3 – Multiple Logistic Regression and Confounding.</strong></p>
 <ol type="a">
 <li><p>Fit a model predicting <code>TenYearCHD</code> from <code>currentSmoker</code> alone. Note the OR for smoking.</p></li>
 <li><p>Now fit a model predicting <code>TenYearCHD</code> from both <code>currentSmoker</code> and <code>age</code>. Compute the <strong>adjusted</strong> OR for smoking (controlling for age).</p></li>
-<li><p>Compare the unadjusted and adjusted ORs for smoking. Did the OR get larger, smaller, or stay the same? Why do you think this happened? (Hint: are smokers in this cohort younger or older on average than non-smokers? Check with <code>framingham |&gt; group_by(currentSmoker) |&gt; summarize(mean_age = mean(age))</code>.)</p></li>
+<li><p>Compare the unadjusted and adjusted ORs for smoking. Did the OR get larger, smaller, or stay the same? Why do you think this happened? (Hint: check <code>framingham |&gt; group_by(currentSmoker) |&gt; summarize(mean_age = mean(age))</code>.)</p></li>
 <li><p>Test whether age is a useful addition to the model using <code>anova(model_smoker, model_smoker_age, test = "LRT")</code>. Interpret the p-value.</p></li>
 </ol>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># your code here</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<hr>
-<p><strong>Exercise 5 – Full Workflow: Building a CHD Risk Model.</strong></p>
-<p>Build a multivariable logistic regression model for CHD risk.</p>
-<ol type="a">
-<li><p>Start with a full model including: <code>age</code>, <code>male</code>, <code>currentSmoker</code>, <code>sysBP</code>, <code>totChol</code>, <code>BMI</code>, <code>diabetes</code>, and <code>prevalentHyp</code>. Fit it with <code>glm()</code> and examine <code>summary()</code>. Which predictors appear most strongly associated with CHD?</p></li>
-<li><p>Use <code>step(model_full, direction = "both", trace = 0)</code> to perform AIC-based model selection. Which variables are retained?</p></li>
-<li><p>Use <code>anova(reduced, full, test = "LRT")</code> to formally test whether the variables dropped by <code>step()</code> could be removed. Does the LRT agree with the AIC-based selection?</p></li>
-<li><p>Report the adjusted ORs and 95% CIs for your final model. For each predictor retained, write one sentence interpreting the OR in clinical terms. Rescale continuous predictors to meaningful units (10 years for age, 20 mmHg for sysBP, 40 mg/dL for totChol).</p></li>
-<li><p>Generate predicted probabilities for the final model and add them to the dataset as <code>p_final</code>.</p></li>
-</ol>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># your code here</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<hr>
-<p><strong>Exercise 6 (Challenge) – Classification Performance and ROC.</strong></p>
-<p>Continuing with the final model from Exercise 5, evaluate its predictive performance.</p>
-<ol type="a">
-<li><p>Build a confusion matrix at three thresholds: 0.10, 0.20, and 0.50. Use <code>table(predicted, actual)</code> with predicted classes from <code>if_else(p_final &gt; threshold, "Yes", "No")</code>.</p></li>
-<li><p>For each threshold, compute sensitivity and specificity by hand from the confusion matrix. As the threshold increases, what happens to each? Does this match the tradeoff described in the morning lecture?</p></li>
-<li><p>Compute the ROC curve and AUC using the <code>pROC</code> package:</p>
-<div class="sourceCode" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>roc_final <span class="ot">&lt;-</span> <span class="fu">roc</span>(framingham<span class="sc">$</span>TenYearCHD, framingham<span class="sc">$</span>p_final,</span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>                 <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>), <span class="at">direction =</span> <span class="st">"&lt;"</span>)</span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(roc_final, <span class="at">col =</span> <span class="st">"firebrick"</span>, <span class="at">lwd =</span> <span class="dv">2</span>)</span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="fu">auc</span>(roc_final)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>How would you describe the model’s discriminative ability (poor, acceptable, excellent, outstanding)?</p></li>
-<li><p>Use <code>coords(roc_final, "best", best.method = "youden")</code> to find the threshold that maximizes Youden’s J statistic (sensitivity + specificity - 1). What is the “optimal” threshold by this criterion? How does it compare to the baseline event rate (about 0.15)?</p></li>
-<li><p><strong>Discussion question.</strong> The AUC you computed is on the same data used to fit the model. Why is this an optimistic estimate of how the model will perform on new data? What technique from earlier in the course could give a more honest estimate?</p></li>
-</ol>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># your code here</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># your code here</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <hr>
 </section>
@@ -464,20 +382,18 @@ Note
 <h1 data-number="4"><span class="header-section-number">4</span> Quick Reference Card</h1>
 <section id="setup-1" class="level2" data-number="4.1">
 <h2 data-number="4.1" class="anchored" data-anchor-id="setup-1"><span class="header-section-number">4.1</span> Setup</h2>
-<div class="sourceCode" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(this.path)</span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(pROC)</span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="fu">setwd</span>(<span class="fu">this.dir</span>())</span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>framingham <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"../../data/framingham.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(this.path)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="fu">setwd</span>(<span class="fu">this.dir</span>())</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>framingham <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"../../data/framingham.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 <section id="checking-variable-form-on-a-binary-outcome" class="level2" data-number="4.2">
 <h2 data-number="4.2" class="anchored" data-anchor-id="checking-variable-form-on-a-binary-outcome"><span class="header-section-number">4.2</span> Checking Variable Form on a Binary Outcome</h2>
-<div class="sourceCode" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Empirical probability curve for one predictor</span></span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>df <span class="sc">|&gt;</span></span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Y_numeric =</span> <span class="fu">as.numeric</span>(Y) <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">|&gt;</span></span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> predictor, <span class="at">y =</span> Y_numeric)) <span class="sc">+</span></span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_jitter</span>(<span class="at">alpha =</span> <span class="fl">0.05</span>, <span class="at">height =</span> <span class="fl">0.04</span>) <span class="sc">+</span></span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"loess"</span>, <span class="at">color =</span> <span class="st">"firebrick"</span>, <span class="at">se =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>df <span class="sc">|&gt;</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Y_numeric =</span> <span class="fu">as.numeric</span>(Y) <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">|&gt;</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> predictor, <span class="at">y =</span> Y_numeric)) <span class="sc">+</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_jitter</span>(<span class="at">alpha =</span> <span class="fl">0.05</span>, <span class="at">height =</span> <span class="fl">0.04</span>) <span class="sc">+</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"loess"</span>, <span class="at">color =</span> <span class="st">"firebrick"</span>, <span class="at">se =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 <section id="fitting-models" class="level2" data-number="4.3">
 <h2 data-number="4.3" class="anchored" data-anchor-id="fitting-models"><span class="header-section-number">4.3</span> Fitting Models</h2>
@@ -506,22 +422,6 @@ Note
 <td>Coefficients, z-tests, deviance</td>
 </tr>
 <tr class="even">
-<td><code>coef(model)</code></td>
-<td>Just the estimated coefficients</td>
-</tr>
-<tr class="odd">
-<td><code>confint(model)</code></td>
-<td>95% CIs for coefficients (on log-odds scale)</td>
-</tr>
-<tr class="even">
-<td><code>exp(coef(model))</code></td>
-<td>Odds ratios</td>
-</tr>
-<tr class="odd">
-<td><code>exp(confint(model))</code></td>
-<td>95% CIs for ORs</td>
-</tr>
-<tr class="even">
 <td><code>exp(cbind(OR = coef(m), confint(m)))</code></td>
 <td>OR table in one go</td>
 </tr>
@@ -531,63 +431,40 @@ Note
 </tr>
 <tr class="even">
 <td><code>anova(m_small, m_large, test = "LRT")</code></td>
-<td>Likelihood ratio test for nested models</td>
+<td>Likelihood ratio test</td>
 </tr>
 <tr class="odd">
 <td><code>step(model, direction = "both", trace = 0)</code></td>
-<td>AIC-based stepwise selection</td>
+<td>AIC-based stepwise</td>
+</tr>
+<tr class="even">
+<td><code>predict(model, type = "response")</code></td>
+<td>Predicted probabilities</td>
+</tr>
+<tr class="odd">
+<td><code>drop_na(all_of(vars))</code></td>
+<td>Complete cases for model comparison</td>
 </tr>
 </tbody>
 </table>
 </section>
-<section id="predicted-probabilities" class="level2" data-number="4.4">
-<h2 data-number="4.4" class="anchored" data-anchor-id="predicted-probabilities"><span class="header-section-number">4.4</span> Predicted Probabilities</h2>
-<div class="sourceCode" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Add fitted probabilities to the dataset</span></span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> df <span class="sc">|&gt;</span> <span class="fu">mutate</span>(<span class="at">p_hat =</span> <span class="fu">predict</span>(model, <span class="at">type =</span> <span class="st">"response"</span>))</span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Predict for new individuals</span></span>
-<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>new_data <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">age =</span> <span class="fu">c</span>(<span class="dv">45</span>, <span class="dv">55</span>), <span class="at">sysBP =</span> <span class="fu">c</span>(<span class="dv">120</span>, <span class="dv">140</span>))</span>
-<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a><span class="fu">predict</span>(model, <span class="at">newdata =</span> new_data, <span class="at">type =</span> <span class="st">"response"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="plotting-the-fitted-curve" class="level2" data-number="4.4">
+<h2 data-number="4.4" class="anchored" data-anchor-id="plotting-the-fitted-curve"><span class="header-section-number">4.4</span> Plotting the Fitted Curve</h2>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>df <span class="sc">|&gt;</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Y_numeric =</span> <span class="fu">as.numeric</span>(Y) <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">|&gt;</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> predictor, <span class="at">y =</span> Y_numeric)) <span class="sc">+</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_jitter</span>(<span class="at">alpha =</span> <span class="fl">0.05</span>, <span class="at">height =</span> <span class="fl">0.04</span>) <span class="sc">+</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"glm"</span>, <span class="at">method.args =</span> <span class="fu">list</span>(<span class="at">family =</span> <span class="st">"binomial"</span>),</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>              <span class="at">color =</span> <span class="st">"firebrick"</span>, <span class="at">se =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
-<section id="plotting-the-fitted-curve" class="level2" data-number="4.5">
-<h2 data-number="4.5" class="anchored" data-anchor-id="plotting-the-fitted-curve"><span class="header-section-number">4.5</span> Plotting the Fitted Curve</h2>
-<div class="sourceCode" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>df <span class="sc">|&gt;</span></span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Y_numeric =</span> <span class="fu">as.numeric</span>(Y) <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">|&gt;</span></span>
-<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> predictor, <span class="at">y =</span> Y_numeric)) <span class="sc">+</span></span>
-<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_jitter</span>(<span class="at">alpha =</span> <span class="fl">0.05</span>, <span class="at">height =</span> <span class="fl">0.04</span>) <span class="sc">+</span></span>
-<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"glm"</span>, <span class="at">method.args =</span> <span class="fu">list</span>(<span class="at">family =</span> <span class="st">"binomial"</span>),</span>
-<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>              <span class="at">color =</span> <span class="st">"firebrick"</span>, <span class="at">se =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="rescaling-odds-ratios-to-meaningful-units" class="level2" data-number="4.5">
+<h2 data-number="4.5" class="anchored" data-anchor-id="rescaling-odds-ratios-to-meaningful-units"><span class="header-section-number">4.5</span> Rescaling Odds Ratios to Meaningful Units</h2>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">exp</span>(<span class="dv">10</span> <span class="sc">*</span> <span class="fu">coef</span>(model)[<span class="st">"age"</span>])           <span class="co"># 10-year OR</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="fu">exp</span>(<span class="dv">20</span> <span class="sc">*</span> <span class="fu">confint</span>(model)[<span class="st">"sysBP"</span>, ])    <span class="co"># 20 mmHg CI</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="fu">exp</span>(<span class="dv">40</span> <span class="sc">*</span> <span class="fu">coef</span>(model)[<span class="st">"totChol"</span>])       <span class="co"># 40 mg/dL OR</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
-<section id="classification-and-performance" class="level2" data-number="4.6">
-<h2 data-number="4.6" class="anchored" data-anchor-id="classification-and-performance"><span class="header-section-number">4.6</span> Classification and Performance</h2>
-<div class="sourceCode" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Build a confusion matrix at a chosen threshold</span></span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> df <span class="sc">|&gt;</span></span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">pred_class =</span> <span class="fu">factor</span>(<span class="fu">if_else</span>(p_hat <span class="sc">&gt;</span> <span class="fl">0.15</span>, <span class="st">"Yes"</span>, <span class="st">"No"</span>),</span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>                             <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"No"</span>, <span class="st">"Yes"</span>)))</span>
-<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>tab <span class="ot">&lt;-</span> <span class="fu">table</span>(<span class="at">Predicted =</span> df<span class="sc">$</span>pred_class, <span class="at">Actual =</span> df<span class="sc">$</span>Y)</span>
-<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>tab</span>
-<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Sensitivity = TP / (TP + FN)</span></span>
-<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Specificity = TN / (TN + FP)</span></span>
-<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a><span class="co"># ROC and AUC</span></span>
-<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a>roc_obj <span class="ot">&lt;-</span> <span class="fu">roc</span>(df<span class="sc">$</span>Y, df<span class="sc">$</span>p_hat, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"No"</span>, <span class="st">"Yes"</span>), <span class="at">direction =</span> <span class="st">"&lt;"</span>)</span>
-<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(roc_obj, <span class="at">col =</span> <span class="st">"firebrick"</span>, <span class="at">lwd =</span> <span class="dv">2</span>)</span>
-<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a><span class="fu">auc</span>(roc_obj)</span>
-<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb29-16"><a href="#cb29-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Best threshold by Youden's J</span></span>
-<span id="cb29-17"><a href="#cb29-17" aria-hidden="true" tabindex="-1"></a><span class="fu">coords</span>(roc_obj, <span class="st">"best"</span>, <span class="at">best.method =</span> <span class="st">"youden"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</section>
-<section id="rescaling-odds-ratios-to-meaningful-units" class="level2" data-number="4.7">
-<h2 data-number="4.7" class="anchored" data-anchor-id="rescaling-odds-ratios-to-meaningful-units"><span class="header-section-number">4.7</span> Rescaling Odds Ratios to Meaningful Units</h2>
-<div class="sourceCode" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># For a continuous predictor, the per-1-unit OR is often uninterpretable.</span></span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Multiply the coefficient by the meaningful unit before exponentiating.</span></span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="fu">exp</span>(<span class="dv">10</span> <span class="sc">*</span> <span class="fu">coef</span>(model)[<span class="st">"age"</span>])           <span class="co"># 10-year OR</span></span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="fu">exp</span>(<span class="dv">20</span> <span class="sc">*</span> <span class="fu">confint</span>(model)[<span class="st">"sysBP"</span>, ])    <span class="co"># 20 mmHg CI for sysBP</span></span>
-<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="fu">exp</span>(<span class="dv">40</span> <span class="sc">*</span> <span class="fu">coef</span>(model)[<span class="st">"totChol"</span>])       <span class="co"># 40 mg/dL OR</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</section>
-<section id="common-interpretive-phrases" class="level2" data-number="4.8">
-<h2 data-number="4.8" class="anchored" data-anchor-id="common-interpretive-phrases"><span class="header-section-number">4.8</span> Common Interpretive Phrases</h2>
+<section id="common-interpretive-phrases" class="level2" data-number="4.6">
+<h2 data-number="4.6" class="anchored" data-anchor-id="common-interpretive-phrases"><span class="header-section-number">4.6</span> Common Interpretive Phrases</h2>
 <table class="caption-top table">
 <thead>
 <tr class="header">
