@@ -245,6 +245,10 @@ FITNESS <- tibble(
 )
 
 glimpse(FITNESS)
+
+ggplot(FITNESS, aes(x = runpulse, y = maxpulse)) +
+  geom_point()
+
 ```
 
 ## Checking Variable Form for Each Predictor
