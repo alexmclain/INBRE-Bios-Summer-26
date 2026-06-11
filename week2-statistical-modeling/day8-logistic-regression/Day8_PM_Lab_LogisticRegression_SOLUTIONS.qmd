@@ -1,0 +1,372 @@
+---
+title: "Day 8 (PM) Lab: Logistic Regression -- Solutions"
+subtitle: "SC INBRE Biostatistics Summer Intensive 2026"
+date: today
+format:
+  html:
+    toc: true
+    toc-location: left
+    toc-depth: 3
+    number-sections: true
+    smooth-scroll: true
+    theme: cosmo
+    code-fold: false
+    highlight-style: github
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+```{r}
+library(tidyverse)
+library(this.path)
+setwd(this.dir())
+
+framingham <- read_csv("../../data/framingham.csv") |>
+  mutate(
+    male          = factor(male,          levels = c(0,1), labels = c("Female","Male")),
+    currentSmoker = factor(currentSmoker, levels = c(0,1), labels = c("Non-smoker","Smoker")),
+    prevalentHyp  = factor(prevalentHyp,  levels = c(0,1), labels = c("No","Yes")),
+    diabetes      = factor(diabetes,      levels = c(0,1), labels = c("No","Yes")),
+    TenYearCHD    = factor(TenYearCHD,    levels = c(0,1), labels = c("No","Yes")),
+    education     = factor(education,     levels = 1:4,
+                           labels = c("Some HS","HS Diploma","Some College","College Degree"))
+  )
+```
+
+---
+
+# Exercise 1 -- Simple Logistic Regression with a Binary Predictor
+
+## Part a: Tabulate CHD by smoking status
+
+```{r}
+framingham |>
+  count(currentSmoker, TenYearCHD) |>
+  group_by(currentSmoker) |>
+  mutate(prop = round(n / sum(n), 3)) |>
+  filter(TenYearCHD == "Yes")
+```
+
+About 15% of non-smokers develop CHD within 10 years compared with about 18%
+of smokers. The raw proportions are similar, which will make the unadjusted OR
+modest.
+
+## Part b: Fit the simple logistic regression
+
+```{r}
+m_smoker <- glm(TenYearCHD ~ currentSmoker,
+                data = framingham,
+                family = binomial)
+
+summary(m_smoker)
+```
+
+The coefficient on `currentSmokerSmoker` is positive (approximately 0.23),
+indicating that smokers have higher log-odds of CHD than non-smokers. The
+z-statistic and p-value indicate this difference is statistically significant.
+
+## Part c: Odds ratio and 95% CI
+
+```{r}
+exp(cbind(OR = coef(m_smoker), confint(m_smoker))) |> round(3)
+```
+
+The OR for smoking is approximately 1.11 (95% CI roughly 0.94--1.32). Smokers
+have about 11% higher odds of developing CHD within 10 years compared with
+non-smokers. The confidence interval includes 1, so the association is
+not statistically significant at alpha = 0.05.
+
+
+
+## Part d: Verify against the 2x2 table
+
+```{r}
+tab <- table(framingham$currentSmoker, framingham$TenYearCHD)
+tab
+
+or_table <- (tab[2,2] * tab[1,1]) / (tab[1,2] * tab[2,1])
+round(or_table, 3)
+```
+
+The cross-product OR from the 2x2 table matches the `exp(coef())` value from
+the logistic model to at least three decimal places, confirming that simple
+logistic regression with a single binary predictor is equivalent to computing
+the odds ratio directly from a contingency table.
+
+---
+
+# Exercise 2 -- Simple Logistic Regression with a Continuous Predictor
+
+## Part a: Inspect the relationship visually
+
+```{r}
+#| fig-width: 7
+#| fig-height: 4.5
+#| message: false
+framingham |>
+  mutate(CHD_numeric = as.numeric(TenYearCHD) - 1) |>
+  ggplot(aes(x = sysBP, y = CHD_numeric)) +
+  geom_jitter(alpha = 0.06, height = 0.04, color = "steelblue") +
+  geom_smooth(method = "loess", color = "firebrick", se = TRUE, linewidth = 1) +
+  labs(x = "Systolic BP (mmHg)",
+       y = "Probability of CHD within 10 years",
+       title = "Empirical CHD Probability by Systolic BP") +
+  theme_minimal()
+```
+
+The loess curve rises steadily with systolic BP. The relationship is
+approximately monotonic with no sharp inflection points, supporting the use of
+a single linear term on the log-odds scale.
+
+## Part b: Fit the model, report coefficient, OR, and CI
+
+```{r}
+m_bp <- glm(TenYearCHD ~ sysBP,
+            data = framingham,
+            family = binomial)
+
+summary(m_bp)
+
+exp(cbind(OR = coef(m_bp), confint(m_bp))) |> round(4)
+```
+
+The coefficient on `sysBP` is approximately 0.024. The per-1-mmHg OR is about
+1.024, with a confidence interval that excludes 1. The z-statistic is large and
+the p-value is essentially zero, indicating very strong evidence that systolic
+BP is associated with CHD risk.
+
+The plot does indicate that the relationship may be quadratic. Let's take a look:
+
+```{r}
+m_bp_quad <- glm(TenYearCHD ~ poly(sysBP,2),
+                data = framingham,
+                family = binomial)
+
+summary(m_bp_quad)
+anova(m_bp,m_bp_quad)
+```
+
+The linear model provides a better fit to the data.
+
+## Part c: Rescale to 20 mmHg
+
+```{r}
+exp(20 * coef(m_bp)["sysBP"])
+exp(20 * confint(m_bp)["sysBP", ])
+```
+
+A 20 mmHg increase in systolic blood pressure is associated with approximately
+a 62% increase in the odds of developing CHD within 10 years (OR approximately 1.5 to 2.0). This is a clinically meaningful unit: 20 mmHg is
+roughly one standard deviation of systolic BP in this cohort and corresponds to
+the difference between, say, 120 and 140 mmHg.
+
+## Part d: Plot the fitted logistic curve
+
+```{r}
+#| fig-width: 7
+#| fig-height: 4.5
+#| message: false
+framingham |>
+  mutate(CHD_numeric = as.numeric(TenYearCHD) - 1) |>
+  ggplot(aes(x = sysBP, y = CHD_numeric)) +
+  geom_jitter(alpha = 0.06, height = 0.04, color = "steelblue") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"),
+              color = "firebrick", se = TRUE, linewidth = 1) +
+  labs(x = "Systolic BP (mmHg)",
+       y = "Probability of CHD within 10 years",
+       title = "Fitted Logistic Regression: CHD on Systolic BP") +
+  theme_minimal()
+```
+
+The fitted curve is S-shaped and bounded between 0 and 1, rising from near 5%
+at very low BP values to near 40% at very high values. Unlike a linear
+regression line, it cannot predict probabilities outside the valid range.
+
+---
+
+# Exercise 3 -- Multiple Logistic Regression and Confounding
+
+## Part a: Unadjusted OR for smoking
+
+```{r}
+m_smoke_only <- glm(TenYearCHD ~ currentSmoker,
+                    data = framingham,
+                    family = binomial)
+
+exp(cbind(OR = coef(m_smoke_only), confint(m_smoke_only))) |> round(3)
+```
+
+The unadjusted OR for smoking is approximately 1.11 (same as Exercise 1).
+
+## Part b: Adjusted OR for smoking, controlling for age
+
+```{r}
+m_smoke_age <- glm(TenYearCHD ~ currentSmoker + age,
+                   data = framingham,
+                   family = binomial)
+
+exp(cbind(OR = coef(m_smoke_age), confint(m_smoke_age))) |> round(3)
+```
+
+After adjusting for age, the OR for smoking increases to approximately 1.54.
+
+## Part c: Compare unadjusted and adjusted ORs
+
+```{r}
+framingham |>
+  group_by(currentSmoker) |>
+  summarize(mean_age = mean(age), .groups = "drop")
+```
+
+The adjusted OR for smoking (approximately 1.54) is **larger** than the
+unadjusted OR (approximately 1.11). This is an example of negative confounding.
+The mean age check reveals that smokers in this cohort are younger than
+non-smokers by about 2--3 years. Since younger age is associated with lower CHD
+risk, the younger age of smokers was partially masking (attenuating) the true
+effect of smoking on CHD. Once we hold age constant, the smoking effect becomes
+larger. Confounding can inflate or deflate an association depending on the direction of the confounder's relationship with both the exposure and the outcome.
+
+## Part d: Likelihood ratio test for age
+
+```{r}
+anova(m_smoke_only, m_smoke_age)
+```
+
+The LRT p-value is essentially zero, providing very strong evidence that age
+adds significant predictive information beyond smoking status alone. The large
+chi-squared statistic reflects the fact that age is one of the strongest
+predictors of CHD in the Framingham cohort.
+
+---
+
+# Exercise 4 -- Full Workflow: Building a CHD Risk Model
+
+## Part a: Fit the full model
+
+```{r}
+vars_used <- c("TenYearCHD", "age", "male", "currentSmoker",
+               "sysBP", "totChol", "BMI", "diabetes", "prevalentHyp")
+
+framingham_cc <- framingham |>
+  drop_na(all_of(vars_used))
+
+nrow(framingham) - nrow(framingham_cc)
+
+m_full <- glm(TenYearCHD ~ age + male + currentSmoker + sysBP +
+                            totChol + BMI + diabetes + prevalentHyp,
+              data = framingham_cc,
+              family = binomial)
+
+summary(m_full)
+```
+
+Age, sex (male), smoking, systolic BP, and diabetes all appear strongly
+associated with CHD. Total cholesterol shows a positive association. BMI and
+prevalent hypertension have weaker or less significant effects once the other
+variables are in the model.
+
+## Part b: AIC-based model selection
+
+```{r}
+m_step <- step(m_full, direction = "both", trace = 0)
+summary(m_step)
+AIC(m_full, m_step)
+```
+
+The stepwise procedure typically retains age, sex, smoking, sysBP, totChol,
+and diabetes, and drops BMI and prevalentHyp. The selected model has a lower
+AIC, indicating a modest improvement in fit per parameter.
+
+## Part c: LRT for dropped variables
+
+```{r}
+anova(m_step, m_full, test = "LRT")
+```
+
+The LRT p-value for the variables dropped by stepwise selection (BMI and
+prevalentHyp) is typically large (p > 0.05), confirming that these variables
+do not significantly improve the model beyond the retained predictors. The AIC
+and LRT are in agreement here.
+
+## Part d: Adjusted ORs for the final model
+
+```{r}
+chd_final <- m_step
+
+or_table <- exp(cbind(OR = coef(chd_final), confint(chd_final))) |>
+  round(3)
+
+or_table
+```
+
+**Interpretations:**
+
+- **age (per 10 years):**
+```{r}
+exp(10 * coef(chd_final)["age"])
+exp(10 * confint(chd_final)["age", ])
+```
+Each decade of age roughly doubles the odds of CHD after adjusting for the
+other risk factors.
+
+- **maleMale:** Males have substantially higher odds of CHD than females of the
+  same age, smoking status, blood pressure, cholesterol, and diabetes status.
+
+- **currentSmokerSmoker:** After adjusting for age and other factors, smokers
+  have markedly higher CHD odds than non-smokers. Note this adjusted OR is
+  larger than the unadjusted OR from Exercise 1, consistent with the negative
+  confounding by age found in Exercise 3.
+
+- **sysBP (per 20 mmHg):**
+```{r}
+exp(20 * coef(chd_final)["sysBP"])
+exp(20 * confint(chd_final)["sysBP", ])
+```
+A 20 mmHg higher systolic BP is associated with roughly 33% higher odds
+of CHD, holding the other variables constant.
+
+- **totChol (per 40 mg/dL):**
+```{r}
+exp(100 * coef(chd_final)["totChol"])
+exp(100 * confint(chd_final)["totChol", ])
+```
+A 40 mg/dL increase in total cholesterol is associated with a modest increase
+in CHD odds.
+
+- **diabetesYes:** Diabetic participants have substantially higher CHD odds even
+  after adjusting for all other risk factors in the model.
+
+## Part e: Predicted probabilities
+
+```{r}
+framingham_cc <- framingham_cc |>
+  mutate(p_final = predict(chd_final, newdata = framingham_cc,
+                           type = "response"))
+
+framingham_cc |>
+  select(TenYearCHD, p_final) |>
+  summary()
+```
+
+```{r}
+framingham_cc |>
+  mutate(CHD_numeric = as.numeric(TenYearCHD) - 1) |>
+  ggplot(aes(x = p_final, fill = TenYearCHD)) +
+  geom_histogram(binwidth = 0.02, position = "identity",
+                 alpha = 0.6, color = "white") +
+  scale_fill_manual(values = c("No" = "steelblue", "Yes" = "firebrick")) +
+  labs(x = "Predicted probability of CHD",
+       y = "Count",
+       fill = "Actual CHD",
+       title = "Distribution of Predicted Probabilities by Actual Outcome") +
+  theme_minimal()
+```
+
+The predicted probabilities range from near 0% to about 60--70%. The
+distributions for the CHD and non-CHD groups overlap considerably, which is
+typical for clinical risk models. The CHD group tends to have higher predicted
+probabilities on average, but there is no clean separation. This overlap is
+what motivates tomorrow's topic: how do we choose a threshold to turn these
+probabilities into yes/no predictions, and how do we evaluate the tradeoffs?

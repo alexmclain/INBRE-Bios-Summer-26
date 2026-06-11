@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.32">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2026-06-11">
+
+<title>Day 8 (PM) Lab: Logistic Regression – Solutions</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Day8_PM_Lab_LogisticRegression_SOLUTIONS_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Day8_PM_Lab_LogisticRegression_SOLUTIONS_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="Day8_PM_Lab_LogisticRegression_SOLUTIONS_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="Day8_PM_Lab_LogisticRegression_SOLUTIONS_files/libs/quarto-html/popper.min.js"></script>
+<script src="Day8_PM_Lab_LogisticRegression_SOLUTIONS_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Day8_PM_Lab_LogisticRegression_SOLUTIONS_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Day8_PM_Lab_LogisticRegression_SOLUTIONS_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Day8_PM_Lab_LogisticRegression_SOLUTIONS_files/libs/quarto-html/quarto-syntax-highlighting-234273d1456647dabc34a594ac50e507.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Day8_PM_Lab_LogisticRegression_SOLUTIONS_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Day8_PM_Lab_LogisticRegression_SOLUTIONS_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Day8_PM_Lab_LogisticRegression_SOLUTIONS_files/libs/bootstrap/bootstrap-dfb3f4843b9b0ce307f095fcbeec1e0c.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<style>html{ scroll-behavior: smooth; }</style>
+
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#exercise-1-simple-logistic-regression-with-a-binary-predictor" id="toc-exercise-1-simple-logistic-regression-with-a-binary-predictor" class="nav-link active" data-scroll-target="#exercise-1-simple-logistic-regression-with-a-binary-predictor"><span class="header-section-number">1</span> Exercise 1 – Simple Logistic Regression with a Binary Predictor</a>
+  <ul class="collapse">
+  <li><a href="#part-a-tabulate-chd-by-smoking-status" id="toc-part-a-tabulate-chd-by-smoking-status" class="nav-link" data-scroll-target="#part-a-tabulate-chd-by-smoking-status"><span class="header-section-number">1.1</span> Part a: Tabulate CHD by smoking status</a></li>
+  <li><a href="#part-b-fit-the-simple-logistic-regression" id="toc-part-b-fit-the-simple-logistic-regression" class="nav-link" data-scroll-target="#part-b-fit-the-simple-logistic-regression"><span class="header-section-number">1.2</span> Part b: Fit the simple logistic regression</a></li>
+  <li><a href="#part-c-odds-ratio-and-95-ci" id="toc-part-c-odds-ratio-and-95-ci" class="nav-link" data-scroll-target="#part-c-odds-ratio-and-95-ci"><span class="header-section-number">1.3</span> Part c: Odds ratio and 95% CI</a></li>
+  <li><a href="#part-d-verify-against-the-2x2-table" id="toc-part-d-verify-against-the-2x2-table" class="nav-link" data-scroll-target="#part-d-verify-against-the-2x2-table"><span class="header-section-number">1.4</span> Part d: Verify against the 2x2 table</a></li>
+  </ul></li>
+  <li><a href="#exercise-2-simple-logistic-regression-with-a-continuous-predictor" id="toc-exercise-2-simple-logistic-regression-with-a-continuous-predictor" class="nav-link" data-scroll-target="#exercise-2-simple-logistic-regression-with-a-continuous-predictor"><span class="header-section-number">2</span> Exercise 2 – Simple Logistic Regression with a Continuous Predictor</a>
+  <ul class="collapse">
+  <li><a href="#part-a-inspect-the-relationship-visually" id="toc-part-a-inspect-the-relationship-visually" class="nav-link" data-scroll-target="#part-a-inspect-the-relationship-visually"><span class="header-section-number">2.1</span> Part a: Inspect the relationship visually</a></li>
+  <li><a href="#part-b-fit-the-model-report-coefficient-or-and-ci" id="toc-part-b-fit-the-model-report-coefficient-or-and-ci" class="nav-link" data-scroll-target="#part-b-fit-the-model-report-coefficient-or-and-ci"><span class="header-section-number">2.2</span> Part b: Fit the model, report coefficient, OR, and CI</a></li>
+  <li><a href="#part-c-rescale-to-20-mmhg" id="toc-part-c-rescale-to-20-mmhg" class="nav-link" data-scroll-target="#part-c-rescale-to-20-mmhg"><span class="header-section-number">2.3</span> Part c: Rescale to 20 mmHg</a></li>
+  <li><a href="#part-d-plot-the-fitted-logistic-curve" id="toc-part-d-plot-the-fitted-logistic-curve" class="nav-link" data-scroll-target="#part-d-plot-the-fitted-logistic-curve"><span class="header-section-number">2.4</span> Part d: Plot the fitted logistic curve</a></li>
+  </ul></li>
+  <li><a href="#exercise-3-multiple-logistic-regression-and-confounding" id="toc-exercise-3-multiple-logistic-regression-and-confounding" class="nav-link" data-scroll-target="#exercise-3-multiple-logistic-regression-and-confounding"><span class="header-section-number">3</span> Exercise 3 – Multiple Logistic Regression and Confounding</a>
+  <ul class="collapse">
+  <li><a href="#part-a-unadjusted-or-for-smoking" id="toc-part-a-unadjusted-or-for-smoking" class="nav-link" data-scroll-target="#part-a-unadjusted-or-for-smoking"><span class="header-section-number">3.1</span> Part a: Unadjusted OR for smoking</a></li>
+  <li><a href="#part-b-adjusted-or-for-smoking-controlling-for-age" id="toc-part-b-adjusted-or-for-smoking-controlling-for-age" class="nav-link" data-scroll-target="#part-b-adjusted-or-for-smoking-controlling-for-age"><span class="header-section-number">3.2</span> Part b: Adjusted OR for smoking, controlling for age</a></li>
+  <li><a href="#part-c-compare-unadjusted-and-adjusted-ors" id="toc-part-c-compare-unadjusted-and-adjusted-ors" class="nav-link" data-scroll-target="#part-c-compare-unadjusted-and-adjusted-ors"><span class="header-section-number">3.3</span> Part c: Compare unadjusted and adjusted ORs</a></li>
+  <li><a href="#part-d-likelihood-ratio-test-for-age" id="toc-part-d-likelihood-ratio-test-for-age" class="nav-link" data-scroll-target="#part-d-likelihood-ratio-test-for-age"><span class="header-section-number">3.4</span> Part d: Likelihood ratio test for age</a></li>
+  </ul></li>
+  <li><a href="#exercise-4-full-workflow-building-a-chd-risk-model" id="toc-exercise-4-full-workflow-building-a-chd-risk-model" class="nav-link" data-scroll-target="#exercise-4-full-workflow-building-a-chd-risk-model"><span class="header-section-number">4</span> Exercise 4 – Full Workflow: Building a CHD Risk Model</a>
+  <ul class="collapse">
+  <li><a href="#part-a-fit-the-full-model" id="toc-part-a-fit-the-full-model" class="nav-link" data-scroll-target="#part-a-fit-the-full-model"><span class="header-section-number">4.1</span> Part a: Fit the full model</a></li>
+  <li><a href="#part-b-aic-based-model-selection" id="toc-part-b-aic-based-model-selection" class="nav-link" data-scroll-target="#part-b-aic-based-model-selection"><span class="header-section-number">4.2</span> Part b: AIC-based model selection</a></li>
+  <li><a href="#part-c-lrt-for-dropped-variables" id="toc-part-c-lrt-for-dropped-variables" class="nav-link" data-scroll-target="#part-c-lrt-for-dropped-variables"><span class="header-section-number">4.3</span> Part c: LRT for dropped variables</a></li>
+  <li><a href="#part-d-adjusted-ors-for-the-final-model" id="toc-part-d-adjusted-ors-for-the-final-model" class="nav-link" data-scroll-target="#part-d-adjusted-ors-for-the-final-model"><span class="header-section-number">4.4</span> Part d: Adjusted ORs for the final model</a></li>
+  <li><a href="#part-e-predicted-probabilities" id="toc-part-e-predicted-probabilities" class="nav-link" data-scroll-target="#part-e-predicted-probabilities"><span class="header-section-number">4.5</span> Part e: Predicted probabilities</a></li>
+  </ul></li>
+  </ul>
+</nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Day 8 (PM) Lab: Logistic Regression – Solutions</h1>
+<p class="subtitle lead">SC INBRE Biostatistics Summer Intensive 2026</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">June 11, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(this.path)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">setwd</span>(<span class="fu">this.dir</span>())</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>framingham <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"../../data/framingham.csv"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">male          =</span> <span class="fu">factor</span>(male,          <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Female"</span>,<span class="st">"Male"</span>)),</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">currentSmoker =</span> <span class="fu">factor</span>(currentSmoker, <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Non-smoker"</span>,<span class="st">"Smoker"</span>)),</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">prevalentHyp  =</span> <span class="fu">factor</span>(prevalentHyp,  <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>)),</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">diabetes      =</span> <span class="fu">factor</span>(diabetes,      <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>)),</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">TenYearCHD    =</span> <span class="fu">factor</span>(TenYearCHD,    <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">1</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"No"</span>,<span class="st">"Yes"</span>)),</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">education     =</span> <span class="fu">factor</span>(education,     <span class="at">levels =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>,</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>                           <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Some HS"</span>,<span class="st">"HS Diploma"</span>,<span class="st">"Some College"</span>,<span class="st">"College Degree"</span>))</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<hr>
+<section id="exercise-1-simple-logistic-regression-with-a-binary-predictor" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Exercise 1 – Simple Logistic Regression with a Binary Predictor</h1>
+<section id="part-a-tabulate-chd-by-smoking-status" class="level2" data-number="1.1">
+<h2 data-number="1.1" class="anchored" data-anchor-id="part-a-tabulate-chd-by-smoking-status"><span class="header-section-number">1.1</span> Part a: Tabulate CHD by smoking status</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>framingham <span class="sc">|&gt;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(currentSmoker, TenYearCHD) <span class="sc">|&gt;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(currentSmoker) <span class="sc">|&gt;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">prop =</span> <span class="fu">round</span>(n <span class="sc">/</span> <span class="fu">sum</span>(n), <span class="dv">3</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(TenYearCHD <span class="sc">==</span> <span class="st">"Yes"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 4
+# Groups:   currentSmoker [2]
+  currentSmoker TenYearCHD     n  prop
+  &lt;fct&gt;         &lt;fct&gt;      &lt;int&gt; &lt;dbl&gt;
+1 Non-smoker    Yes          311 0.145
+2 Smoker        Yes          333 0.159</code></pre>
+</div>
+</div>
+<p>About 15% of non-smokers develop CHD within 10 years compared with about 18% of smokers. The raw proportions are similar, which will make the unadjusted OR modest.</p>
+</section>
+<section id="part-b-fit-the-simple-logistic-regression" class="level2" data-number="1.2">
+<h2 data-number="1.2" class="anchored" data-anchor-id="part-b-fit-the-simple-logistic-regression"><span class="header-section-number">1.2</span> Part b: Fit the simple logistic regression</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>m_smoker <span class="ot">&lt;-</span> <span class="fu">glm</span>(TenYearCHD <span class="sc">~</span> currentSmoker,</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>                <span class="at">data =</span> framingham,</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>                <span class="at">family =</span> binomial)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m_smoker)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+glm(formula = TenYearCHD ~ currentSmoker, family = binomial, 
+    data = framingham)
+
+Coefficients:
+                    Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept)         -1.77446    0.06132 -28.936   &lt;2e-16 ***
+currentSmokerSmoker  0.10840    0.08562   1.266    0.206    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 3612.2  on 4239  degrees of freedom
+Residual deviance: 3610.6  on 4238  degrees of freedom
+AIC: 3614.6
+
+Number of Fisher Scoring iterations: 4</code></pre>
+</div>
+</div>
+<p>The coefficient on <code>currentSmokerSmoker</code> is positive (approximately 0.23), indicating that smokers have higher log-odds of CHD than non-smokers. The z-statistic and p-value indicate this difference is statistically significant.</p>
+</section>
+<section id="part-c-odds-ratio-and-95-ci" class="level2" data-number="1.3">
+<h2 data-number="1.3" class="anchored" data-anchor-id="part-c-odds-ratio-and-95-ci"><span class="header-section-number">1.3</span> Part c: Odds ratio and 95% CI</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">exp</span>(<span class="fu">cbind</span>(<span class="at">OR =</span> <span class="fu">coef</span>(m_smoker), <span class="fu">confint</span>(m_smoker))) <span class="sc">|&gt;</span> <span class="fu">round</span>(<span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                       OR 2.5 % 97.5 %
+(Intercept)         0.170 0.150  0.191
+currentSmokerSmoker 1.114 0.942  1.318</code></pre>
+</div>
+</div>
+<p>The OR for smoking is approximately 1.11 (95% CI roughly 0.94–1.32). Smokers have about 11% higher odds of developing CHD within 10 years compared with non-smokers. The confidence interval includes 1, so the association is not statistically significant at alpha = 0.05.</p>
+</section>
+<section id="part-d-verify-against-the-2x2-table" class="level2" data-number="1.4">
+<h2 data-number="1.4" class="anchored" data-anchor-id="part-d-verify-against-the-2x2-table"><span class="header-section-number">1.4</span> Part d: Verify against the 2x2 table</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>tab <span class="ot">&lt;-</span> <span class="fu">table</span>(framingham<span class="sc">$</span>currentSmoker, framingham<span class="sc">$</span>TenYearCHD)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>tab</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>            
+               No  Yes
+  Non-smoker 1834  311
+  Smoker     1762  333</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>or_table <span class="ot">&lt;-</span> (tab[<span class="dv">2</span>,<span class="dv">2</span>] <span class="sc">*</span> tab[<span class="dv">1</span>,<span class="dv">1</span>]) <span class="sc">/</span> (tab[<span class="dv">1</span>,<span class="dv">2</span>] <span class="sc">*</span> tab[<span class="dv">2</span>,<span class="dv">1</span>])</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">round</span>(or_table, <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1.114</code></pre>
+</div>
+</div>
+<p>The cross-product OR from the 2x2 table matches the <code>exp(coef())</code> value from the logistic model to at least three decimal places, confirming that simple logistic regression with a single binary predictor is equivalent to computing the odds ratio directly from a contingency table.</p>
+<hr>
+</section>
+</section>
+<section id="exercise-2-simple-logistic-regression-with-a-continuous-predictor" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Exercise 2 – Simple Logistic Regression with a Continuous Predictor</h1>
+<section id="part-a-inspect-the-relationship-visually" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="part-a-inspect-the-relationship-visually"><span class="header-section-number">2.1</span> Part a: Inspect the relationship visually</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>framingham <span class="sc">|&gt;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">CHD_numeric =</span> <span class="fu">as.numeric</span>(TenYearCHD) <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">|&gt;</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> sysBP, <span class="at">y =</span> CHD_numeric)) <span class="sc">+</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_jitter</span>(<span class="at">alpha =</span> <span class="fl">0.06</span>, <span class="at">height =</span> <span class="fl">0.04</span>, <span class="at">color =</span> <span class="st">"steelblue"</span>) <span class="sc">+</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"loess"</span>, <span class="at">color =</span> <span class="st">"firebrick"</span>, <span class="at">se =</span> <span class="cn">TRUE</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Systolic BP (mmHg)"</span>,</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Probability of CHD within 10 years"</span>,</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Empirical CHD Probability by Systolic BP"</span>) <span class="sc">+</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day8_PM_Lab_LogisticRegression_SOLUTIONS_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The loess curve rises steadily with systolic BP. The relationship is approximately monotonic with no sharp inflection points, supporting the use of a single linear term on the log-odds scale.</p>
+</section>
+<section id="part-b-fit-the-model-report-coefficient-or-and-ci" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="part-b-fit-the-model-report-coefficient-or-and-ci"><span class="header-section-number">2.2</span> Part b: Fit the model, report coefficient, OR, and CI</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>m_bp <span class="ot">&lt;-</span> <span class="fu">glm</span>(TenYearCHD <span class="sc">~</span> sysBP,</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>            <span class="at">data =</span> framingham,</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>            <span class="at">family =</span> binomial)</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m_bp)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+glm(formula = TenYearCHD ~ sysBP, family = binomial, data = framingham)
+
+Coefficients:
+             Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept) -5.000050   0.255855  -19.54   &lt;2e-16 ***
+sysBP        0.024057   0.001801   13.36   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 3612.2  on 4239  degrees of freedom
+Residual deviance: 3433.3  on 4238  degrees of freedom
+AIC: 3437.3
+
+Number of Fisher Scoring iterations: 4</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">exp</span>(<span class="fu">cbind</span>(<span class="at">OR =</span> <span class="fu">coef</span>(m_bp), <span class="fu">confint</span>(m_bp))) <span class="sc">|&gt;</span> <span class="fu">round</span>(<span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                OR  2.5 % 97.5 %
+(Intercept) 0.0067 0.0041 0.0111
+sysBP       1.0243 1.0208 1.0280</code></pre>
+</div>
+</div>
+<p>The coefficient on <code>sysBP</code> is approximately 0.024. The per-1-mmHg OR is about 1.024, with a confidence interval that excludes 1. The z-statistic is large and the p-value is essentially zero, indicating very strong evidence that systolic BP is associated with CHD risk.</p>
+<p>The plot does indicate that the relationship may be quadratic. Let’s take a look:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>m_bp_quad <span class="ot">&lt;-</span> <span class="fu">glm</span>(TenYearCHD <span class="sc">~</span> <span class="fu">poly</span>(sysBP,<span class="dv">2</span>),</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>                <span class="at">data =</span> framingham,</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>                <span class="at">family =</span> binomial)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m_bp_quad)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+glm(formula = TenYearCHD ~ poly(sysBP, 2), family = binomial, 
+    data = framingham)
+
+Coefficients:
+                Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept)     -1.82021    0.04651 -39.138   &lt;2e-16 ***
+poly(sysBP, 2)1 35.12178    2.73256  12.853   &lt;2e-16 ***
+poly(sysBP, 2)2 -1.89925    2.62312  -0.724    0.469    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 3612.2  on 4239  degrees of freedom
+Residual deviance: 3432.8  on 4237  degrees of freedom
+AIC: 3438.8
+
+Number of Fisher Scoring iterations: 5</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">anova</span>(m_bp,m_bp_quad)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Analysis of Deviance Table
+
+Model 1: TenYearCHD ~ sysBP
+Model 2: TenYearCHD ~ poly(sysBP, 2)
+  Resid. Df Resid. Dev Df Deviance Pr(&gt;Chi)
+1      4238     3433.3                     
+2      4237     3432.8  1   0.5124   0.4741</code></pre>
+</div>
+</div>
+<p>The linear model provides a better fit to the data.</p>
+</section>
+<section id="part-c-rescale-to-20-mmhg" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="part-c-rescale-to-20-mmhg"><span class="header-section-number">2.3</span> Part c: Rescale to 20 mmHg</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">exp</span>(<span class="dv">20</span> <span class="sc">*</span> <span class="fu">coef</span>(m_bp)[<span class="st">"sysBP"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   sysBP 
+1.617931 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">exp</span>(<span class="dv">20</span> <span class="sc">*</span> <span class="fu">confint</span>(m_bp)[<span class="st">"sysBP"</span>, ])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  2.5 %  97.5 % 
+1.50800 1.73679 </code></pre>
+</div>
+</div>
+<p>A 20 mmHg increase in systolic blood pressure is associated with approximately a 62% increase in the odds of developing CHD within 10 years (OR approximately 1.5 to 2.0). This is a clinically meaningful unit: 20 mmHg is roughly one standard deviation of systolic BP in this cohort and corresponds to the difference between, say, 120 and 140 mmHg.</p>
+</section>
+<section id="part-d-plot-the-fitted-logistic-curve" class="level2" data-number="2.4">
+<h2 data-number="2.4" class="anchored" data-anchor-id="part-d-plot-the-fitted-logistic-curve"><span class="header-section-number">2.4</span> Part d: Plot the fitted logistic curve</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>framingham <span class="sc">|&gt;</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">CHD_numeric =</span> <span class="fu">as.numeric</span>(TenYearCHD) <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">|&gt;</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> sysBP, <span class="at">y =</span> CHD_numeric)) <span class="sc">+</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_jitter</span>(<span class="at">alpha =</span> <span class="fl">0.06</span>, <span class="at">height =</span> <span class="fl">0.04</span>, <span class="at">color =</span> <span class="st">"steelblue"</span>) <span class="sc">+</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"glm"</span>, <span class="at">method.args =</span> <span class="fu">list</span>(<span class="at">family =</span> <span class="st">"binomial"</span>),</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>              <span class="at">color =</span> <span class="st">"firebrick"</span>, <span class="at">se =</span> <span class="cn">TRUE</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Systolic BP (mmHg)"</span>,</span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Probability of CHD within 10 years"</span>,</span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Fitted Logistic Regression: CHD on Systolic BP"</span>) <span class="sc">+</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day8_PM_Lab_LogisticRegression_SOLUTIONS_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The fitted curve is S-shaped and bounded between 0 and 1, rising from near 5% at very low BP values to near 40% at very high values. Unlike a linear regression line, it cannot predict probabilities outside the valid range.</p>
+<hr>
+</section>
+</section>
+<section id="exercise-3-multiple-logistic-regression-and-confounding" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Exercise 3 – Multiple Logistic Regression and Confounding</h1>
+<section id="part-a-unadjusted-or-for-smoking" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="part-a-unadjusted-or-for-smoking"><span class="header-section-number">3.1</span> Part a: Unadjusted OR for smoking</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>m_smoke_only <span class="ot">&lt;-</span> <span class="fu">glm</span>(TenYearCHD <span class="sc">~</span> currentSmoker,</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>                    <span class="at">data =</span> framingham,</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>                    <span class="at">family =</span> binomial)</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="fu">exp</span>(<span class="fu">cbind</span>(<span class="at">OR =</span> <span class="fu">coef</span>(m_smoke_only), <span class="fu">confint</span>(m_smoke_only))) <span class="sc">|&gt;</span> <span class="fu">round</span>(<span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                       OR 2.5 % 97.5 %
+(Intercept)         0.170 0.150  0.191
+currentSmokerSmoker 1.114 0.942  1.318</code></pre>
+</div>
+</div>
+<p>The unadjusted OR for smoking is approximately 1.11 (same as Exercise 1).</p>
+</section>
+<section id="part-b-adjusted-or-for-smoking-controlling-for-age" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="part-b-adjusted-or-for-smoking-controlling-for-age"><span class="header-section-number">3.2</span> Part b: Adjusted OR for smoking, controlling for age</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>m_smoke_age <span class="ot">&lt;-</span> <span class="fu">glm</span>(TenYearCHD <span class="sc">~</span> currentSmoker <span class="sc">+</span> age,</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>                   <span class="at">data =</span> framingham,</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>                   <span class="at">family =</span> binomial)</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="fu">exp</span>(<span class="fu">cbind</span>(<span class="at">OR =</span> <span class="fu">coef</span>(m_smoke_age), <span class="fu">confint</span>(m_smoke_age))) <span class="sc">|&gt;</span> <span class="fu">round</span>(<span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                       OR 2.5 % 97.5 %
+(Intercept)         0.002 0.001  0.004
+currentSmokerSmoker 1.544 1.291  1.848
+age                 1.084 1.073  1.096</code></pre>
+</div>
+</div>
+<p>After adjusting for age, the OR for smoking increases to approximately 1.54.</p>
+</section>
+<section id="part-c-compare-unadjusted-and-adjusted-ors" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="part-c-compare-unadjusted-and-adjusted-ors"><span class="header-section-number">3.3</span> Part c: Compare unadjusted and adjusted ORs</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>framingham <span class="sc">|&gt;</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(currentSmoker) <span class="sc">|&gt;</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">mean_age =</span> <span class="fu">mean</span>(age), <span class="at">.groups =</span> <span class="st">"drop"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 2
+  currentSmoker mean_age
+  &lt;fct&gt;            &lt;dbl&gt;
+1 Non-smoker        51.4
+2 Smoker            47.7</code></pre>
+</div>
+</div>
+<p>The adjusted OR for smoking (approximately 1.54) is <strong>larger</strong> than the unadjusted OR (approximately 1.11). This is an example of negative confounding. The mean age check reveals that smokers in this cohort are younger than non-smokers by about 2–3 years. Since younger age is associated with lower CHD risk, the younger age of smokers was partially masking (attenuating) the true effect of smoking on CHD. Once we hold age constant, the smoking effect becomes larger. Confounding can inflate or deflate an association depending on the direction of the confounder’s relationship with both the exposure and the outcome.</p>
+</section>
+<section id="part-d-likelihood-ratio-test-for-age" class="level2" data-number="3.4">
+<h2 data-number="3.4" class="anchored" data-anchor-id="part-d-likelihood-ratio-test-for-age"><span class="header-section-number">3.4</span> Part d: Likelihood ratio test for age</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">anova</span>(m_smoke_only, m_smoke_age)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Analysis of Deviance Table
+
+Model 1: TenYearCHD ~ currentSmoker
+Model 2: TenYearCHD ~ currentSmoker + age
+  Resid. Df Resid. Dev Df Deviance  Pr(&gt;Chi)    
+1      4238     3610.6                          
+2      4237     3373.8  1    236.8 &lt; 2.2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+</div>
+</div>
+<p>The LRT p-value is essentially zero, providing very strong evidence that age adds significant predictive information beyond smoking status alone. The large chi-squared statistic reflects the fact that age is one of the strongest predictors of CHD in the Framingham cohort.</p>
+<hr>
+</section>
+</section>
+<section id="exercise-4-full-workflow-building-a-chd-risk-model" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Exercise 4 – Full Workflow: Building a CHD Risk Model</h1>
+<section id="part-a-fit-the-full-model" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="part-a-fit-the-full-model"><span class="header-section-number">4.1</span> Part a: Fit the full model</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>vars_used <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"TenYearCHD"</span>, <span class="st">"age"</span>, <span class="st">"male"</span>, <span class="st">"currentSmoker"</span>,</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>               <span class="st">"sysBP"</span>, <span class="st">"totChol"</span>, <span class="st">"BMI"</span>, <span class="st">"diabetes"</span>, <span class="st">"prevalentHyp"</span>)</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>framingham_cc <span class="ot">&lt;-</span> framingham <span class="sc">|&gt;</span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>(<span class="fu">all_of</span>(vars_used))</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a><span class="fu">nrow</span>(framingham) <span class="sc">-</span> <span class="fu">nrow</span>(framingham_cc)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 68</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>m_full <span class="ot">&lt;-</span> <span class="fu">glm</span>(TenYearCHD <span class="sc">~</span> age <span class="sc">+</span> male <span class="sc">+</span> currentSmoker <span class="sc">+</span> sysBP <span class="sc">+</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>                            totChol <span class="sc">+</span> BMI <span class="sc">+</span> diabetes <span class="sc">+</span> prevalentHyp,</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>              <span class="at">data =</span> framingham_cc,</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>              <span class="at">family =</span> binomial)</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m_full)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+glm(formula = TenYearCHD ~ age + male + currentSmoker + sysBP + 
+    totChol + BMI + diabetes + prevalentHyp, family = binomial, 
+    data = framingham_cc)
+
+Coefficients:
+                     Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept)         -8.301041   0.548172 -15.143  &lt; 2e-16 ***
+age                  0.064413   0.006034  10.676  &lt; 2e-16 ***
+maleMale             0.613032   0.096507   6.352 2.12e-10 ***
+currentSmokerSmoker  0.413006   0.098520   4.192 2.76e-05 ***
+sysBP                0.014246   0.002725   5.228 1.71e-07 ***
+totChol              0.002095   0.001026   2.041  0.04123 *  
+BMI                  0.007122   0.011618   0.613  0.53986    
+diabetesYes          0.696772   0.221533   3.145  0.00166 ** 
+prevalentHypYes      0.208947   0.127226   1.642  0.10052    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 3524.3  on 4171  degrees of freedom
+Residual deviance: 3148.9  on 4163  degrees of freedom
+AIC: 3166.9
+
+Number of Fisher Scoring iterations: 5</code></pre>
+</div>
+</div>
+<p>Age, sex (male), smoking, systolic BP, and diabetes all appear strongly associated with CHD. Total cholesterol shows a positive association. BMI and prevalent hypertension have weaker or less significant effects once the other variables are in the model.</p>
+</section>
+<section id="part-b-aic-based-model-selection" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="part-b-aic-based-model-selection"><span class="header-section-number">4.2</span> Part b: AIC-based model selection</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>m_step <span class="ot">&lt;-</span> <span class="fu">step</span>(m_full, <span class="at">direction =</span> <span class="st">"both"</span>, <span class="at">trace =</span> <span class="dv">0</span>)</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m_step)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+glm(formula = TenYearCHD ~ age + male + currentSmoker + sysBP + 
+    totChol + diabetes + prevalentHyp, family = binomial, data = framingham_cc)
+
+Coefficients:
+                     Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept)         -8.141922   0.481589 -16.906  &lt; 2e-16 ***
+age                  0.064198   0.006024  10.658  &lt; 2e-16 ***
+maleMale             0.617123   0.096273   6.410 1.45e-10 ***
+currentSmokerSmoker  0.404244   0.097458   4.148 3.36e-05 ***
+sysBP                0.014503   0.002693   5.386 7.21e-08 ***
+totChol              0.002105   0.001026   2.052  0.04021 *  
+diabetesYes          0.707284   0.220828   3.203  0.00136 ** 
+prevalentHypYes      0.216592   0.126664   1.710  0.08727 .  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for binomial family taken to be 1)
+
+    Null deviance: 3524.3  on 4171  degrees of freedom
+Residual deviance: 3149.2  on 4164  degrees of freedom
+AIC: 3165.2
+
+Number of Fisher Scoring iterations: 5</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">AIC</span>(m_full, m_step)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>       df      AIC
+m_full  9 3166.851
+m_step  8 3165.225</code></pre>
+</div>
+</div>
+<p>The stepwise procedure typically retains age, sex, smoking, sysBP, totChol, and diabetes, and drops BMI and prevalentHyp. The selected model has a lower AIC, indicating a modest improvement in fit per parameter.</p>
+</section>
+<section id="part-c-lrt-for-dropped-variables" class="level2" data-number="4.3">
+<h2 data-number="4.3" class="anchored" data-anchor-id="part-c-lrt-for-dropped-variables"><span class="header-section-number">4.3</span> Part c: LRT for dropped variables</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">anova</span>(m_step, m_full, <span class="at">test =</span> <span class="st">"LRT"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Analysis of Deviance Table
+
+Model 1: TenYearCHD ~ age + male + currentSmoker + sysBP + totChol + diabetes + 
+    prevalentHyp
+Model 2: TenYearCHD ~ age + male + currentSmoker + sysBP + totChol + BMI + 
+    diabetes + prevalentHyp
+  Resid. Df Resid. Dev Df Deviance Pr(&gt;Chi)
+1      4164     3149.2                     
+2      4163     3148.8  1  0.37424   0.5407</code></pre>
+</div>
+</div>
+<p>The LRT p-value for the variables dropped by stepwise selection (BMI and prevalentHyp) is typically large (p &gt; 0.05), confirming that these variables do not significantly improve the model beyond the retained predictors. The AIC and LRT are in agreement here.</p>
+</section>
+<section id="part-d-adjusted-ors-for-the-final-model" class="level2" data-number="4.4">
+<h2 data-number="4.4" class="anchored" data-anchor-id="part-d-adjusted-ors-for-the-final-model"><span class="header-section-number">4.4</span> Part d: Adjusted ORs for the final model</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>chd_final <span class="ot">&lt;-</span> m_step</span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>or_table <span class="ot">&lt;-</span> <span class="fu">exp</span>(<span class="fu">cbind</span>(<span class="at">OR =</span> <span class="fu">coef</span>(chd_final), <span class="fu">confint</span>(chd_final))) <span class="sc">|&gt;</span></span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">round</span>(<span class="dv">3</span>)</span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>or_table</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                       OR 2.5 % 97.5 %
+(Intercept)         0.000 0.000  0.001
+age                 1.066 1.054  1.079
+maleMale            1.854 1.536  2.240
+currentSmokerSmoker 1.498 1.238  1.815
+sysBP               1.015 1.009  1.020
+totChol             1.002 1.000  1.004
+diabetesYes         2.028 1.305  3.108
+prevalentHypYes     1.242 0.968  1.591</code></pre>
+</div>
+</div>
+<p><strong>Interpretations:</strong></p>
+<ul>
+<li><strong>age (per 10 years):</strong></li>
+</ul>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="fu">exp</span>(<span class="dv">10</span> <span class="sc">*</span> <span class="fu">coef</span>(chd_final)[<span class="st">"age"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     age 
+1.900247 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="fu">exp</span>(<span class="dv">10</span> <span class="sc">*</span> <span class="fu">confint</span>(chd_final)[<span class="st">"age"</span>, ])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   2.5 %   97.5 % 
+1.689566 2.139723 </code></pre>
+</div>
+</div>
+<p>Each decade of age roughly doubles the odds of CHD after adjusting for the other risk factors.</p>
+<ul>
+<li><p><strong>maleMale:</strong> Males have substantially higher odds of CHD than females of the same age, smoking status, blood pressure, cholesterol, and diabetes status.</p></li>
+<li><p><strong>currentSmokerSmoker:</strong> After adjusting for age and other factors, smokers have markedly higher CHD odds than non-smokers. Note this adjusted OR is larger than the unadjusted OR from Exercise 1, consistent with the negative confounding by age found in Exercise 3.</p></li>
+<li><p><strong>sysBP (per 20 mmHg):</strong></p></li>
+</ul>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="fu">exp</span>(<span class="dv">20</span> <span class="sc">*</span> <span class="fu">coef</span>(chd_final)[<span class="st">"sysBP"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> sysBP 
+1.3365 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="fu">exp</span>(<span class="dv">20</span> <span class="sc">*</span> <span class="fu">confint</span>(chd_final)[<span class="st">"sysBP"</span>, ])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   2.5 %   97.5 % 
+1.202833 1.485760 </code></pre>
+</div>
+</div>
+<p>A 20 mmHg higher systolic BP is associated with roughly 33% higher odds of CHD, holding the other variables constant.</p>
+<ul>
+<li><strong>totChol (per 40 mg/dL):</strong></li>
+</ul>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="fu">exp</span>(<span class="dv">100</span> <span class="sc">*</span> <span class="fu">coef</span>(chd_final)[<span class="st">"totChol"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> totChol 
+1.234282 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="fu">exp</span>(<span class="dv">100</span> <span class="sc">*</span> <span class="fu">confint</span>(chd_final)[<span class="st">"totChol"</span>, ])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   2.5 %   97.5 % 
+1.008506 1.508703 </code></pre>
+</div>
+</div>
+<p>A 40 mg/dL increase in total cholesterol is associated with a modest increase in CHD odds.</p>
+<ul>
+<li><strong>diabetesYes:</strong> Diabetic participants have substantially higher CHD odds even after adjusting for all other risk factors in the model.</li>
+</ul>
+</section>
+<section id="part-e-predicted-probabilities" class="level2" data-number="4.5">
+<h2 data-number="4.5" class="anchored" data-anchor-id="part-e-predicted-probabilities"><span class="header-section-number">4.5</span> Part e: Predicted probabilities</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a>framingham_cc <span class="ot">&lt;-</span> framingham_cc <span class="sc">|&gt;</span></span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">p_final =</span> <span class="fu">predict</span>(chd_final, <span class="at">newdata =</span> framingham_cc,</span>
+<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a>                           <span class="at">type =</span> <span class="st">"response"</span>))</span>
+<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb58-5"><a href="#cb58-5" aria-hidden="true" tabindex="-1"></a>framingham_cc <span class="sc">|&gt;</span></span>
+<span id="cb58-6"><a href="#cb58-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(TenYearCHD, p_final) <span class="sc">|&gt;</span></span>
+<span id="cb58-7"><a href="#cb58-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summary</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> TenYearCHD    p_final       
+ No :3547   Min.   :0.01591  
+ Yes: 625   1st Qu.:0.06649  
+            Median :0.11740  
+            Mean   :0.14981  
+            3rd Qu.:0.20181  
+            Max.   :0.73849  </code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a>framingham_cc <span class="sc">|&gt;</span></span>
+<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">CHD_numeric =</span> <span class="fu">as.numeric</span>(TenYearCHD) <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">|&gt;</span></span>
+<span id="cb60-3"><a href="#cb60-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> p_final, <span class="at">fill =</span> TenYearCHD)) <span class="sc">+</span></span>
+<span id="cb60-4"><a href="#cb60-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">binwidth =</span> <span class="fl">0.02</span>, <span class="at">position =</span> <span class="st">"identity"</span>,</span>
+<span id="cb60-5"><a href="#cb60-5" aria-hidden="true" tabindex="-1"></a>                 <span class="at">alpha =</span> <span class="fl">0.6</span>, <span class="at">color =</span> <span class="st">"white"</span>) <span class="sc">+</span></span>
+<span id="cb60-6"><a href="#cb60-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"No"</span> <span class="ot">=</span> <span class="st">"steelblue"</span>, <span class="st">"Yes"</span> <span class="ot">=</span> <span class="st">"firebrick"</span>)) <span class="sc">+</span></span>
+<span id="cb60-7"><a href="#cb60-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Predicted probability of CHD"</span>,</span>
+<span id="cb60-8"><a href="#cb60-8" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Count"</span>,</span>
+<span id="cb60-9"><a href="#cb60-9" aria-hidden="true" tabindex="-1"></a>       <span class="at">fill =</span> <span class="st">"Actual CHD"</span>,</span>
+<span id="cb60-10"><a href="#cb60-10" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Distribution of Predicted Probabilities by Actual Outcome"</span>) <span class="sc">+</span></span>
+<span id="cb60-11"><a href="#cb60-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day8_PM_Lab_LogisticRegression_SOLUTIONS_files/figure-html/unnamed-chunk-23-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The predicted probabilities range from near 0% to about 60–70%. The distributions for the CHD and non-CHD groups overlap considerably, which is typical for clinical risk models. The CHD group tends to have higher predicted probabilities on average, but there is no clean separation. This overlap is what motivates tomorrow’s topic: how do we choose a threshold to turn these probabilities into yes/no predictions, and how do we evaluate the tradeoffs?</p>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+<script src="Day8_PM_Lab_LogisticRegression_SOLUTIONS_files/libs/quarto-html/zenscroll-min.js"></script>
+</body></html>
