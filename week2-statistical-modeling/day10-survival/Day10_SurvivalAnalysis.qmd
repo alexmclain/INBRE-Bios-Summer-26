@@ -353,6 +353,14 @@ nrow(lung) - nrow(lung_cc)
 cox_full <- coxph(Surv(time, status == 2) ~ sex_label + age + ph.ecog,
                   data = lung_cc)
 summary(cox_full)
+
+
+cox_full_factor <- coxph(Surv(time, status == 2) ~ sex_label + age + factor(ph.ecog),
+                  data = lung_cc)
+summary(cox_full_factor)
+
+anova(cox_full, cox_full_factor)
+
 ```
 
 ```{r}

@@ -1,0 +1,438 @@
+---
+title: "Day 13 (PM) Lab: Multiple Testing and Clustering"
+subtitle: "SC INBRE Biostatistics Summer Intensive 2026"
+date: today
+format:
+  html:
+    toc: true
+    toc-location: left
+    toc-depth: 3
+    number-sections: true
+    smooth-scroll: true
+    theme: cosmo
+    code-fold: false
+    highlight-style: github
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+# Overview
+
+This afternoon you will apply the Day 13 morning material to the `fission`
+dataset: an RNA-sequencing experiment in fission yeast (*S. pombe*) comparing
+a wild-type strain to an *atf21* deletion mutant under oxidative stress.
+
+The experiment has two factors: strain (wild-type vs mutant) and time (0, 15,
+30, 60, 120, 180 minutes after stress). Today we use only the **time zero**
+samples -- three wild-type and three mutant replicates -- and ask: which genes
+differ between the two strains at baseline?
+
+The DESeq2 workflow is identical to what you have already done. The new
+material is in interpreting the multiple testing results and clustering the
+output.
+
+::: {.callout-note}
+Install `fission` if needed: `BiocManager::install("fission")`
+
+Install `factoextra` if needed: `install.packages("factoextra")`
+:::
+
+**How this lab works:**
+
+- **Part 1 (instructor demo, ~20 min):** Load the data, subset to time zero,
+  and run DESeq2 together.
+- **Part 2 (on your own, ~90 min):** Four exercises on multiple testing and
+  clustering.
+
+---
+
+# Part 1: Instructor Demo
+
+## Setup
+
+```{r}
+library(tidyverse)
+library(this.path)
+library(SummarizedExperiment)
+library(DESeq2)
+library(fission)
+library(factoextra)
+library(cluster)
+library(pheatmap)
+library(patchwork)
+# Some conflicted functions for this .qmd, setting defaults here:
+select  <- dplyr::select
+filter  <- dplyr::filter
+setdiff <- base::setdiff
+setwd(this.dir())
+
+data(fission)
+fission
+```
+
+## Explore the Design
+
+```{r}
+colData(fission) |>
+  as_tibble()
+```
+
+The experiment has `r ncol(fission)` samples: 3 replicates per strain per
+time point, across 6 time points. For today we subset to time zero (the
+unstressed baseline) so the comparison is straightforward: wild-type vs.
+mutant with 3 replicates each.
+
+```{r}
+# Subset to time = 0 only
+fission_t0 <- fission[, fission$minute == "0"]
+colData(fission_t0) |> as_tibble() 
+```
+
+## Build and Run DESeq2
+
+```{r}
+dds <- DESeqDataSet(fission_t0, design = ~ strain)
+dds$strain <- relevel(dds$strain, ref = "wt")
+
+keep <- rowSums(counts(dds)) >= 10
+dds  <- dds[keep, ]
+cat("Genes retained after filtering:", nrow(dds), "\n")
+```
+
+```{r}
+deseq_dds <- DESeq(dds)
+res        <- results(deseq_dds)
+summary(res)
+```
+
+## Results Table
+
+```{r}
+res_df <- as.data.frame(res) |>
+  rownames_to_column("gene_id") |>
+  as_tibble() |>
+  arrange(padj)
+
+head(res_df, 10)
+```
+
+## P-Value Histogram
+
+```{r}
+#| fig-width: 8
+#| fig-height: 4
+p1 <- res_df |>
+  filter(!is.na(pvalue)) |>
+  ggplot(aes(x = pvalue)) +
+  geom_histogram(bins = 40, fill = "steelblue", color = "white") +
+  geom_vline(xintercept = 0.05, color = "firebrick",
+             linetype = "dashed", linewidth = 1) +
+  labs(title = "Raw p-values", x = "p-value", y = "Genes") +
+  theme_minimal()
+
+p2 <- res_df |>
+  filter(!is.na(padj)) |>
+  ggplot(aes(x = padj)) +
+  geom_histogram(bins = 40, fill = "steelblue", color = "white") +
+  geom_vline(xintercept = 0.05, color = "firebrick",
+             linetype = "dashed", linewidth = 1) +
+  labs(title = "BH-adjusted p-values", x = "Adjusted p-value",
+       y = "Genes") +
+  theme_minimal()
+
+p1 + p2
+```
+
+The spike near zero in the raw p-value histogram represents the true
+differentially expressed genes. The flat right-hand region represents the null
+genes. The BH procedure uses this structure to set an adaptive threshold that
+controls the false discovery rate.
+
+---
+
+# Part 2: Exercises
+
+## Instructions
+
+**Step 1.** Open a new Quarto document. Title it
+`"Day 13 Lab: Multiple Testing and Clustering"`.
+
+**Step 2.** Copy the full setup and demo chunks (through the `res_df`
+creation). You need `deseq_dds`, `res`, and `res_df` available before
+starting.
+
+**Step 3.** Work through Exercises 1--4. Add 2--3 sentences of interpretation
+after each result.
+
+**Step 4.** Render when finished.
+
+---
+
+**Exercise 1 -- Comparing Correction Methods.**
+
+a. How many genes have a raw p-value below 0.05? Below 0.01?
+
+b. Compute Bonferroni-adjusted p-values using
+   `p.adjust(res_df$pvalue, method = "bonferroni")`. How many genes are
+   significant at the 0.05 level after Bonferroni correction?
+
+c. How many genes have `padj < 0.05` (BH correction)?
+
+d. Summarize the three counts in a tibble with columns `Method` and
+   `N_significant`. Describe in one sentence why BH finds more significant
+   genes than Bonferroni.
+
+e. Some genes have `padj = NA`. Count them. Then inspect their `baseMean`
+   values:
+   ```r
+   res_df |> filter(is.na(padj)) |> pull(baseMean) |> summary()
+   ```
+   What do you notice? Why does removing these genes before applying BH
+   increase power for the genes that remain?
+
+```{r}
+# your code here
+```
+
+---
+
+**Exercise 2 -- Exploring the DE Results.**
+
+a. Among genes with `padj < 0.05`, how many are upregulated
+   (log2FoldChange > 0) and how many are downregulated? In this experiment,
+   which group does upregulated mean higher expression in -- wild-type or
+   mutant?
+
+b. Print the top 10 most significant genes sorted by `padj`. Report gene
+   ID, log2FoldChange, and padj.
+
+c. For the most significant gene, convert the log2 fold change to a regular
+   fold change with `2^(log2FoldChange)`. Interpret this in plain language.
+
+d. Produce a volcano plot: `log2FoldChange` on the x-axis, `-log10(padj)`
+   on the y-axis. Color significant genes (padj < 0.05) in red. Add dashed
+   lines at LFC = -1, LFC = 1, and `-log10(0.05)`. Describe what the genes
+   in the top-right and top-left corners represent.
+
+```{r}
+# your code here
+```
+
+---
+
+**Exercise 3 -- Hierarchical Clustering of Samples.**
+
+a. Apply the variance-stabilizing transformation:
+   ```r
+   vsd <- vst(deseq_dds, blind = FALSE)
+   ```
+
+b. Take the 300 most variable genes and row-scale the matrix:
+   ```r
+   top_var <- order(rowVars(assay(vsd)), decreasing = TRUE)[1:300]
+   mat     <- t(scale(t(assay(vsd)[top_var, ])))
+   ```
+
+c. Compute sample-to-sample Euclidean distances with `dist(t(mat))`.
+   Fit hierarchical clustering with complete linkage.
+
+d. Plot the dendrogram, labeling each leaf with strain and sample name:
+   ```r
+   plot(hc,
+        labels = paste(colData(vsd)$strain,
+                       colData(vsd)$sample, sep = "_"))
+   ```
+
+e. Cut to 2 clusters with `cutree(hc, k = 2)`. Cross-tabulate cluster
+   membership against strain. Do the two clusters correspond to wild-type
+   and mutant? What does this tell you about the overall effect of the
+   mutation on the transcriptome?
+
+```{r}
+# your code here
+```
+
+---
+
+**Exercise 4 -- K-Means Clustering of Genes.**
+
+a. Using the `mat` matrix from Exercise 3, use the silhouette method to
+   help choose K:
+   ```r
+   fviz_nbclust(mat, kmeans, method = "silhouette",
+                k.max = 8, nstart = 25)
+   ```
+   Which K maximizes average silhouette width?
+
+b. Fit K-means with your chosen K using `set.seed(2026)` and
+   `nstart = 25`. How many genes are in each cluster?
+
+c. Produce a heatmap with `pheatmap()` including row annotations for
+   K-means cluster and column annotations for strain:
+   ```r
+   gene_anno <- data.frame(
+     Cluster   = paste0("C", km_fit$cluster),
+     row.names = names(km_fit$cluster)
+   )
+   col_anno <- data.frame(
+     Strain    = as.character(colData(vsd)$strain),
+     row.names = colnames(vsd)
+   )
+   pheatmap(mat,
+            annotation_row = gene_anno,
+            annotation_col = col_anno,
+            show_rownames  = FALSE,
+            show_colnames  = FALSE,
+            cluster_rows   = TRUE,
+            cluster_cols   = TRUE,
+            color = colorRampPalette(
+              c("steelblue", "white", "firebrick"))(100))
+   ```
+
+d. Pick one cluster and describe its expression pattern: consistently
+   higher in the mutant or in the wild-type? Is the pattern consistent
+   across all three replicates within each strain?
+
+e. Compute and plot silhouette widths:
+   ```r
+   fviz_silhouette(silhouette(km_fit$cluster, dist(mat)))
+   ```
+   Are some clusters better-defined than others? What might a poorly
+   defined cluster (low average silhouette width) mean biologically?
+
+```{r}
+# your code here
+```
+
+---
+
+# Quick Reference Card
+
+## Setup
+
+```r
+library(tidyverse)
+library(SummarizedExperiment)
+library(DESeq2)
+library(fission)
+library(factoextra)
+library(cluster)
+library(pheatmap)
+
+data(fission)
+
+# Subset to time zero
+fission_t0 <- fission[, fission$minute == "0"]
+```
+
+## DESeq2 Workflow
+
+```r
+dds <- DESeqDataSet(fission_t0, design = ~ strain)
+dds$strain <- relevel(dds$strain, ref = "wt")
+keep       <- rowSums(counts(dds)) >= 10
+dds        <- dds[keep, ]
+deseq_dds  <- DESeq(dds)
+res        <- results(deseq_dds)
+
+res_df <- as.data.frame(res) |>
+  rownames_to_column("gene_id") |>
+  as_tibble() |>
+  arrange(padj)
+```
+
+## Multiple Testing
+
+```r
+# Counts at different thresholds
+sum(res_df$pvalue < 0.05, na.rm = TRUE)
+sum(res_df$padj   < 0.05, na.rm = TRUE)
+
+# Bonferroni
+bonf <- p.adjust(res_df$pvalue, method = "bonferroni")
+sum(bonf < 0.05, na.rm = TRUE)
+
+# Genes excluded by independent filtering
+sum(is.na(res_df$padj))
+res_df |> filter(is.na(padj)) |> pull(baseMean) |> summary()
+
+# Direction
+res_df |>
+  filter(padj < 0.05) |>
+  count(direction = if_else(log2FoldChange > 0, "Up", "Down"))
+
+# Fold change on original scale
+2^log2FoldChange
+```
+
+## VST and Top Variable Genes
+
+```r
+vsd     <- vst(deseq_dds, blind = FALSE)
+top_var <- order(rowVars(assay(vsd)), decreasing = TRUE)[1:300]
+mat     <- t(scale(t(assay(vsd)[top_var, ])))
+```
+
+## Hierarchical Clustering
+
+```r
+d  <- dist(t(mat), method = "euclidean")
+hc <- hclust(d, method = "complete")
+plot(hc, labels = paste(colData(vsd)$strain,
+                        colData(vsd)$sample, sep = "_"))
+cutree(hc, k = 2)
+table(Cluster = cutree(hc, k = 2), Strain = colData(vsd)$strain)
+```
+
+## K-Means Clustering
+
+```r
+# Choose K
+fviz_nbclust(mat, kmeans, method = "silhouette", k.max = 8, nstart = 25)
+
+# Fit
+set.seed(2026)
+km_fit <- kmeans(mat, centers = 3, nstart = 25)
+table(km_fit$cluster)
+
+# Silhouette plot
+fviz_silhouette(silhouette(km_fit$cluster, dist(mat)))
+```
+
+## Heatmap
+
+```r
+gene_anno <- data.frame(
+  Cluster   = paste0("C", km_fit$cluster),
+  row.names = names(km_fit$cluster)
+)
+col_anno <- data.frame(
+  Strain    = as.character(colData(vsd)$strain),
+  row.names = colnames(vsd)
+)
+pheatmap(mat,
+         annotation_row = gene_anno,
+         annotation_col = col_anno,
+         show_rownames  = FALSE,
+         show_colnames  = FALSE,
+         cluster_rows   = TRUE,
+         cluster_cols   = TRUE,
+         color = colorRampPalette(
+           c("steelblue", "white", "firebrick"))(100))
+```
+
+## Key Terms
+
+| Term | Meaning |
+|---|---|
+| Raw p-value | Do not use for calling significance across many tests |
+| FWER | Probability of any false positive; Bonferroni controls this |
+| FDR | Expected proportion of false discoveries; BH controls this |
+| `padj` | BH-adjusted p-value from DESeq2 -- always use this |
+| Independent filtering | Low-count genes excluded before BH; they get `padj = NA` |
+| LFC > 0 | Higher expression in mutant relative to wild-type |
+| K-means | Requires K upfront; scale data first; use `nstart > 1` |
+| Hierarchical | Dendrogram; no K upfront; cut tree to choose clusters |
+| Silhouette width | -1 to +1; higher = gene fits its cluster well |

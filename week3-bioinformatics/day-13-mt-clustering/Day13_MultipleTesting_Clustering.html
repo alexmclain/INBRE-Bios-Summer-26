@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.32">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2026-06-12">
+
+<title>Day 13: Multiple Testing and Clustering</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Day13_MultipleTesting_Clustering_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Day13_MultipleTesting_Clustering_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="Day13_MultipleTesting_Clustering_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="Day13_MultipleTesting_Clustering_files/libs/quarto-html/popper.min.js"></script>
+<script src="Day13_MultipleTesting_Clustering_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Day13_MultipleTesting_Clustering_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Day13_MultipleTesting_Clustering_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Day13_MultipleTesting_Clustering_files/libs/quarto-html/quarto-syntax-highlighting-234273d1456647dabc34a594ac50e507.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Day13_MultipleTesting_Clustering_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Day13_MultipleTesting_Clustering_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Day13_MultipleTesting_Clustering_files/libs/bootstrap/bootstrap-dfb3f4843b9b0ce307f095fcbeec1e0c.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<style>html{ scroll-behavior: smooth; }</style>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview"><span class="header-section-number">1</span> Overview</a></li>
+  <li><a href="#part-1-multiple-testing" id="toc-part-1-multiple-testing" class="nav-link" data-scroll-target="#part-1-multiple-testing"><span class="header-section-number">2</span> Part 1: Multiple Testing</a>
+  <ul class="collapse">
+  <li><a href="#the-problem" id="toc-the-problem" class="nav-link" data-scroll-target="#the-problem"><span class="header-section-number">2.1</span> The Problem</a></li>
+  <li><a href="#visualizing-the-problem" id="toc-visualizing-the-problem" class="nav-link" data-scroll-target="#visualizing-the-problem"><span class="header-section-number">2.2</span> Visualizing the Problem</a></li>
+  <li><a href="#two-error-rates" id="toc-two-error-rates" class="nav-link" data-scroll-target="#two-error-rates"><span class="header-section-number">2.3</span> Two Error Rates</a></li>
+  <li><a href="#bonferroni-simple-but-severe" id="toc-bonferroni-simple-but-severe" class="nav-link" data-scroll-target="#bonferroni-simple-but-severe"><span class="header-section-number">2.4</span> Bonferroni: Simple but Severe</a></li>
+  <li><a href="#the-benjamini-hochberg-bh-procedure" id="toc-the-benjamini-hochberg-bh-procedure" class="nav-link" data-scroll-target="#the-benjamini-hochberg-bh-procedure"><span class="header-section-number">2.5</span> The Benjamini-Hochberg (BH) Procedure</a></li>
+  <li><a href="#bh-in-practice-deseq2-results" id="toc-bh-in-practice-deseq2-results" class="nav-link" data-scroll-target="#bh-in-practice-deseq2-results"><span class="header-section-number">2.6</span> BH in Practice: DESeq2 Results</a></li>
+  </ul></li>
+  <li><a href="#part-2-clustering" id="toc-part-2-clustering" class="nav-link" data-scroll-target="#part-2-clustering"><span class="header-section-number">3</span> Part 2: Clustering</a>
+  <ul class="collapse">
+  <li><a href="#setup-vst-data-for-clustering" id="toc-setup-vst-data-for-clustering" class="nav-link" data-scroll-target="#setup-vst-data-for-clustering"><span class="header-section-number">3.1</span> Setup: VST Data for Clustering</a></li>
+  <li><a href="#k-means-clustering" id="toc-k-means-clustering" class="nav-link" data-scroll-target="#k-means-clustering"><span class="header-section-number">3.2</span> K-Means Clustering</a>
+  <ul class="collapse">
+  <li><a href="#choosing-k" id="toc-choosing-k" class="nav-link" data-scroll-target="#choosing-k"><span class="header-section-number">3.2.1</span> Choosing K</a></li>
+  <li><a href="#fitting-k-means" id="toc-fitting-k-means" class="nav-link" data-scroll-target="#fitting-k-means"><span class="header-section-number">3.2.2</span> Fitting K-Means</a></li>
+  </ul></li>
+  <li><a href="#hierarchical-clustering" id="toc-hierarchical-clustering" class="nav-link" data-scroll-target="#hierarchical-clustering"><span class="header-section-number">3.3</span> Hierarchical Clustering</a>
+  <ul class="collapse">
+  <li><a href="#clustering-samples" id="toc-clustering-samples" class="nav-link" data-scroll-target="#clustering-samples"><span class="header-section-number">3.3.1</span> Clustering Samples</a></li>
+  <li><a href="#clustering-genes" id="toc-clustering-genes" class="nav-link" data-scroll-target="#clustering-genes"><span class="header-section-number">3.3.2</span> Clustering Genes</a></li>
+  <li><a href="#comparing-k-means-and-hierarchical-results" id="toc-comparing-k-means-and-hierarchical-results" class="nav-link" data-scroll-target="#comparing-k-means-and-hierarchical-results"><span class="header-section-number">3.3.3</span> Comparing K-Means and Hierarchical Results</a></li>
+  <li><a href="#visualizing-gene-clusters-in-a-heatmap" id="toc-visualizing-gene-clusters-in-a-heatmap" class="nav-link" data-scroll-target="#visualizing-gene-clusters-in-a-heatmap"><span class="header-section-number">3.3.4</span> Visualizing Gene Clusters in a Heatmap</a></li>
+  </ul></li>
+  <li><a href="#silhouette-widths-evaluating-cluster-quality" id="toc-silhouette-widths-evaluating-cluster-quality" class="nav-link" data-scroll-target="#silhouette-widths-evaluating-cluster-quality"><span class="header-section-number">3.4</span> Silhouette Widths: Evaluating Cluster Quality</a></li>
+  </ul></li>
+  <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary"><span class="header-section-number">4</span> Summary</a></li>
+  </ul>
+</nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Day 13: Multiple Testing and Clustering</h1>
+<p class="subtitle lead">SC INBRE Biostatistics Summer Intensive 2026</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">June 12, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(this.path)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(SummarizedExperiment)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DESeq2)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(airway)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(factoextra)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(cluster)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(pheatmap)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(patchwork)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">setwd</span>(<span class="fu">this.dir</span>())</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(airway)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="overview" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Overview</h1>
+<p>Yesterday we produced a DESeq2 results table with one row per gene. Two columns appeared in that table – <code>pvalue</code> and <code>padj</code> – and we said to always use <code>padj</code>. Today we explain why, and then turn to a related question: once you have a list of differentially expressed genes, how do you find structure in it?</p>
+<p>Two topics:</p>
+<ul>
+<li><strong>Part 1: Multiple Testing.</strong> What the <code>padj</code> column actually contains, why raw p-values are not usable for 20,000 simultaneous tests, and how the Benjamini-Hochberg procedure fixes this.</li>
+<li><strong>Part 2: Clustering.</strong> K-means and hierarchical clustering, how to choose the number of clusters, and how these methods connect to the heatmaps and PCA plots from Days 11–12.</li>
+</ul>
+<p>Throughout we use the <code>airway</code> dataset so that every result connects directly to yesterday’s analysis.</p>
+<hr>
+</section>
+<section id="part-1-multiple-testing" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Part 1: Multiple Testing</h1>
+<section id="the-problem" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="the-problem"><span class="header-section-number">2.1</span> The Problem</h2>
+<p>Let us start with a concrete demonstration. If we test one gene at <span class="math inline">\(\alpha =
+0.05\)</span> and the gene is not differentially expressed, there is a 5% chance of a false positive. That is an acceptable error rate for one test. But in an RNA-seq experiment we run thousands of tests simultaneously.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># How many tests does DESeq2 actually run on the airway data?</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Re-run the Day 12 DESeq2 analysis quickly</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>counts     <span class="ot">&lt;-</span> <span class="fu">assay</span>(airway)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>sample_info <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(<span class="fu">colData</span>(airway))</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>dds <span class="ot">&lt;-</span> <span class="fu">DESeqDataSetFromMatrix</span>(</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">countData =</span> counts,</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">colData   =</span> sample_info,</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">design    =</span> <span class="sc">~</span> cell <span class="sc">+</span> dex</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>dds<span class="sc">$</span>dex <span class="ot">&lt;-</span> <span class="fu">relevel</span>(dds<span class="sc">$</span>dex, <span class="at">ref =</span> <span class="st">"untrt"</span>)</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>keep    <span class="ot">&lt;-</span> <span class="fu">rowSums</span>(<span class="fu">counts</span>(dds)) <span class="sc">&gt;=</span> <span class="dv">10</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>dds     <span class="ot">&lt;-</span> dds[keep, ]</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>deseq_dds <span class="ot">&lt;-</span> <span class="fu">DESeq</span>(dds)</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>res       <span class="ot">&lt;-</span> <span class="fu">results</span>(deseq_dds)</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="co"># How many genes were tested?</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Total genes tested:"</span>, <span class="fu">sum</span>(<span class="sc">!</span><span class="fu">is.na</span>(res<span class="sc">$</span>pvalue)), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Total genes tested: 22369 </code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># If we used raw p-values at alpha = 0.05, how many false positives</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co"># would we expect purely by chance if NO gene were truly DE?</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>n_tested <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="sc">!</span><span class="fu">is.na</span>(res<span class="sc">$</span>pvalue))</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>expected_fp <span class="ot">&lt;-</span> <span class="fl">0.05</span> <span class="sc">*</span> n_tested</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Expected false positives at alpha = 0.05:"</span>, <span class="fu">round</span>(expected_fp), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Expected false positives at alpha = 0.05: 1118 </code></pre>
+</div>
+</div>
+<p>With roughly 12,000–15,000 genes being tested, we would expect 600–750 false positives from raw p-values alone, even in a dataset where nothing is differentially expressed. The raw p-value column is not a usable basis for calling significant genes.</p>
+</section>
+<section id="visualizing-the-problem" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="visualizing-the-problem"><span class="header-section-number">2.2</span> Visualizing the Problem</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>res_df <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(res) <span class="sc">|&gt;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames_to_column</span>(<span class="st">"gene_id"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(pvalue), <span class="sc">!</span><span class="fu">is.na</span>(padj))</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>p1 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(res_df, <span class="fu">aes</span>(<span class="at">x =</span> pvalue)) <span class="sc">+</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">bins =</span> <span class="dv">40</span>, <span class="at">fill =</span> <span class="st">"steelblue"</span>, <span class="at">color =</span> <span class="st">"white"</span>) <span class="sc">+</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fl">0.05</span>, <span class="at">color =</span> <span class="st">"firebrick"</span>,</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>             <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Raw p-values"</span>,</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="st">"Red line = 0.05 threshold"</span>,</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"p-value"</span>, <span class="at">y =</span> <span class="st">"Number of genes"</span>) <span class="sc">+</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>p2 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(res_df, <span class="fu">aes</span>(<span class="at">x =</span> padj)) <span class="sc">+</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">bins =</span> <span class="dv">40</span>, <span class="at">fill =</span> <span class="st">"steelblue"</span>, <span class="at">color =</span> <span class="st">"white"</span>) <span class="sc">+</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fl">0.05</span>, <span class="at">color =</span> <span class="st">"firebrick"</span>,</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>             <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Adjusted p-values (BH)"</span>,</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="st">"Red line = 0.05 threshold"</span>,</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Adjusted p-value"</span>, <span class="at">y =</span> <span class="st">"Number of genes"</span>) <span class="sc">+</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>p1 <span class="sc">+</span> p2</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day13_MultipleTesting_Clustering_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><strong>Reading the p-value histogram:</strong> a uniform distribution under the null (the flat region on the right) mixed with a spike near zero (the true positives) is the expected shape. The flat region tells you roughly how many null hypotheses are in your data; the spike tells you how many true signals there are.</p>
+</section>
+<section id="two-error-rates" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="two-error-rates"><span class="header-section-number">2.3</span> Two Error Rates</h2>
+<p>The multiple testing literature distinguishes two quantities worth controlling.</p>
+<p><strong>Family-wise error rate (FWER):</strong> <span class="math display">\[\text{FWER} = P(\text{at least one false positive})\]</span></p>
+<p><strong>False discovery rate (FDR):</strong> <span class="math display">\[\text{FDR} = E\!\left(\frac{\text{false positives}}{\text{all rejections}}\right)\]</span></p>
+<p>The FDR is a proportion, not a probability. Controlling FDR at 5% means that among all the genes you call significant, you expect at most 5% to be false positives. This is the right criterion for genomics: you can tolerate a few false leads in a list of 500 candidate genes, but you do not want half of them to be noise.</p>
+</section>
+<section id="bonferroni-simple-but-severe" class="level2" data-number="2.4">
+<h2 data-number="2.4" class="anchored" data-anchor-id="bonferroni-simple-but-severe"><span class="header-section-number">2.4</span> Bonferroni: Simple but Severe</h2>
+<p>The Bonferroni correction controls the FWER by dividing <span class="math inline">\(\alpha\)</span> by the number of tests:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Bonferroni threshold for airway data</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>alpha    <span class="ot">&lt;-</span> <span class="fl">0.05</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>bonf_threshold <span class="ot">&lt;-</span> alpha <span class="sc">/</span> n_tested</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Bonferroni threshold:"</span>, <span class="fu">formatC</span>(bonf_threshold, <span class="at">format =</span> <span class="st">"e"</span>, <span class="at">digits =</span> <span class="dv">2</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Bonferroni threshold: 2.24e-06 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># How many genes pass?</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Genes significant after Bonferroni:"</span>,</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sum</span>(res_df<span class="sc">$</span>pvalue <span class="sc">&lt;</span> bonf_threshold, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Genes significant after Bonferroni: 1413 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare to unadjusted</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Genes with raw p &lt; 0.05:"</span>,</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sum</span>(res_df<span class="sc">$</span>pvalue <span class="sc">&lt;</span> <span class="fl">0.05</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Genes with raw p &lt; 0.05: 5609 </code></pre>
+</div>
+</div>
+<p>Bonferroni demands a raw p-value below roughly <span class="math inline">\(3 \times 10^{-6}\)</span> to call a gene significant. That is extremely conservative. In a dataset with strong treatment effects like <code>airway</code>, Bonferroni will still find many significant genes. But in a noisier study with weaker effects it would miss nearly everything. This is not caution – it is a different kind of error, called a Type II error (false negative).</p>
+</section>
+<section id="the-benjamini-hochberg-bh-procedure" class="level2" data-number="2.5">
+<h2 data-number="2.5" class="anchored" data-anchor-id="the-benjamini-hochberg-bh-procedure"><span class="header-section-number">2.5</span> The Benjamini-Hochberg (BH) Procedure</h2>
+<p>The BH procedure controls the FDR. The intuition is to compare each sorted p-value to a threshold that scales with its rank.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Manual BH calculation on a small example</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co"># (to make the procedure concrete before applying to 15,000 genes)</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>example_pvals <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.0008</span>, <span class="fl">0.009</span>, <span class="fl">0.016</span>, <span class="fl">0.019</span>, <span class="fl">0.196</span>,</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>                   <span class="fl">0.350</span>, <span class="fl">0.541</span>, <span class="fl">0.781</span>, <span class="fl">0.900</span>, <span class="fl">0.993</span>)</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>M     <span class="ot">&lt;-</span> <span class="fu">length</span>(example_pvals)</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>alpha <span class="ot">&lt;-</span> <span class="fl">0.05</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>bh_df <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">rank    =</span> <span class="fu">seq_along</span>(example_pvals),</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">pvalue  =</span> <span class="fu">sort</span>(example_pvals),</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">threshold =</span> (rank <span class="sc">/</span> M) <span class="sc">*</span> alpha,</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">below   =</span> pvalue <span class="sc">&lt;=</span> threshold</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>bh_df</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 10 × 4
+    rank pvalue threshold below
+   &lt;int&gt;  &lt;dbl&gt;     &lt;dbl&gt; &lt;lgl&gt;
+ 1     1 0.0008     0.005 TRUE 
+ 2     2 0.009      0.01  TRUE 
+ 3     3 0.016      0.015 FALSE
+ 4     4 0.019      0.02  TRUE 
+ 5     5 0.196      0.025 FALSE
+ 6     6 0.35       0.03  FALSE
+ 7     7 0.541      0.035 FALSE
+ 8     8 0.781      0.04  FALSE
+ 9     9 0.9        0.045 FALSE
+10    10 0.993      0.05  FALSE</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># The BH rule: reject all hypotheses up to and including</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co"># the highest rank where the condition is met</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>k_star <span class="ot">&lt;-</span> <span class="fu">max</span>(bh_df<span class="sc">$</span>rank[bh_df<span class="sc">$</span>below])</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Largest rank k where p_(k) &lt;= (k/M)*alpha:"</span>, k_star, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Largest rank k where p_(k) &lt;= (k/M)*alpha: 4 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Reject hypotheses at ranks 1 through"</span>, k_star, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Reject hypotheses at ranks 1 through 4 </code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>bh_df <span class="sc">|&gt;</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> rank, <span class="at">y =</span> pvalue)) <span class="sc">+</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">3</span>, <span class="at">color =</span> <span class="st">"steelblue"</span>) <span class="sc">+</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">color =</span> <span class="st">"steelblue"</span>, <span class="at">linewidth =</span> <span class="fl">0.8</span>) <span class="sc">+</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">slope =</span> alpha <span class="sc">/</span> M, <span class="at">intercept =</span> <span class="dv">0</span>,</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>              <span class="at">color =</span> <span class="st">"firebrick"</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> k_star <span class="sc">+</span> <span class="fl">0.5</span>, <span class="at">color =</span> <span class="st">"gray40"</span>,</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>             <span class="at">linetype =</span> <span class="st">"dotted"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">annotate</span>(<span class="st">"text"</span>, <span class="at">x =</span> k_star <span class="sc">-</span> <span class="fl">0.3</span>, <span class="at">y =</span> <span class="fl">0.15</span>,</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>           <span class="at">label =</span> <span class="fu">paste</span>(<span class="st">"Reject</span><span class="sc">\n</span><span class="st">all up to</span><span class="sc">\n</span><span class="st">rank"</span>, k_star),</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>           <span class="at">hjust =</span> <span class="dv">1</span>, <span class="at">size =</span> <span class="fl">3.5</span>) <span class="sc">+</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Rank (j)"</span>, <span class="at">y =</span> <span class="st">"p-value"</span>,</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"BH Procedure: Sorted p-values vs. BH Threshold Line"</span>,</span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="st">"Red line: BH threshold (j/M)*alpha. Points below = rejected."</span>) <span class="sc">+</span></span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day13_MultipleTesting_Clustering_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The key insight: we reject everything with rank up to 4, even though rank 3’s p-value fell above its threshold. The BH rule is about the <em>last</em> rank where the condition is met, not every rank individually.</p>
+</section>
+<section id="bh-in-practice-deseq2-results" class="level2" data-number="2.6">
+<h2 data-number="2.6" class="anchored" data-anchor-id="bh-in-practice-deseq2-results"><span class="header-section-number">2.6</span> BH in Practice: DESeq2 Results</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute BH-adjusted p-values manually and compare to DESeq2's padj</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>manual_padj <span class="ot">&lt;-</span> <span class="fu">p.adjust</span>(res_df<span class="sc">$</span>pvalue, <span class="at">method =</span> <span class="st">"BH"</span>)</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="co"># They should match DESeq2's padj closely</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">deseq2_padj =</span> res_df<span class="sc">$</span>padj,</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">manual_padj =</span> manual_padj</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(deseq2_padj)) <span class="sc">|&gt;</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">max_diff  =</span> <span class="fu">max</span>(<span class="fu">abs</span>(deseq2_padj <span class="sc">-</span> manual_padj[<span class="sc">!</span><span class="fu">is.na</span>(deseq2_padj)])),</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_diff =</span> <span class="fu">mean</span>(<span class="fu">abs</span>(deseq2_padj <span class="sc">-</span> manual_padj[<span class="sc">!</span><span class="fu">is.na</span>(deseq2_padj)]))</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 2
+  max_diff mean_diff
+     &lt;dbl&gt;     &lt;dbl&gt;
+1        0         0</code></pre>
+</div>
+</div>
+<p>The values are not identical, but this is not always the case. The differences can come from DESeq2’s <strong>independent filtering</strong>: before applying BH, DESeq2 automatically removes genes with very low mean expression (they would require extreme p-values to pass any threshold, so including them only hurts power for the genes that remain). The filtered genes get <code>padj = NA</code>, which is why you see <code>NA</code> values in the results table.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Summary: raw vs adjusted</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">Criterion        =</span> <span class="fu">c</span>(<span class="st">"Raw p &lt; 0.05"</span>, <span class="st">"BH adjusted p &lt; 0.05"</span>,</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>                       <span class="st">"Bonferroni adjusted p &lt; 0.05"</span>),</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">`</span><span class="at">Genes passing</span><span class="st">`</span>  <span class="ot">=</span> <span class="fu">c</span>(</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sum</span>(res_df<span class="sc">$</span>pvalue <span class="sc">&lt;</span> <span class="fl">0.05</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sum</span>(res_df<span class="sc">$</span>padj   <span class="sc">&lt;</span> <span class="fl">0.05</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sum</span>(<span class="fu">p.adjust</span>(res_df<span class="sc">$</span>pvalue, <span class="at">method =</span> <span class="st">"bonferroni"</span>) <span class="sc">&lt;</span> <span class="fl">0.05</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 2
+  Criterion                    `Genes passing`
+  &lt;chr&gt;                                  &lt;int&gt;
+1 Raw p &lt; 0.05                            5609
+2 BH adjusted p &lt; 0.05                    4000
+3 Bonferroni adjusted p &lt; 0.05            1438</code></pre>
+</div>
+</div>
+<p>The BH procedure finds far more significant genes than Bonferroni, while still controlling the proportion of false discoveries. This is why the genomics field adopted it as the standard.</p>
+<hr>
+</section>
+</section>
+<section id="part-2-clustering" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Part 2: Clustering</h1>
+<p>A list of 500 differentially expressed genes is hard to interpret one gene at a time. Clustering helps by grouping genes with similar expression patterns – and grouping samples with similar overall profiles – so you can identify biological themes rather than individual genes.</p>
+<section id="setup-vst-data-for-clustering" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="setup-vst-data-for-clustering"><span class="header-section-number">3.1</span> Setup: VST Data for Clustering</h2>
+<p>Clustering requires data on a comparable scale. We use the variance-stabilizing transformation (VST) from Day 12, restricted to the top 200 most variable genes.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>vsd <span class="ot">&lt;-</span> <span class="fu">vst</span>(deseq_dds, <span class="at">blind =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Keep the 200 most variable genes (across samples)</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>top_var_genes <span class="ot">&lt;-</span> <span class="fu">order</span>(<span class="fu">rowVars</span>(<span class="fu">assay</span>(vsd)), <span class="at">decreasing =</span> <span class="cn">TRUE</span>)[<span class="dv">1</span><span class="sc">:</span><span class="dv">200</span>]</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>mat           <span class="ot">&lt;-</span> <span class="fu">assay</span>(vsd)[top_var_genes, ]</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Scale each gene to zero mean and unit variance</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>mat_scaled <span class="ot">&lt;-</span> <span class="fu">t</span>(<span class="fu">scale</span>(<span class="fu">t</span>(mat)))</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Matrix dimensions:"</span>, <span class="fu">nrow</span>(mat_scaled), <span class="st">"genes x"</span>,</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ncol</span>(mat_scaled), <span class="st">"samples</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Matrix dimensions: 200 genes x 8 samples</code></pre>
+</div>
+</div>
+</section>
+<section id="k-means-clustering" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="k-means-clustering"><span class="header-section-number">3.2</span> K-Means Clustering</h2>
+<section id="choosing-k" class="level3" data-number="3.2.1">
+<h3 data-number="3.2.1" class="anchored" data-anchor-id="choosing-k"><span class="header-section-number">3.2.1</span> Choosing K</h3>
+<p>The first step is deciding how many clusters to look for. Two diagnostic tools are the elbow plot and the silhouette width.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Elbow plot: total within-cluster sum of squares vs K</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>p_elbow <span class="ot">&lt;-</span> <span class="fu">fviz_nbclust</span>(mat_scaled, kmeans,</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>                         <span class="at">method  =</span> <span class="st">"wss"</span>,</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>                         <span class="at">k.max   =</span> <span class="dv">10</span>,</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>                         <span class="at">nstart  =</span> <span class="dv">25</span>) <span class="sc">+</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Elbow Method"</span>) <span class="sc">+</span></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Silhouette width vs K</span></span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>p_sil <span class="ot">&lt;-</span> <span class="fu">fviz_nbclust</span>(mat_scaled, kmeans,</span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>                       <span class="at">method =</span> <span class="st">"silhouette"</span>,</span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>                       <span class="at">k.max  =</span> <span class="dv">10</span>,</span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>                       <span class="at">nstart =</span> <span class="dv">25</span>) <span class="sc">+</span></span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Average Silhouette Width"</span>) <span class="sc">+</span></span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>p_elbow <span class="sc">+</span> p_sil</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day13_MultipleTesting_Clustering_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><strong>Reading these plots:</strong></p>
+<ul>
+<li><strong>Elbow plot:</strong> look for a bend where adding more clusters gives diminishing returns. A clear elbow at <span class="math inline">\(K = 3\)</span> or <span class="math inline">\(K = 4\)</span> is common in gene expression data.</li>
+<li><strong>Silhouette plot:</strong> choose the <span class="math inline">\(K\)</span> that maximizes the average silhouette width. Values above 0.5 indicate reasonably well-separated clusters; values near 0.2 indicate weak structure.</li>
+</ul>
+</section>
+<section id="fitting-k-means" class="level3" data-number="3.2.2">
+<h3 data-number="3.2.2" class="anchored" data-anchor-id="fitting-k-means"><span class="header-section-number">3.2.2</span> Fitting K-Means</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">2026</span>)</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>km_fit <span class="ot">&lt;-</span> <span class="fu">kmeans</span>(mat_scaled, <span class="at">centers =</span> <span class="dv">4</span>, <span class="at">nstart =</span> <span class="dv">25</span>)</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(km_fit<span class="sc">$</span>cluster)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+ 1  2  3  4 
+35 91 45 29 </code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">fviz_cluster</span>(km_fit,</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>             <span class="at">data          =</span> mat_scaled,</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>             <span class="at">geom          =</span> <span class="st">"point"</span>,</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>             <span class="at">ellipse.type  =</span> <span class="st">"norm"</span>,</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>             <span class="at">palette       =</span> <span class="fu">c</span>(<span class="st">"steelblue"</span>,<span class="st">"firebrick"</span>,<span class="st">"darkgreen"</span>,<span class="st">"orange"</span>),</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>             <span class="at">ggtheme       =</span> <span class="fu">theme_minimal</span>()) <span class="sc">+</span></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"K-Means Clustering of Top 200 Variable Genes (K=4)"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day13_MultipleTesting_Clustering_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The cluster plot projects the 200-dimensional data onto the first two principal components for visualization. The four clusters represent groups of genes with similar expression profiles across the eight samples.</p>
+</section>
+</section>
+<section id="hierarchical-clustering" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="hierarchical-clustering"><span class="header-section-number">3.3</span> Hierarchical Clustering</h2>
+<p>K-means required us to choose <span class="math inline">\(K = 4\)</span> upfront. Hierarchical clustering builds a tree that shows all possible groupings, letting us choose the number of clusters after seeing the structure.</p>
+<section id="clustering-samples" class="level3" data-number="3.3.1">
+<h3 data-number="3.3.1" class="anchored" data-anchor-id="clustering-samples"><span class="header-section-number">3.3.1</span> Clustering Samples</h3>
+<p>With only 8 samples, hierarchical clustering produces a readable dendrogram and is the standard way to check whether samples group by treatment.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Sample-level clustering (columns of the VST matrix)</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>sample_dist <span class="ot">&lt;-</span> <span class="fu">dist</span>(<span class="fu">t</span>(mat_scaled), <span class="at">method =</span> <span class="st">"euclidean"</span>)</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>hc_samples  <span class="ot">&lt;-</span> <span class="fu">hclust</span>(sample_dist, <span class="at">method =</span> <span class="st">"complete"</span>)</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Color labels by treatment group</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>dend_labels <span class="ot">&lt;-</span> <span class="fu">colData</span>(vsd)<span class="sc">$</span>dex[<span class="fu">order.dendrogram</span>(<span class="fu">as.dendrogram</span>(hc_samples))]</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>label_colors <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(dend_labels <span class="sc">==</span> <span class="st">"trt"</span>, <span class="st">"firebrick"</span>, <span class="st">"steelblue"</span>)</span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(hc_samples,</span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>     <span class="at">main   =</span> <span class="st">"Hierarchical Clustering of Samples"</span>,</span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab   =</span> <span class="st">""</span>,</span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a>     <span class="at">sub    =</span> <span class="st">""</span>,</span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a>     <span class="at">labels =</span> <span class="fu">paste</span>(<span class="fu">colData</span>(vsd)<span class="sc">$</span>dex,</span>
+<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">colData</span>(vsd)<span class="sc">$</span>cell, <span class="at">sep =</span> <span class="st">"_"</span>)[hc_samples<span class="sc">$</span>order])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day13_MultipleTesting_Clustering_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Cut to 2 clusters and check against treatment labels</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>sample_clusters <span class="ot">&lt;-</span> <span class="fu">cutree</span>(hc_samples, <span class="at">k =</span> <span class="dv">2</span>)</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(<span class="at">Cluster =</span> sample_clusters, <span class="at">Treatment =</span> <span class="fu">colData</span>(vsd)<span class="sc">$</span>dex)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>       Treatment
+Cluster untrt trt
+      1     4   0
+      2     0   4</code></pre>
+</div>
+</div>
+<p>If the clustering is working as expected, the two clusters should correspond closely to the treated and untreated groups. Any sample that clusters with the wrong group is worth investigating.</p>
+</section>
+<section id="clustering-genes" class="level3" data-number="3.3.2">
+<h3 data-number="3.3.2" class="anchored" data-anchor-id="clustering-genes"><span class="header-section-number">3.3.2</span> Clustering Genes</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Gene-level clustering (rows) -- use a smaller set for a readable plot</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>top200  <span class="ot">&lt;-</span> <span class="fu">order</span>(<span class="fu">rowVars</span>(<span class="fu">assay</span>(vsd)), <span class="at">decreasing =</span> <span class="cn">TRUE</span>)[<span class="dv">1</span><span class="sc">:</span><span class="dv">200</span>]</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>mat200  <span class="ot">&lt;-</span> <span class="fu">t</span>(<span class="fu">scale</span>(<span class="fu">t</span>(<span class="fu">assay</span>(vsd)[top200, ])))</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>gene_dist <span class="ot">&lt;-</span> <span class="fu">dist</span>(mat200, <span class="at">method =</span> <span class="st">"euclidean"</span>)</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>hc_genes  <span class="ot">&lt;-</span> <span class="fu">hclust</span>(gene_dist, <span class="at">method =</span> <span class="st">"complete"</span>)</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(hc_genes,</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>     <span class="at">main   =</span> <span class="st">"Hierarchical Clustering of Top 50 Variable Genes"</span>,</span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab   =</span> <span class="st">""</span>,</span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>     <span class="at">sub    =</span> <span class="st">""</span>,</span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>     <span class="at">labels =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a><span class="fu">abline</span>(<span class="at">h =</span> <span class="dv">12</span>, <span class="at">lty =</span> <span class="dv">2</span>, <span class="at">col =</span> <span class="st">"firebrick"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day13_MultipleTesting_Clustering_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Cut to 4 clusters</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>gene_clusters_hc <span class="ot">&lt;-</span> <span class="fu">cutree</span>(hc_genes, <span class="at">k =</span> <span class="dv">4</span>)</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(gene_clusters_hc)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>gene_clusters_hc
+ 1  2  3  4 
+35 14 52 99 </code></pre>
+</div>
+</div>
+<p>The dashed line shows where we would cut the tree to get 4 clusters. Adjusting the cut height changes the number of clusters: higher cut = fewer, coarser clusters; lower cut = more, finer clusters.</p>
+</section>
+<section id="comparing-k-means-and-hierarchical-results" class="level3" data-number="3.3.3">
+<h3 data-number="3.3.3" class="anchored" data-anchor-id="comparing-k-means-and-hierarchical-results"><span class="header-section-number">3.3.3</span> Comparing K-Means and Hierarchical Results</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Do the two methods agree on the top 200 genes?</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>comparison <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">kmeans_cluster =</span> km_fit<span class="sc">$</span>cluster,</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">hc_cluster     =</span> gene_clusters_hc</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(<span class="at">KMeans =</span> comparison<span class="sc">$</span>kmeans_cluster,</span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>      <span class="at">Hierarchical =</span> comparison<span class="sc">$</span>hc_cluster)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>      Hierarchical
+KMeans  1  2  3  4
+     1 14  6 15  0
+     2  0  0  3 88
+     3  0  2 33 10
+     4 21  6  1  1</code></pre>
+</div>
+</div>
+<p>Perfect agreement between two different methods would be unusual. Some genes that K-means puts in one cluster may land in a different cluster hierarchically. Where both methods agree, you can be more confident that a grouping reflects real biological structure rather than an artifact of the algorithm.</p>
+</section>
+<section id="visualizing-gene-clusters-in-a-heatmap" class="level3" data-number="3.3.4">
+<h3 data-number="3.3.4" class="anchored" data-anchor-id="visualizing-gene-clusters-in-a-heatmap"><span class="header-section-number">3.3.4</span> Visualizing Gene Clusters in a Heatmap</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Add cluster labels to the row annotation</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>gene_clusters <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">Cluster =</span> <span class="fu">factor</span>(<span class="fu">paste0</span>(<span class="st">"C"</span>, km_fit<span class="sc">$</span>cluster)),</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="fu">names</span>(km_fit<span class="sc">$</span>cluster)</span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>col_anno <span class="ot">&lt;-</span> <span class="fu">colData</span>(vsd) <span class="sc">|&gt;</span></span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>(<span class="at">rownames =</span> <span class="st">"sample"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(sample, dex, cell) <span class="sc">|&gt;</span></span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">column_to_rownames</span>(<span class="st">"sample"</span>)</span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a><span class="fu">pheatmap</span>(mat_scaled,</span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>         <span class="at">annotation_row    =</span> gene_clusters,</span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>         <span class="at">annotation_col    =</span> col_anno,</span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>         <span class="at">cluster_rows      =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>         <span class="at">cluster_cols      =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>         <span class="at">show_rownames     =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a>         <span class="at">show_colnames     =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb38-19"><a href="#cb38-19" aria-hidden="true" tabindex="-1"></a>         <span class="at">color             =</span> <span class="fu">colorRampPalette</span>(</span>
+<span id="cb38-20"><a href="#cb38-20" aria-hidden="true" tabindex="-1"></a>           <span class="fu">c</span>(<span class="st">"steelblue"</span>, <span class="st">"white"</span>, <span class="st">"firebrick"</span>))(<span class="dv">100</span>),</span>
+<span id="cb38-21"><a href="#cb38-21" aria-hidden="true" tabindex="-1"></a>         <span class="at">main              =</span> <span class="st">"Top 200 Variable Genes: K-Means versus Hierarchical Clusters"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day13_MultipleTesting_Clustering_files/figure-html/unnamed-chunk-20-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Look at whether the gene clusters (row annotation) correspond to blocks of consistently up- or down-regulated genes across the treated vs.&nbsp;untreated samples. If K-means is working well, each cluster should show a coherent expression pattern.</p>
+</section>
+</section>
+<section id="silhouette-widths-evaluating-cluster-quality" class="level2" data-number="3.4">
+<h2 data-number="3.4" class="anchored" data-anchor-id="silhouette-widths-evaluating-cluster-quality"><span class="header-section-number">3.4</span> Silhouette Widths: Evaluating Cluster Quality</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Silhouette plot for the K-means solution (K=4)</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>sil_obj <span class="ot">&lt;-</span> <span class="fu">silhouette</span>(km_fit<span class="sc">$</span>cluster, <span class="fu">dist</span>(mat_scaled))</span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a><span class="fu">fviz_silhouette</span>(sil_obj,</span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>                <span class="at">palette =</span> <span class="fu">c</span>(<span class="st">"steelblue"</span>,<span class="st">"firebrick"</span>,<span class="st">"darkgreen"</span>,<span class="st">"orange"</span>),</span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>                <span class="at">ggtheme =</span> <span class="fu">theme_minimal</span>()) <span class="sc">+</span></span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Silhouette Plot: K-Means K=4"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  cluster size ave.sil.width
+1       1   35          0.25
+2       2   91          0.48
+3       3   45          0.24
+4       4   29          0.30</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day13_MultipleTesting_Clustering_files/figure-html/unnamed-chunk-21-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><strong>Reading the silhouette plot:</strong></p>
+<ul>
+<li>Each bar is one gene, colored by its cluster.</li>
+<li>Tall bars (near 1): the gene fits well in its assigned cluster and is far from the nearest other cluster.</li>
+<li>Short or negative bars: the gene is ambiguous – it is almost as close to another cluster as to its own.</li>
+<li>Average silhouette widths near 0.1–0.2 are common for high-dimensional genomics data. This does not mean the clustering is wrong; it means the clusters are not perfectly separated in the full high-dimensional space, which is expected.</li>
+</ul>
+<hr>
+</section>
+</section>
+<section id="summary" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Summary</h1>
+<p><strong>Multiple testing:</strong></p>
+<ul>
+<li>Testing <span class="math inline">\(M\)</span> genes simultaneously at <span class="math inline">\(\alpha = 0.05\)</span> generates an expected <span class="math inline">\(0.05 \times M\)</span> false positives from raw p-values alone.</li>
+<li>Bonferroni controls the FWER by multiplying p-values by <span class="math inline">\(M\)</span>. Very conservative; rarely appropriate in genomics.</li>
+<li>The Benjamini-Hochberg procedure controls the FDR. If you call all genes with <code>padj &lt; 0.05</code> significant, at most 5% of those calls are expected to be false positives. This is what DESeq2’s <code>padj</code> column contains. Always use it.</li>
+</ul>
+<p><strong>Clustering:</strong></p>
+<ul>
+<li>K-means partitions genes (or samples) into <span class="math inline">\(K\)</span> groups by minimizing within-cluster variance. Choose <span class="math inline">\(K\)</span> with the elbow plot or silhouette width. Always scale your data and use <code>nstart &gt; 1</code>.</li>
+<li>Hierarchical clustering builds a dendrogram without requiring <span class="math inline">\(K\)</span> upfront. Complete linkage is the default. Cut the tree at any height to get any number of clusters.</li>
+<li>Clustering is exploratory. Validate findings by checking whether two methods agree, whether the clusters show coherent patterns in a heatmap, and whether cluster membership correlates with known biology.</li>
+</ul>
+<p>Tomorrow: PCA and penalized regression in the genomics context.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+<script src="Day13_MultipleTesting_Clustering_files/libs/quarto-html/zenscroll-min.js"></script>
+</body></html>

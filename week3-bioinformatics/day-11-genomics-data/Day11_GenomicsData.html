@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.32">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2026-06-11">
+
+<title>Day 11: Genomics Data – Structure, Formats, and Quality Assessment</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Day11_GenomicsData_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Day11_GenomicsData_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="Day11_GenomicsData_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="Day11_GenomicsData_files/libs/quarto-html/popper.min.js"></script>
+<script src="Day11_GenomicsData_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Day11_GenomicsData_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Day11_GenomicsData_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Day11_GenomicsData_files/libs/quarto-html/quarto-syntax-highlighting-234273d1456647dabc34a594ac50e507.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Day11_GenomicsData_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Day11_GenomicsData_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Day11_GenomicsData_files/libs/bootstrap/bootstrap-dfb3f4843b9b0ce307f095fcbeec1e0c.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<style>html{ scroll-behavior: smooth; }</style>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview"><span class="header-section-number">1</span> Overview</a></li>
+  <li><a href="#the-statistical-setting" id="toc-the-statistical-setting" class="nav-link" data-scroll-target="#the-statistical-setting"><span class="header-section-number">2</span> The Statistical Setting</a>
+  <ul class="collapse">
+  <li><a href="#why-this-week-is-different" id="toc-why-this-week-is-different" class="nav-link" data-scroll-target="#why-this-week-is-different"><span class="header-section-number">2.1</span> Why This Week Is Different</a></li>
+  <li><a href="#the-upstream-pipeline" id="toc-the-upstream-pipeline" class="nav-link" data-scroll-target="#the-upstream-pipeline"><span class="header-section-number">2.2</span> The Upstream Pipeline</a></li>
+  </ul></li>
+  <li><a href="#example-1-the-count-matrix" id="toc-example-1-the-count-matrix" class="nav-link" data-scroll-target="#example-1-the-count-matrix"><span class="header-section-number">3</span> Example 1: The Count Matrix</a>
+  <ul class="collapse">
+  <li><a href="#loading-and-inspecting-the-data" id="toc-loading-and-inspecting-the-data" class="nav-link" data-scroll-target="#loading-and-inspecting-the-data"><span class="header-section-number">3.1</span> Loading and Inspecting the Data</a></li>
+  <li><a href="#statistical-properties-of-count-data" id="toc-statistical-properties-of-count-data" class="nav-link" data-scroll-target="#statistical-properties-of-count-data"><span class="header-section-number">3.2</span> Statistical Properties of Count Data</a></li>
+  <li><a href="#zero-count-genes" id="toc-zero-count-genes" class="nav-link" data-scroll-target="#zero-count-genes"><span class="header-section-number">3.3</span> Zero-Count Genes</a></li>
+  <li><a href="#sequencing-depth" id="toc-sequencing-depth" class="nav-link" data-scroll-target="#sequencing-depth"><span class="header-section-number">3.4</span> Sequencing Depth</a></li>
+  </ul></li>
+  <li><a href="#example-2-the-summarizedexperiment-object" id="toc-example-2-the-summarizedexperiment-object" class="nav-link" data-scroll-target="#example-2-the-summarizedexperiment-object"><span class="header-section-number">4</span> Example 2: The SummarizedExperiment Object</a>
+  <ul class="collapse">
+  <li><a href="#three-components-always-linked" id="toc-three-components-always-linked" class="nav-link" data-scroll-target="#three-components-always-linked"><span class="header-section-number">4.1</span> Three Components, Always Linked</a></li>
+  <li><a href="#the-sample-metadata-your-study-design" id="toc-the-sample-metadata-your-study-design" class="nav-link" data-scroll-target="#the-sample-metadata-your-study-design"><span class="header-section-number">4.2</span> The Sample Metadata: Your Study Design</a></li>
+  <li><a href="#verifying-the-alignment" id="toc-verifying-the-alignment" class="nav-link" data-scroll-target="#verifying-the-alignment"><span class="header-section-number">4.3</span> Verifying the Alignment</a></li>
+  <li><a href="#subsetting-a-summarizedexperiment" id="toc-subsetting-a-summarizedexperiment" class="nav-link" data-scroll-target="#subsetting-a-summarizedexperiment"><span class="header-section-number">4.4</span> Subsetting a SummarizedExperiment</a></li>
+  <li><a href="#the-gene-metadata" id="toc-the-gene-metadata" class="nav-link" data-scroll-target="#the-gene-metadata"><span class="header-section-number">4.5</span> The Gene Metadata</a></li>
+  </ul></li>
+  <li><a href="#example-3-quality-assessment" id="toc-example-3-quality-assessment" class="nav-link" data-scroll-target="#example-3-quality-assessment"><span class="header-section-number">5</span> Example 3: Quality Assessment</a>
+  <ul class="collapse">
+  <li><a href="#library-sizes-revisited" id="toc-library-sizes-revisited" class="nav-link" data-scroll-target="#library-sizes-revisited"><span class="header-section-number">5.1</span> Library Sizes Revisited</a></li>
+  <li><a href="#count-distributions-across-samples" id="toc-count-distributions-across-samples" class="nav-link" data-scroll-target="#count-distributions-across-samples"><span class="header-section-number">5.2</span> Count Distributions Across Samples</a></li>
+  <li><a href="#filtering-low-count-genes" id="toc-filtering-low-count-genes" class="nav-link" data-scroll-target="#filtering-low-count-genes"><span class="header-section-number">5.3</span> Filtering Low-Count Genes</a></li>
+  <li><a href="#sample-to-sample-distances" id="toc-sample-to-sample-distances" class="nav-link" data-scroll-target="#sample-to-sample-distances"><span class="header-section-number">5.4</span> Sample-to-Sample Distances</a></li>
+  <li><a href="#pca-plot" id="toc-pca-plot" class="nav-link" data-scroll-target="#pca-plot"><span class="header-section-number">5.5</span> PCA Plot</a></li>
+  <li><a href="#batch-effects" id="toc-batch-effects" class="nav-link" data-scroll-target="#batch-effects"><span class="header-section-number">5.6</span> Batch Effects</a></li>
+  </ul></li>
+  <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary"><span class="header-section-number">6</span> Summary</a></li>
+  </ul>
+</nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Day 11: Genomics Data – Structure, Formats, and Quality Assessment</h1>
+<p class="subtitle lead">SC INBRE Biostatistics Summer Intensive 2026</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">June 11, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(this.path)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(SummarizedExperiment)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co"># uncomment the lines below to install packages required for 'airway' and its analysis:</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co"># if (!requireNamespace("BiocManager", quietly = TRUE))</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">#     install.packages("BiocManager")</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co"># BiocManager::install("airway")</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co"># BiocManager::install("DESeq2")</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(airway)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="fu">setwd</span>(<span class="fu">this.dir</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="overview" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Overview</h1>
+<p>This week we shift from modeling a handful of variables on a few thousand participants to analyzing <strong>tens of thousands of variables simultaneously</strong>. The biological data are different, but the statistical questions are familiar: is this variable associated with the outcome? How do we adjust for confounders? How do we avoid false positives when testing thousands of hypotheses at once?</p>
+<p>Today’s session has one goal: understand the <strong>structure</strong> of genomics data well enough to work with it in R. Everything else this week builds on this foundation.</p>
+<p>We will work with the <code>airway</code> dataset throughout: an RNA-sequencing experiment measuring gene expression in human airway smooth muscle cells treated with dexamethasone (a glucocorticoid), compared with untreated controls. This dataset is small enough to explore interactively and clean enough to illustrate the core ideas without distraction.</p>
+<p>Three examples:</p>
+<ul>
+<li><strong>Example 1:</strong> The count matrix – what it is, what it looks like, and why standard regression does not apply directly.</li>
+<li><strong>Example 2:</strong> The <code>SummarizedExperiment</code> object – how genomics data is organized in R, and how to access its components.</li>
+<li><strong>Example 3:</strong> Quality assessment – library sizes, zero-count genes, count distributions, and PCA.</li>
+</ul>
+<hr>
+</section>
+<section id="the-statistical-setting" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> The Statistical Setting</h1>
+<section id="why-this-week-is-different" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="why-this-week-is-different"><span class="header-section-number">2.1</span> Why This Week Is Different</h2>
+<p>In everything we have done so far, the number of observations <span class="math inline">\(n\)</span> was much larger than the number of variables <span class="math inline">\(p\)</span>. In the Framingham data, 4,240 participants and fewer than 20 predictors. Standard regression works because there is far more data than parameters to estimate.</p>
+<p>RNA-sequencing data flips this relationship:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(airway)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(airway)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 63677     8</code></pre>
+</div>
+</div>
+<p>The <code>airway</code> dataset has 63677 genes (rows) and only 8 samples (columns). In a typical study you might have <span class="math inline">\(p \approx 20{,}000\)</span> genes and <span class="math inline">\(n \approx 6\)</span> to <span class="math inline">\(50\)</span> samples. We are firmly in the regime <span class="math inline">\(p \gg n\)</span>.</p>
+<p>This creates real statistical problems:</p>
+<ul>
+<li>You cannot fit a single regression with 20,000 predictors when you have 8 observations. The system is massively underdetermined.</li>
+<li>We instead test each gene <strong>separately</strong> (one gene at a time), which creates a different problem: testing 20,000 hypotheses simultaneously means many false positives by chance alone. Multiple testing correction (Day 13) is essential.</li>
+<li>The data are <strong>counts</strong>, not continuous measurements. Standard linear models and t-tests applied directly to raw counts give incorrect results. We need count-appropriate models (Day 12).</li>
+</ul>
+</section>
+<section id="the-upstream-pipeline" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="the-upstream-pipeline"><span class="header-section-number">2.2</span> The Upstream Pipeline</h2>
+<p>We will not run the bioinformatics pipeline that converts raw sequencing output into analysis-ready data. That pipeline requires specialized software (STAR, HISAT2, featureCounts, Salmon) and computing infrastructure. What matters for us is knowing what each stage produces and where our work begins.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Stage</th>
+<th>Output</th>
+<th>What it contains</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Sequencing</td>
+<td>FASTQ</td>
+<td>Raw DNA sequences + quality scores</td>
+</tr>
+<tr class="even">
+<td>Alignment</td>
+<td>BAM</td>
+<td>Reads mapped to positions on the reference genome</td>
+</tr>
+<tr class="odd">
+<td>Counting</td>
+<td>Count matrix</td>
+<td>Reads per gene per sample (integers)</td>
+</tr>
+<tr class="even">
+<td><strong>Our starting point</strong></td>
+<td><strong>Count matrix</strong></td>
+<td><strong>What we analyze</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The <code>airway</code> dataset is already at the “count matrix” stage. Someone else ran the pipeline. Our job starts here.</p>
+<hr>
+</section>
+</section>
+<section id="example-1-the-count-matrix" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Example 1: The Count Matrix</h1>
+<section id="loading-and-inspecting-the-data" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="loading-and-inspecting-the-data"><span class="header-section-number">3.1</span> Loading and Inspecting the Data</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(airway)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>airway</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>class: RangedSummarizedExperiment 
+dim: 63677 8 
+metadata(1): ''
+assays(1): counts
+rownames(63677): ENSG00000000003 ENSG00000000005 ... ENSG00000273492
+  ENSG00000273493
+rowData names(10): gene_id gene_name ... seq_coord_system symbol
+colnames(8): SRR1039508 SRR1039509 ... SRR1039520 SRR1039521
+colData names(9): SampleName cell ... Sample BioSample</code></pre>
+</div>
+</div>
+<p>The printed summary tells us the object type (<code>RangedSummarizedExperiment</code>), dimensions, and what components are stored. We will unpack each component in Example 2. For now, extract the count matrix:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>counts <span class="ot">&lt;-</span> <span class="fu">assay</span>(airway)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(counts)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 63677     8</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>counts[<span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                SRR1039508 SRR1039509 SRR1039512 SRR1039513
+ENSG00000000003        679        448        873        408
+ENSG00000000005          0          0          0          0
+ENSG00000000419        467        515        621        365
+ENSG00000000457        260        211        263        164
+ENSG00000000460         60         55         40         35
+ENSG00000000938          0          0          2          0</code></pre>
+</div>
+</div>
+<p>Each row is a gene (identified by an Ensembl gene ID such as <code>ENSG00000000003</code>). Each column is a sample (identified by an SRA run accession such as <code>SRR1039508</code>). Each value is the number of sequencing reads that mapped to that gene in that sample.</p>
+</section>
+<section id="statistical-properties-of-count-data" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="statistical-properties-of-count-data"><span class="header-section-number">3.2</span> Statistical Properties of Count Data</h2>
+<p>Counts are non-negative integers. That immediately rules out several tools:</p>
+<p><strong>Why not use a standard t-test or linear regression on raw counts?</strong></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Distribution of counts for the first sample</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>counts_s1 <span class="ot">&lt;-</span> counts[, <span class="dv">1</span>]</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>p1 <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">count =</span> counts_s1) <span class="sc">|&gt;</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(count <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">|&gt;</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> count)) <span class="sc">+</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">bins =</span> <span class="dv">60</span>, <span class="at">fill =</span> <span class="st">"steelblue"</span>, <span class="at">color =</span> <span class="st">"white"</span>) <span class="sc">+</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">labels =</span> scales<span class="sc">::</span>comma) <span class="sc">+</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Raw counts (one sample, non-zero genes only)"</span>,</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Count"</span>, <span class="at">y =</span> <span class="st">"Number of genes"</span>) <span class="sc">+</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>p2 <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">count =</span> counts_s1) <span class="sc">|&gt;</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(count <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">|&gt;</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">log2count =</span> <span class="fu">log2</span>(count <span class="sc">+</span> <span class="dv">1</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> log2count)) <span class="sc">+</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">bins =</span> <span class="dv">60</span>, <span class="at">fill =</span> <span class="st">"steelblue"</span>, <span class="at">color =</span> <span class="st">"white"</span>) <span class="sc">+</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"log2(count + 1) -- same sample"</span>,</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"log2(count + 1)"</span>, <span class="at">y =</span> <span class="st">"Number of genes"</span>) <span class="sc">+</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(patchwork)</span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>p1 <span class="sc">+</span> p2</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day11_GenomicsData_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The raw count distribution is extremely right-skewed: a handful of highly expressed genes have counts in the hundreds of thousands, while most genes have counts in the single digits or zero. The log-transformed distribution is much more symmetric. This shape is characteristic of RNA-seq data and rules out Gaussian (normal) models for the raw counts.</p>
+<p>Three additional properties make standard methods inappropriate:</p>
+<ol type="1">
+<li><strong>Counts are integers.</strong> Residuals from a linear model fit to count data cannot be normally distributed.</li>
+<li><strong>Variance is not constant.</strong> Genes with higher mean expression have higher variance. Homoscedasticity fails.</li>
+<li><strong>Many zeros.</strong> Genes with very low expression may have zero counts in some or all samples. Zeros are real observations, not missing data.</li>
+</ol>
+<p>The appropriate model is the <strong>negative binomial distribution</strong>, which generalizes the Poisson to allow variance to exceed the mean. DESeq2 (Day 12) fits this model.</p>
+</section>
+<section id="zero-count-genes" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="zero-count-genes"><span class="header-section-number">3.3</span> Zero-Count Genes</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># How many genes have zero counts across all samples?</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>n_all_zero <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">rowSums</span>(counts) <span class="sc">==</span> <span class="dv">0</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>n_low      <span class="ot">&lt;-</span> <span class="fu">sum</span>(<span class="fu">rowSums</span>(counts) <span class="sc">&lt;</span> <span class="dv">10</span>)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Genes with zero total counts:"</span>, n_all_zero, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Genes with zero total counts: 30208 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Genes with fewer than 10 total counts:"</span>, n_low, <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Genes with fewer than 10 total counts: 41308 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Total genes:"</span>, <span class="fu">nrow</span>(counts), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Total genes: 63677 </code></pre>
+</div>
+</div>
+<p>A meaningful fraction of genes have very low or zero counts across all samples. These genes carry no information about differential expression and add noise to the multiple testing correction. Standard practice is to filter them out before modeling. We will do this in the PM lab and again on Day 12.</p>
+</section>
+<section id="sequencing-depth" class="level2" data-number="3.4">
+<h2 data-number="3.4" class="anchored" data-anchor-id="sequencing-depth"><span class="header-section-number">3.4</span> Sequencing Depth</h2>
+<p>Each sample is sequenced to a certain <strong>library size</strong> (total number of reads). If one sample has twice as many reads as another, its counts will tend to be twice as large even if the underlying biology is identical. Raw counts are not directly comparable across samples.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>library_sizes <span class="ot">&lt;-</span> <span class="fu">colSums</span>(counts)</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">sample    =</span> <span class="fu">names</span>(library_sizes),</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">lib_size  =</span> library_sizes,</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">treatment =</span> <span class="fu">colData</span>(airway)<span class="sc">$</span>dex</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> sample, <span class="at">y =</span> lib_size <span class="sc">/</span> <span class="fl">1e6</span>, <span class="at">fill =</span> treatment)) <span class="sc">+</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_col</span>(<span class="at">color =</span> <span class="st">"white"</span>) <span class="sc">+</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"untrt"</span> <span class="ot">=</span> <span class="st">"steelblue"</span>, <span class="st">"trt"</span> <span class="ot">=</span> <span class="st">"firebrick"</span>)) <span class="sc">+</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Sample"</span>, <span class="at">y =</span> <span class="st">"Total reads (millions)"</span>,</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>       <span class="at">fill =</span> <span class="st">"Treatment"</span>,</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Library Sizes by Sample"</span>,</span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="st">"Samples must be normalized before comparison"</span>) <span class="sc">+</span></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">45</span>, <span class="at">hjust =</span> <span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day11_GenomicsData_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Library sizes vary across samples even within the same experiment. Before comparing gene expression across samples, we must adjust for these differences. DESeq2 handles this through <strong>size factor estimation</strong> – a single scaling number per sample that accounts for its total sequencing depth.</p>
+<hr>
+</section>
+</section>
+<section id="example-2-the-summarizedexperiment-object" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Example 2: The SummarizedExperiment Object</h1>
+<section id="three-components-always-linked" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="three-components-always-linked"><span class="header-section-number">4.1</span> Three Components, Always Linked</h2>
+<p>A genomics dataset is not just a count matrix. It has three linked components:</p>
+<ol type="1">
+<li><strong>The assay (count matrix):</strong> genes x samples, integer counts.</li>
+<li><strong>Sample metadata (colData):</strong> one row per sample – treatment group, cell line, batch, patient ID, etc.</li>
+<li><strong>Gene metadata (rowData):</strong> one row per gene – gene name, chromosome, genomic coordinates, gene type.</li>
+</ol>
+<p>These three components must stay <strong>synchronized</strong>. If you reorder samples, the sample metadata must reorder too. If you filter genes, the gene metadata must filter too. Bioconductor’s <code>SummarizedExperiment</code> enforces this by design.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># The three accessor functions</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="fu">assay</span>(airway)[<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>]       <span class="co"># count matrix</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                SRR1039508 SRR1039509 SRR1039512 SRR1039513
+ENSG00000000003        679        448        873        408
+ENSG00000000005          0          0          0          0
+ENSG00000000419        467        515        621        365
+ENSG00000000457        260        211        263        164</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">colData</span>(airway)               <span class="co"># sample metadata</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>DataFrame with 8 rows and 9 columns
+           SampleName     cell      dex    albut        Run avgLength
+             &lt;factor&gt; &lt;factor&gt; &lt;factor&gt; &lt;factor&gt;   &lt;factor&gt; &lt;integer&gt;
+SRR1039508 GSM1275862  N61311     untrt    untrt SRR1039508       126
+SRR1039509 GSM1275863  N61311     trt      untrt SRR1039509       126
+SRR1039512 GSM1275866  N052611    untrt    untrt SRR1039512       126
+SRR1039513 GSM1275867  N052611    trt      untrt SRR1039513        87
+SRR1039516 GSM1275870  N080611    untrt    untrt SRR1039516       120
+SRR1039517 GSM1275871  N080611    trt      untrt SRR1039517       126
+SRR1039520 GSM1275874  N061011    untrt    untrt SRR1039520       101
+SRR1039521 GSM1275875  N061011    trt      untrt SRR1039521        98
+           Experiment    Sample    BioSample
+             &lt;factor&gt;  &lt;factor&gt;     &lt;factor&gt;
+SRR1039508  SRX384345 SRS508568 SAMN02422669
+SRR1039509  SRX384346 SRS508567 SAMN02422675
+SRR1039512  SRX384349 SRS508571 SAMN02422678
+SRR1039513  SRX384350 SRS508572 SAMN02422670
+SRR1039516  SRX384353 SRS508575 SAMN02422682
+SRR1039517  SRX384354 SRS508576 SAMN02422673
+SRR1039520  SRX384357 SRS508579 SAMN02422683
+SRR1039521  SRX384358 SRS508580 SAMN02422677</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">rowData</span>(airway)[<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>, ]        <span class="co"># gene metadata (first 4 rows)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>DataFrame with 4 rows and 10 columns
+                        gene_id   gene_name  entrezid   gene_biotype
+                    &lt;character&gt; &lt;character&gt; &lt;integer&gt;    &lt;character&gt;
+ENSG00000000003 ENSG00000000003      TSPAN6        NA protein_coding
+ENSG00000000005 ENSG00000000005        TNMD        NA protein_coding
+ENSG00000000419 ENSG00000000419        DPM1        NA protein_coding
+ENSG00000000457 ENSG00000000457       SCYL3        NA protein_coding
+                gene_seq_start gene_seq_end    seq_name seq_strand
+                     &lt;integer&gt;    &lt;integer&gt; &lt;character&gt;  &lt;integer&gt;
+ENSG00000000003       99883667     99894988           X         -1
+ENSG00000000005       99839799     99854882           X          1
+ENSG00000000419       49551404     49575092          20         -1
+ENSG00000000457      169818772    169863408           1         -1
+                seq_coord_system      symbol
+                       &lt;integer&gt; &lt;character&gt;
+ENSG00000000003               NA      TSPAN6
+ENSG00000000005               NA        TNMD
+ENSG00000000419               NA        DPM1
+ENSG00000000457               NA       SCYL3</code></pre>
+</div>
+</div>
+</section>
+<section id="the-sample-metadata-your-study-design" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="the-sample-metadata-your-study-design"><span class="header-section-number">4.2</span> The Sample Metadata: Your Study Design</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">colData</span>(airway) <span class="sc">|&gt;</span> <span class="fu">as_tibble</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 8 × 9
+  SampleName cell    dex   albut Run       avgLength Experiment Sample BioSample
+  &lt;fct&gt;      &lt;fct&gt;   &lt;fct&gt; &lt;fct&gt; &lt;fct&gt;         &lt;int&gt; &lt;fct&gt;      &lt;fct&gt;  &lt;fct&gt;    
+1 GSM1275862 N61311  untrt untrt SRR10395…       126 SRX384345  SRS50… SAMN0242…
+2 GSM1275863 N61311  trt   untrt SRR10395…       126 SRX384346  SRS50… SAMN0242…
+3 GSM1275866 N052611 untrt untrt SRR10395…       126 SRX384349  SRS50… SAMN0242…
+4 GSM1275867 N052611 trt   untrt SRR10395…        87 SRX384350  SRS50… SAMN0242…
+5 GSM1275870 N080611 untrt untrt SRR10395…       120 SRX384353  SRS50… SAMN0242…
+6 GSM1275871 N080611 trt   untrt SRR10395…       126 SRX384354  SRS50… SAMN0242…
+7 GSM1275874 N061011 untrt untrt SRR10395…       101 SRX384357  SRS50… SAMN0242…
+8 GSM1275875 N061011 trt   untrt SRR10395…        98 SRX384358  SRS50… SAMN0242…</code></pre>
+</div>
+</div>
+<p>The <code>colData</code> is your <strong>study design matrix</strong>. Before fitting any model, you need to understand every column:</p>
+<ul>
+<li><code>SampleName</code>: the sample identifier.</li>
+<li><code>cell</code>: the cell line (four different cell lines in this experiment).</li>
+<li><code>dex</code>: treatment group – <code>trt</code> (dexamethasone-treated) or <code>untrt</code> (untreated control). <strong>This is the primary variable of interest.</strong></li>
+<li><code>albut</code>: whether the sample was also treated with albuterol (not the focus here).</li>
+<li><code>Run</code>, <code>avgLength</code>, <code>Experiment</code>, <code>Sample</code>, <code>BioProject</code>: SRA metadata.</li>
+</ul>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Important
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Always inspect <code>colData</code> before modeling.</strong> Know which column encodes treatment vs.&nbsp;control. Verify that the sample order in the count matrix matches the sample order in the metadata. A mismatch here means every downstream result is wrong.</p>
+</div>
+</div>
+</section>
+<section id="verifying-the-alignment" class="level2" data-number="4.3">
+<h2 data-number="4.3" class="anchored" data-anchor-id="verifying-the-alignment"><span class="header-section-number">4.3</span> Verifying the Alignment</h2>
+<p>One of the most important sanity checks in genomics analysis: confirm that the column names of the count matrix match the row names of <code>colData</code>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Column names of the count matrix</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(<span class="fu">assay</span>(airway))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "SRR1039508" "SRR1039509" "SRR1039512" "SRR1039513" "SRR1039516"
+[6] "SRR1039517" "SRR1039520" "SRR1039521"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Row names of the sample metadata</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(<span class="fu">colData</span>(airway))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "SRR1039508" "SRR1039509" "SRR1039512" "SRR1039513" "SRR1039516"
+[6] "SRR1039517" "SRR1039520" "SRR1039521"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Are they identical and in the same order?</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="fu">identical</span>(<span class="fu">colnames</span>(<span class="fu">assay</span>(airway)), <span class="fu">rownames</span>(<span class="fu">colData</span>(airway)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE</code></pre>
+</div>
+</div>
+<p>If this returns <code>FALSE</code>, something is wrong with the data object and no analysis should proceed until it is resolved.</p>
+</section>
+<section id="subsetting-a-summarizedexperiment" class="level2" data-number="4.4">
+<h2 data-number="4.4" class="anchored" data-anchor-id="subsetting-a-summarizedexperiment"><span class="header-section-number">4.4</span> Subsetting a SummarizedExperiment</h2>
+<p>One of the key benefits of <code>SummarizedExperiment</code> is that subsetting keeps all three components synchronized automatically.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Select only the treated samples</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>airway_trt <span class="ot">&lt;-</span> airway[, airway<span class="sc">$</span>dex <span class="sc">==</span> <span class="st">"trt"</span>]</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(airway_trt)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 63677     4</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">colData</span>(airway_trt)<span class="sc">$</span>dex</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] trt trt trt trt
+Levels: trt untrt</code></pre>
+</div>
+</div>
+<p>Compare this with what would happen if the count matrix and metadata were stored as separate objects: you would have to manually subset both in the same order, and a mistake would silently corrupt the analysis.</p>
+</section>
+<section id="the-gene-metadata" class="level2" data-number="4.5">
+<h2 data-number="4.5" class="anchored" data-anchor-id="the-gene-metadata"><span class="header-section-number">4.5</span> The Gene Metadata</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>airway_rowdata <span class="ot">&lt;-</span> <span class="fu">rowData</span>(airway) <span class="sc">|&gt;</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() </span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>airway_rowdata <span class="sc">|&gt;</span></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(gene_id, gene_name, gene_biotype) <span class="sc">|&gt;</span></span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 10 × 3
+   gene_id         gene_name gene_biotype  
+   &lt;chr&gt;           &lt;chr&gt;     &lt;chr&gt;         
+ 1 ENSG00000000003 TSPAN6    protein_coding
+ 2 ENSG00000000005 TNMD      protein_coding
+ 3 ENSG00000000419 DPM1      protein_coding
+ 4 ENSG00000000457 SCYL3     protein_coding
+ 5 ENSG00000000460 C1orf112  protein_coding
+ 6 ENSG00000000938 FGR       protein_coding
+ 7 ENSG00000000971 CFH       protein_coding
+ 8 ENSG00000001036 FUCA2     protein_coding
+ 9 ENSG00000001084 GCLC      protein_coding
+10 ENSG00000001167 NFYA      protein_coding</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co"># What gene types are present?</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>table_biotype <span class="ot">=</span> <span class="fu">table</span>(airway_rowdata<span class="sc">$</span>gene_biotype) </span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(table_biotype[<span class="fu">order</span>(table_biotype, <span class="at">decreasing =</span> <span class="cn">TRUE</span>)], <span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+      protein_coding           pseudogene              lincRNA 
+               22810                15583                 7340 
+           antisense                miRNA             misc_RNA 
+                5485                 3361                 2174 
+               snRNA               snoRNA processed_transcript 
+                2067                 1549                  819 
+      sense_intronic 
+                 767 </code></pre>
+</div>
+</div>
+<p>Most genes in the annotation are protein-coding, but there are also long non-coding RNAs, pseudogenes, and other categories. In a standard differential expression analysis, we often filter to protein-coding genes, though this is not always necessary.</p>
+<hr>
+</section>
+</section>
+<section id="example-3-quality-assessment" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Example 3: Quality Assessment</h1>
+<p>Quality assessment in genomics plays the same role as residual diagnostic plots in regression: it is a required first step before any modeling. Problems discovered at this stage – outlier samples, batch effects, misannotated metadata – are far easier to fix now than after a full analysis.</p>
+<section id="library-sizes-revisited" class="level2" data-number="5.1">
+<h2 data-number="5.1" class="anchored" data-anchor-id="library-sizes-revisited"><span class="header-section-number">5.1</span> Library Sizes Revisited</h2>
+<p>We already plotted library sizes above. The summary statistics:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">sample   =</span> <span class="fu">colnames</span>(airway),</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">lib_size =</span> <span class="fu">colSums</span>(<span class="fu">assay</span>(airway)),</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">treatment =</span> <span class="fu">colData</span>(airway)<span class="sc">$</span>dex,</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">cell_line =</span> <span class="fu">colData</span>(airway)<span class="sc">$</span>cell</span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(lib_size)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 8 × 4
+  sample     lib_size treatment cell_line
+  &lt;chr&gt;         &lt;dbl&gt; &lt;fct&gt;     &lt;fct&gt;    
+1 SRR1039513 15163415 trt       N052611  
+2 SRR1039509 18809481 trt       N61311   
+3 SRR1039520 19126151 untrt     N061011  
+4 SRR1039508 20637971 untrt     N61311   
+5 SRR1039521 21164133 trt       N061011  
+6 SRR1039516 24448408 untrt     N080611  
+7 SRR1039512 25348649 untrt     N052611  
+8 SRR1039517 30818215 trt       N080611  </code></pre>
+</div>
+</div>
+<p>No sample has an extreme outlier library size (e.g., ten times smaller than the others), which would be a red flag suggesting a failed sequencing run. The variation we see is normal and will be handled by normalization.</p>
+</section>
+<section id="count-distributions-across-samples" class="level2" data-number="5.2">
+<h2 data-number="5.2" class="anchored" data-anchor-id="count-distributions-across-samples"><span class="header-section-number">5.2</span> Count Distributions Across Samples</h2>
+<p>After confirming that library sizes are reasonable, check that the count distributions look similar in shape across samples.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">assay</span>(airway) <span class="sc">|&gt;</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>(<span class="at">rownames =</span> <span class="st">"gene"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="sc">-</span>gene, <span class="at">names_to =</span> <span class="st">"sample"</span>, <span class="at">values_to =</span> <span class="st">"count"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(count <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">|&gt;</span></span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">log2count =</span> <span class="fu">log2</span>(count <span class="sc">+</span> <span class="dv">1</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(</span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">colData</span>(airway) <span class="sc">|&gt;</span> <span class="fu">as_tibble</span>(<span class="at">rownames =</span> <span class="st">"sample"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>      <span class="fu">select</span>(sample, dex),</span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">by =</span> <span class="st">"sample"</span></span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> log2count, <span class="at">color =</span> dex, <span class="at">group =</span> sample)) <span class="sc">+</span></span>
+<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_density</span>(<span class="at">linewidth =</span> <span class="fl">0.8</span>, <span class="at">alpha =</span> <span class="fl">0.8</span>) <span class="sc">+</span></span>
+<span id="cb42-13"><a href="#cb42-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"untrt"</span> <span class="ot">=</span> <span class="st">"steelblue"</span>, <span class="st">"trt"</span> <span class="ot">=</span> <span class="st">"firebrick"</span>)) <span class="sc">+</span></span>
+<span id="cb42-14"><a href="#cb42-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"log2(count + 1)"</span>, <span class="at">y =</span> <span class="st">"Density"</span>,</span>
+<span id="cb42-15"><a href="#cb42-15" aria-hidden="true" tabindex="-1"></a>       <span class="at">color =</span> <span class="st">"Treatment"</span>,</span>
+<span id="cb42-16"><a href="#cb42-16" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Count Distributions Across Samples"</span>,</span>
+<span id="cb42-17"><a href="#cb42-17" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="st">"Curves should overlap closely -- large departures suggest a problem"</span>) <span class="sc">+</span></span>
+<span id="cb42-18"><a href="#cb42-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day11_GenomicsData_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="864"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The density curves should overlap closely. Curves that are shifted or shaped differently from the others may indicate a problematic sample.</p>
+</section>
+<section id="filtering-low-count-genes" class="level2" data-number="5.3">
+<h2 data-number="5.3" class="anchored" data-anchor-id="filtering-low-count-genes"><span class="header-section-number">5.3</span> Filtering Low-Count Genes</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Keep only genes with at least 10 total counts across all samples</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>keep <span class="ot">&lt;-</span> <span class="fu">rowSums</span>(<span class="fu">assay</span>(airway)) <span class="sc">&gt;=</span> <span class="dv">10</span></span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>airway_filtered <span class="ot">&lt;-</span> airway[keep, ]</span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Genes before filtering:"</span>, <span class="fu">nrow</span>(airway), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Genes before filtering: 63677 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Genes after filtering: "</span>, <span class="fu">nrow</span>(airway_filtered), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Genes after filtering:  22369 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Genes removed:         "</span>, <span class="fu">nrow</span>(airway) <span class="sc">-</span> <span class="fu">nrow</span>(airway_filtered), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Genes removed:          41308 </code></pre>
+</div>
+</div>
+<p>Note that subsetting <code>airway[keep, ]</code> keeps the count matrix, sample metadata, and gene metadata all synchronized automatically.</p>
+</section>
+<section id="sample-to-sample-distances" class="level2" data-number="5.4">
+<h2 data-number="5.4" class="anchored" data-anchor-id="sample-to-sample-distances"><span class="header-section-number">5.4</span> Sample-to-Sample Distances</h2>
+<p>A useful summary of the data is the pairwise distance between samples: how similar is each sample to every other? If the experiment is working, samples from the same treatment group should be closer to each other than to samples from the other group.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DESeq2)</span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Variance-stabilizing transformation: puts counts on a scale</span></span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a><span class="co"># appropriate for distance calculations and PCA</span></span>
+<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a>dds <span class="ot">&lt;-</span> <span class="fu">DESeqDataSet</span>(airway_filtered, <span class="at">design =</span> <span class="sc">~</span> dex)</span>
+<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a>vsd <span class="ot">&lt;-</span> <span class="fu">vst</span>(dds, <span class="at">blind =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb49-7"><a href="#cb49-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-8"><a href="#cb49-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Sample-to-sample distances on the transformed data</span></span>
+<span id="cb49-9"><a href="#cb49-9" aria-hidden="true" tabindex="-1"></a>sample_dists <span class="ot">&lt;-</span> <span class="fu">dist</span>(<span class="fu">t</span>(<span class="fu">assay</span>(vsd)))</span>
+<span id="cb49-10"><a href="#cb49-10" aria-hidden="true" tabindex="-1"></a>dist_matrix  <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(sample_dists)</span>
+<span id="cb49-11"><a href="#cb49-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-12"><a href="#cb49-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Label rows and columns with treatment group and cell line</span></span>
+<span id="cb49-13"><a href="#cb49-13" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(dist_matrix) <span class="ot">&lt;-</span> <span class="fu">rownames</span>(dist_matrix) <span class="ot">&lt;-</span></span>
+<span id="cb49-14"><a href="#cb49-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">paste</span>(<span class="fu">colData</span>(airway_filtered)<span class="sc">$</span>dex,</span>
+<span id="cb49-15"><a href="#cb49-15" aria-hidden="true" tabindex="-1"></a>        <span class="fu">colData</span>(airway_filtered)<span class="sc">$</span>cell, <span class="at">sep =</span> <span class="st">"_"</span>)</span>
+<span id="cb49-16"><a href="#cb49-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-17"><a href="#cb49-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Heatmap using base R (or you can use pheatmap)</span></span>
+<span id="cb49-18"><a href="#cb49-18" aria-hidden="true" tabindex="-1"></a><span class="fu">heatmap</span>(dist_matrix,</span>
+<span id="cb49-19"><a href="#cb49-19" aria-hidden="true" tabindex="-1"></a>        <span class="at">symm     =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb49-20"><a href="#cb49-20" aria-hidden="true" tabindex="-1"></a>        <span class="at">col      =</span> <span class="fu">colorRampPalette</span>(<span class="fu">c</span>(<span class="st">"steelblue"</span>, <span class="st">"white"</span>))(<span class="dv">50</span>),</span>
+<span id="cb49-21"><a href="#cb49-21" aria-hidden="true" tabindex="-1"></a>        <span class="at">main     =</span> <span class="st">"Sample-to-Sample Distances"</span>,</span>
+<span id="cb49-22"><a href="#cb49-22" aria-hidden="true" tabindex="-1"></a>        <span class="at">margins  =</span> <span class="fu">c</span>(<span class="dv">10</span>, <span class="dv">10</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day11_GenomicsData_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Samples in the same treatment group should show small distances (darker shading if using blue-to-white), forming visible blocks along the diagonal. Unexpected clustering – for example, one treated sample clustering with all the untreated samples – would be a sign of a mislabeled or failed sample.</p>
+</section>
+<section id="pca-plot" class="level2" data-number="5.5">
+<h2 data-number="5.5" class="anchored" data-anchor-id="pca-plot"><span class="header-section-number">5.5</span> PCA Plot</h2>
+<p>Principal Component Analysis (PCA) reduces the 20,000-dimensional count matrix to two dimensions that capture the most variation. It is the fastest way to see whether samples cluster as expected.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>pca_data <span class="ot">&lt;-</span> <span class="fu">plotPCA</span>(vsd, <span class="at">intgroup =</span> <span class="fu">c</span>(<span class="st">"dex"</span>, <span class="st">"cell"</span>), <span class="at">returnData =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>pct_var  <span class="ot">&lt;-</span> <span class="fu">round</span>(<span class="dv">100</span> <span class="sc">*</span> <span class="fu">attr</span>(pca_data, <span class="st">"percentVar"</span>))</span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(pca_data, <span class="fu">aes</span>(<span class="at">x =</span> PC1, <span class="at">y =</span> PC2, <span class="at">color =</span> dex, <span class="at">shape =</span> cell)) <span class="sc">+</span></span>
+<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">4</span>) <span class="sc">+</span></span>
+<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"untrt"</span> <span class="ot">=</span> <span class="st">"steelblue"</span>, <span class="st">"trt"</span> <span class="ot">=</span> <span class="st">"firebrick"</span>)) <span class="sc">+</span></span>
+<span id="cb50-7"><a href="#cb50-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="fu">paste0</span>(<span class="st">"PC1: "</span>, pct_var[<span class="dv">1</span>], <span class="st">"% variance"</span>),</span>
+<span id="cb50-8"><a href="#cb50-8" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="fu">paste0</span>(<span class="st">"PC2: "</span>, pct_var[<span class="dv">2</span>], <span class="st">"% variance"</span>),</span>
+<span id="cb50-9"><a href="#cb50-9" aria-hidden="true" tabindex="-1"></a>       <span class="at">color =</span> <span class="st">"Treatment"</span>, <span class="at">shape =</span> <span class="st">"Cell line"</span>,</span>
+<span id="cb50-10"><a href="#cb50-10" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"PCA: Airway Dataset"</span>) <span class="sc">+</span></span>
+<span id="cb50-11"><a href="#cb50-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day11_GenomicsData_files/figure-html/unnamed-chunk-18-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><strong>Reading the PCA plot:</strong></p>
+<ul>
+<li><strong>PC1</strong> (horizontal axis) captures the most variation in the dataset. In a well-designed experiment, PC1 often separates the treatment groups (like it does here).</li>
+<li><strong>PC2</strong> (vertical axis) captures the next largest source of variation. Here, it often reflects cell-line differences.</li>
+<li>If samples from the same treatment group are scattered widely, or if the groups do not separate at all, something may be wrong with the experiment, the data, or the metadata.</li>
+</ul>
+<p>In the <code>airway</code> data, treated and untreated samples separate clearly along PC1, and the four cell lines are visible along PC2. This is a clean, well-behaved dataset – a good baseline for learning the methods before working with messier real-world data.</p>
+</section>
+<section id="batch-effects" class="level2" data-number="5.6">
+<h2 data-number="5.6" class="anchored" data-anchor-id="batch-effects"><span class="header-section-number">5.6</span> Batch Effects</h2>
+<p>A <strong>batch effect</strong> is systematic technical variation introduced by when or how samples were processed. Common sources include different sequencing runs, different lab technicians, different reagent lots, and different processing dates.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Check whether any technical variable is confounded with treatment</span></span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a><span class="fu">colData</span>(airway) <span class="sc">|&gt;</span></span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(SampleName, cell, dex, Run) <span class="sc">|&gt;</span></span>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(dex, cell)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 8 × 4
+  SampleName cell    dex   Run       
+  &lt;fct&gt;      &lt;fct&gt;   &lt;fct&gt; &lt;fct&gt;     
+1 GSM1275867 N052611 trt   SRR1039513
+2 GSM1275875 N061011 trt   SRR1039521
+3 GSM1275871 N080611 trt   SRR1039517
+4 GSM1275863 N61311  trt   SRR1039509
+5 GSM1275866 N052611 untrt SRR1039512
+6 GSM1275874 N061011 untrt SRR1039520
+7 GSM1275870 N080611 untrt SRR1039516
+8 GSM1275862 N61311  untrt SRR1039508</code></pre>
+</div>
+</div>
+<p>In the <code>airway</code> data, each cell line contributes one treated and one untreated sample, so cell line is <strong>balanced</strong> across treatment groups. This is good experimental design: if cell line had been confounded with treatment (e.g., all treated samples from one cell line, all untreated from another), it would be impossible to separate the dexamethasone effect from the cell-line effect.</p>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Warning
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Batch effects are a design problem first, a statistical problem second.</strong> Statistical methods (e.g., including batch as a covariate in the model) can adjust for batch effects if the batch variable is known and balanced across treatment groups. If batches are confounded with treatment, no statistical method can separate them. This is a problem that must be caught at the study design stage, not the analysis stage.</p>
+</div>
+</div>
+<hr>
+</section>
+</section>
+<section id="summary" class="level1" data-number="6">
+<h1 data-number="6"><span class="header-section-number">6</span> Summary</h1>
+<p>Five things to carry into Days 12–13:</p>
+<ol type="1">
+<li><p><strong>Genomics data is high-dimensional (<span class="math inline">\(p \gg n\)</span>).</strong> We cannot fit a single regression. We test genes one at a time and correct for multiple testing.</p></li>
+<li><p><strong>The count matrix is our starting point.</strong> Rows are genes, columns are samples, values are non-negative integers. The upstream bioinformatics pipeline produces this; we work with what it produces.</p></li>
+<li><p><strong>Counts require special treatment.</strong> They are right-skewed, non-normal, and have variance that scales with the mean. Normalization for sequencing depth is required. The negative binomial model is appropriate. DESeq2 handles all of this.</p></li>
+<li><p><strong>The <code>SummarizedExperiment</code> keeps everything synchronized.</strong> Always use <code>assay()</code>, <code>colData()</code>, and <code>rowData()</code> to access the components. Always inspect <code>colData</code> before modeling.</p></li>
+<li><p><strong>Quality assessment before modeling.</strong> Check library sizes, count distributions, sample-to-sample distances, and PCA. Identify and investigate outlier samples and potential batch effects before fitting any model.</p></li>
+</ol>
+<p>This afternoon you will repeat these steps on a dataset you download directly from GEO using the <code>GEOquery</code> package.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+<script src="Day11_GenomicsData_files/libs/quarto-html/zenscroll-min.js"></script>
+</body></html>

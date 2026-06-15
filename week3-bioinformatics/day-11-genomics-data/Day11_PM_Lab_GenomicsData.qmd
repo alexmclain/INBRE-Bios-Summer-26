@@ -1,0 +1,556 @@
+---
+title: "Day 11 (PM) Lab: Genomics Data -- Exploration and Quality Assessment"
+subtitle: "SC INBRE Biostatistics Summer Intensive 2026"
+date: today
+format:
+  html:
+    toc: true
+    toc-location: left
+    toc-depth: 3
+    number-sections: true
+    smooth-scroll: true
+    theme: cosmo
+    code-fold: false
+    highlight-style: github
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+# Overview
+
+This afternoon you will apply every concept from the morning lecture to a
+**real dataset you download yourself from GEO**. The goal is to go from a
+GEO accession number to a fully quality-assessed dataset, ready for
+differential expression analysis tomorrow.
+
+The dataset is a mouse RNA-seq experiment examining the response to
+lipopolysaccharide (LPS), a component of bacterial cell walls that triggers
+a strong immune response. Mice were either injected with LPS or left
+untreated, and RNA was extracted from brain tissue. The study asks: which
+genes change their expression in the brain during acute bacterial-driven
+inflammation?
+
+**GEO accession: GSE96870**
+
+**How this lab works:**
+
+- **Part 1 (instructor demo, ~25 min):** Follow along as we download and
+  inspect the dataset together.
+- **Part 2 (on your own, ~90 min):** Six exercises working through the full
+  quality assessment pipeline. Create a new `.qmd` file, work through each
+  exercise, render when done.
+
+The **Quick Reference Card** at the end has the key functions for both parts.
+
+::: {.callout-note}
+This lab uses Bioconductor packages that are installed differently from CRAN
+packages. If any package is missing, install with:
+```r
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+BiocManager::install(c("GEOquery", "SummarizedExperiment", "DESeq2"))
+```
+:::
+
+---
+
+# Part 1: Instructor Demo
+
+## Setup
+
+```{r}
+library(tidyverse)
+library(this.path)
+library(GEOquery)
+library(SummarizedExperiment)
+library(DESeq2)
+library(patchwork)
+setwd(this.dir())
+```
+
+## Step 1: Download the Dataset from GEO
+
+`getGEO()` downloads the study metadata and expression data associated with
+a GSE accession number. The `GSEMatrix = TRUE` argument retrieves the processed
+expression matrix (what we want) rather than the raw data.
+
+```{r}
+#| cache: true
+gse <- getGEO("GSE96870", GSEMatrix = TRUE)
+# Download the supplementary count matrix
+# GSE96870 deposits counts as a supplementary file on GEO
+getGEOSuppFiles("GSE96870", makeDirectory = TRUE)
+
+# The downloaded file lands in a GSE96870/ subfolder
+# Check what was downloaded
+list.files("GSE96870/")
+```
+
+`getGEO()` returns a list. For most studies, the first element is the object
+we need:
+
+```{r}
+class(gse)
+length(gse)
+gse_obj <- gse[[1]]
+class(gse_obj)
+```
+
+The object is an `ExpressionSet`, an older Bioconductor container. We will
+convert it to a `SummarizedExperiment` shortly. First, let us look at what
+we have.
+
+Read the count matrix (adjust filename if different)
+```{r}
+counts_raw <- read_tsv("GSE96870/GSE96870_counts_brain.tsv.gz",
+                       show_col_types = FALSE)
+
+counts_raw[1:5, 1:5]
+```
+
+
+## Step 2: Inspect the Sample Metadata
+
+```{r}
+# Sample metadata lives in pData() for ExpressionSet objects
+# (equivalent to colData() for SummarizedExperiment)
+pd <- pData(gse_obj)
+dim(pd)
+names(pd)
+```
+
+GEO metadata columns have machine-generated names. The useful columns are
+usually those with `characteristics_ch1` in the name:
+
+```{r}
+pd |>
+  select(title, starts_with("characteristics")) |>
+  head(10)
+```
+
+This tells us the experimental groups and any relevant covariates. Identify
+which column encodes the treatment variable before doing anything else.
+
+## Step 3: Inspect the Expression Matrix
+
+```{r}
+# The expression matrix: genes x samples
+expr <- exprs(gse_obj)
+dim(expr)
+expr[1:5, 1:4]
+```
+
+Note the row names: depending on how the submitter prepared the data, these
+may be probe IDs, gene symbols, or Ensembl IDs. Check what you are working
+with before proceeding.
+
+```{r}
+head(rownames(expr))
+```
+
+## Step 4: Check the Count Distribution
+
+```{r}
+#| fig-width: 5
+#| fig-height: 4
+tibble(value = as.vector(expr[, 1])) |>
+  filter(value > 0) |>
+  ggplot(aes(x = value)) +
+  geom_histogram(bins = 50, fill = "steelblue", color = "white") +
+  scale_x_continuous(labels = scales::comma) +
+  labs(title = "Expression values: first sample",
+       x = "Value", y = "Number of genes") +
+  theme_minimal()
+```
+
+Depending on whether the data were submitted as raw counts, normalized counts,
+or log-transformed values, the distribution will look different. Raw counts are
+right-skewed integers. Log-transformed values are more symmetric but may contain
+non-integers or negative values. **Always check** before modeling.
+
+## Step 5: Library Sizes
+
+```{r}
+#| fig-width: 7
+#| fig-height: 4
+tibble(
+  sample   = colnames(expr),
+  lib_size = colSums(expr)
+) |>
+  ggplot(aes(x = sample, y = lib_size / 1e6)) +
+  geom_col(fill = "steelblue", color = "white") +
+  labs(x = "Sample", y = "Total counts (millions)",
+       title = "Library Sizes: GSE96870") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Library sizes should be roughly comparable across samples. A sample with a
+dramatically lower total count than the others is a warning sign.
+
+---
+
+# Part 2: Exercises
+
+## Instructions
+
+**Step 1.** Open a new Quarto document. Title it
+`"Day 11 Lab: Genomics Data Exploration"`.
+
+**Step 2.** Replace the template content with this YAML and setup chunk:
+
+````markdown
+---
+title: "Day 11 Lab: Genomics Data Exploration"
+subtitle: "SC INBRE Biostatistics Summer Intensive 2026"
+date: today
+format:
+  html:
+    toc: true
+    theme: cosmo
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+```{{r}}
+library(tidyverse)
+library(this.path)
+library(GEOquery)
+library(SummarizedExperiment)
+library(DESeq2)
+library(patchwork)
+setwd(this.dir())
+```
+````
+
+**Step 3.** Work through Exercises 1--6. For each one, write the code, run it,
+and add 2--3 sentences describing what you found.
+
+**Step 4.** Render when finished.
+
+::: {.callout-tip}
+The download in Exercise 1 will take 30--60 seconds the first time. After that,
+`getGEO()` caches the file locally so subsequent runs are instant. If the
+download fails, try adding `destdir = "."` to `getGEO()` to save it to your
+working directory.
+:::
+
+::: {.callout-note}
+Exercises 1--3 cover data acquisition and inspection. Exercises 4--5 cover
+quality assessment. Exercise 6 is a challenge that takes the dataset all the
+way to PCA.
+:::
+
+---
+
+**Exercise 1 -- Download and Inspect the Data.**
+
+a. Download GSE96870 using `getGEO("GSE96870", GSEMatrix = TRUE)`. Assign the
+   result to `gse`, then extract the first element as `gse_obj`.
+
+b. Use `dim()` and `class()` on `gse_obj` to confirm what type of object it is
+   and how many genes and samples it contains.
+
+c. Use `pData(gse_obj)` to extract the sample metadata. How many samples are
+   there? What columns are present?
+
+d. Identify the column that encodes the treatment variable (LPS vs. control).
+   It will be one of the `characteristics_ch1.*` columns. Print its unique
+   values with `unique()`.
+
+e. **Discussion.** What would happen if you started a differential expression
+   analysis without first verifying which column encodes treatment? What could
+   go wrong?
+
+```{r}
+# your code here
+```
+
+---
+
+**Exercise 2 -- The Expression Matrix.**
+
+a. Extract the expression matrix using `exprs(gse_obj)`. What are its
+   dimensions? What do the rows represent? What do the columns represent?
+
+b. Print the first 6 row names with `head(rownames(...))`. Are the row names
+   gene symbols, Ensembl IDs, or probe IDs? How can you tell?
+
+c. Print the first 6 column names. Do they match the row names of `pData()`
+   you found in Exercise 1?
+
+d. Confirm the alignment between the expression matrix and the sample metadata:
+   ```r
+   identical(colnames(exprs(gse_obj)), rownames(pData(gse_obj)))
+   ```
+   This should return `TRUE`. If it does not, do not proceed until you
+   understand why.
+
+e. What is the range of values in the expression matrix? Use `range()`.
+   Based on the range, are these raw counts, normalized counts, or
+   log-transformed values?
+
+```{r}
+# your code here
+```
+
+---
+
+**Exercise 3 -- Understanding the Sample Metadata.**
+
+a. Using `pData(gse_obj)`, create a clean summary table with one row per
+   sample showing: the sample title, the treatment group, and any other
+   biological variables (e.g., sex, age, tissue). Use `select()` to keep
+   only the relevant columns.
+
+b. How many samples are in each treatment group? Use `count()`.
+
+c. Is the experiment balanced? That is, are all treatment groups represented
+   by the same number of samples?
+
+d. Check whether there are any potential batch variables in the metadata
+   (e.g., different sequencing runs, different processing dates). If so, is
+   the batch variable balanced across treatment groups? Use a table or
+   `count()` to check.
+
+e. Based on your inspection of the metadata, write a one-paragraph description
+   of the study design as you understand it: how many groups, how many samples
+   per group, what biological variables are recorded, and whether any
+   confounders are apparent.
+
+```{r}
+# your code here
+```
+
+---
+
+**Exercise 4 -- Count Distribution and Filtering.**
+
+a. Plot the distribution of expression values for the first sample using
+   `geom_histogram()`. Label the x-axis clearly. Based on the shape, are these
+   raw counts, normalized counts, or log-transformed values?
+
+b. Plot the log2-transformed values for the same sample
+   (`log2(expr[, 1] + 1)` if counts; `expr[, 1]` if already log-transformed).
+   How does the shape change?
+
+c. How many genes have zero total counts across all samples? Use
+   `rowSums(exprs(gse_obj)) == 0`. What fraction of all genes does this
+   represent?
+
+d. How many genes have fewer than 10 total counts? Fewer than 1?
+
+e. Filter to keep only genes with at least 10 total counts. How many genes
+   remain? Save this filtered expression matrix as `expr_filtered`.
+
+```{r}
+# your code here
+```
+
+---
+
+**Exercise 5 -- Library Sizes and Sample Distributions.**
+
+a. Compute the library size (total counts) for each sample using `colSums()`.
+   Report the minimum, maximum, and coefficient of variation
+   (standard deviation divided by mean, times 100).
+
+b. Make a bar chart of library sizes, colored by treatment group. Do library
+   sizes appear balanced across groups, or does one group tend to have more
+   reads?
+
+c. Make a density plot of log2-transformed expression values, with one curve
+   per sample, colored by treatment group. Use `pivot_longer()` to reshape the
+   matrix first. The curves should overlap closely -- large departures suggest
+   a sample-level problem.
+
+d. Based on the library sizes and count distributions, does any sample look
+   like an outlier? What would you do if you found one?
+
+```{r}
+# your code here
+```
+
+---
+
+**Exercise 6 (Challenge) -- Sample-to-Sample Distances and PCA.**
+
+To run this exercise you need to build a `DESeqDataSet` from the expression
+matrix and sample metadata. This requires raw integer counts. If the expression
+values in GSE96870 are already normalized or log-transformed (check your answer
+from Exercise 2e), use `round()` to convert them to integers as an
+approximation for the purposes of this exercise.
+
+a. Build a `DESeqDataSet` object:
+   ```r
+   # Create a SummarizedExperiment first
+   # Replace "your_treatment_column" with the actual column name from pData
+   col_data <- pData(gse_obj) |>
+     select(treatment = your_treatment_column) |>
+     mutate(treatment = factor(treatment))
+
+   se <- SummarizedExperiment(
+     assays  = list(counts = round(exprs(gse_obj))),
+     colData = col_data
+   )
+
+   dds <- DESeqDataSet(se, design = ~ treatment)
+   ```
+
+b. Apply the variance-stabilizing transformation:
+   ```r
+   keep <- rowSums(counts(dds)) >= 10
+   dds  <- dds[keep, ]
+   vsd  <- vst(dds, blind = TRUE)
+   ```
+
+c. Compute and visualize sample-to-sample distances as a heatmap. Label rows
+   and columns with the treatment group. Do samples cluster by treatment?
+
+d. Produce a PCA plot using `plotPCA()` with `returnData = TRUE` (see the
+   Quick Reference Card). Color points by treatment group. Which principal
+   component separates the groups? How much of the total variance does it
+   explain?
+
+e. **Discussion.** In the morning lecture, we said PC1 often separates
+   treatment groups in a well-designed experiment. Is that true here? What
+   does PC2 appear to capture? If you saw a dataset where treatment groups did
+   not separate on any principal component, what would that suggest?
+
+```{r}
+# your code here
+```
+
+---
+
+# Quick Reference Card
+
+## Package Installation (if needed)
+
+```r
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+BiocManager::install(c("GEOquery", "SummarizedExperiment", "DESeq2", "airway"))
+```
+
+## Downloading from GEO
+
+```r
+library(GEOquery)
+
+# Download a dataset by accession number
+gse      <- getGEO("GSE96870", GSEMatrix = TRUE)
+gse_obj  <- gse[[1]]          # extract the first (usually only) element
+
+# If the download fails, try saving locally first
+gse      <- getGEO("GSE96870", GSEMatrix = TRUE, destdir = ".")
+```
+
+## ExpressionSet Accessors (GEO download format)
+
+```r
+exprs(gse_obj)       # expression matrix (genes x samples)
+pData(gse_obj)       # sample metadata (one row per sample)
+fData(gse_obj)       # feature/gene metadata (one row per gene)
+dim(gse_obj)         # dimensions
+sampleNames(gse_obj) # sample IDs
+featureNames(gse_obj)# gene/probe IDs
+```
+
+## SummarizedExperiment Accessors
+
+```r
+assay(se)            # count matrix
+colData(se)          # sample metadata
+rowData(se)          # gene metadata
+dim(se)
+colnames(se)
+rownames(se)
+
+# Subsetting (keeps all three components synchronized)
+se_treated <- se[, se$treatment == "LPS"]
+se_filtered <- se[rowSums(assay(se)) >= 10, ]
+```
+
+## Count Matrix Operations
+
+```r
+counts <- exprs(gse_obj)       # or assay(se)
+
+# Library sizes
+colSums(counts)
+
+# Zero and low-count genes
+sum(rowSums(counts) == 0)
+sum(rowSums(counts) < 10)
+
+# Filter to genes with at least 10 total counts
+keep           <- rowSums(counts) >= 10
+counts_filtered <- counts[keep, ]
+```
+
+## Reshaping for ggplot2
+
+```r
+# Wide matrix to long tibble (for density plots, etc.)
+counts |>
+  as_tibble(rownames = "gene") |>
+  pivot_longer(-gene, names_to = "sample", values_to = "count") |>
+  mutate(log2count = log2(count + 1))
+```
+
+## DESeq2: VST and PCA
+
+```r
+library(DESeq2)
+
+# Build DESeqDataSet from a SummarizedExperiment
+dds <- DESeqDataSet(se, design = ~ treatment)
+
+# Filter low-count genes (required before vst)
+keep <- rowSums(counts(dds)) >= 10
+dds  <- dds[keep, ]
+
+# Variance-stabilizing transformation (blind = TRUE for QC)
+vsd <- vst(dds, blind = TRUE)
+
+# PCA using plotPCA (returnData = TRUE for manual ggplot)
+pca_data <- plotPCA(vsd, intgroup = "treatment", returnData = TRUE)
+pct_var  <- round(100 * attr(pca_data, "percentVar"))
+
+ggplot(pca_data, aes(x = PC1, y = PC2, color = treatment)) +
+  geom_point(size = 4) +
+  labs(x = paste0("PC1: ", pct_var[1], "% variance"),
+       y = paste0("PC2: ", pct_var[2], "% variance")) +
+  theme_minimal()
+```
+
+## Sample-to-Sample Distance Heatmap
+
+```r
+# Compute pairwise distances on VST-transformed data
+sample_dists <- dist(t(assay(vsd)))
+dist_matrix  <- as.matrix(sample_dists)
+
+# Label with treatment group
+rownames(dist_matrix) <- colnames(dist_matrix) <-
+  colData(vsd)$treatment
+
+heatmap(dist_matrix,
+        symm    = TRUE,
+        col     = colorRampPalette(c("steelblue", "white"))(50),
+        margins = c(10, 10))
+```
+
+## Common Mistakes
+
+| Mistake | What happens | How to avoid |
+|---|---|---|
+| Using `scale_color_manual()` with combined group labels from `plotPCA()` | Warning, no colors applied | Use `returnData = TRUE` and map color manually in `ggplot()` |
+| Calling `vst()` on a raw `SummarizedExperiment` | Error about `design<-` | Convert to `DESeqDataSet` first with `DESeqDataSet(se, design = ~ group)` |
+| Calling `vst()` before filtering zero-count genes | Error about zero-variance genes | Filter with `rowSums(counts(dds)) >= 10` before calling `vst()` |
+| Not checking `identical(colnames(expr), rownames(pData()))` | Silent metadata misalignment | Always check before any analysis |

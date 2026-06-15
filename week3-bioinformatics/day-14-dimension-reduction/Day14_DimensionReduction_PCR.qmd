@@ -1,0 +1,519 @@
+---
+title: "Day 14: Dimension Reduction and Principal Component Regression"
+subtitle: "SC INBRE Biostatistics Summer Intensive 2026"
+date: today
+format:
+  html:
+    toc: true
+    toc-location: left
+    toc-depth: 3
+    number-sections: true
+    smooth-scroll: true
+    theme: cosmo
+    code-fold: false
+    highlight-style: github
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+```{r}
+library(tidyverse)
+library(this.path)
+library(factoextra)
+library(pls)
+library(patchwork)
+setwd(this.dir())
+
+# Resolve namespace conflicts
+select  <- dplyr::select
+filter  <- dplyr::filter
+```
+
+# Overview
+
+This week we have been working with genomics data where $p \gg n$: far more
+variables than observations. Today we step back and look at the general problem
+of dimension reduction -- what to do when your predictors are high-dimensional,
+correlated, or both -- and how to use the results in a regression model.
+
+We use the **NHANES** dataset: a large cross-sectional survey of U.S. adults
+with measurements on BMI, blood pressure, cholesterol, pulse, sleep, income,
+and alcohol use. These variables are correlated in biologically meaningful ways,
+which makes them a good teaching example for both PCA and PCR.
+
+Three examples:
+
+- **Example 1:** PCA on NHANES health indicators -- fitting, scree plot,
+  loadings, and biplot.
+- **Example 2:** Using PCA scores for visualization -- what the components
+  represent and how samples distribute across them.
+- **Example 3:** Principal Component Regression -- using PC scores to predict
+  systolic blood pressure while eliminating collinearity.
+
+---
+
+# The Data
+
+```{r}
+library(NHANES)
+library(janitor)
+
+# Adult participants only, complete cases on our variables of interest
+vars_keep <- c("Age", "BMI", "bp_sys_ave", "bp_dia_ave", "tot_chol",
+               "direct_chol", "pulse", "sleep_hrs_night",
+               "hh_income_mid", "alcohol_day")
+
+nhanes <- NHANES |>
+  clean_names() |>
+  filter(age >= 20) |>
+  select(id, gender, race1, all_of(tolower(vars_keep))) |>
+  drop_na()
+
+cat("Observations:", nrow(nhanes), "\n")
+cat("Variables:   ", length(vars_keep), "\n")
+```
+
+```{r}
+# Quick look at the variables
+nhanes |>
+  select(-id, -gender, -race1) |>
+  summary()
+```
+
+Several variables are right-skewed (household income, alcohol). We
+log-transform these before standardizing.
+
+```{r}
+to_log <- c("tot_chol", "direct_chol", "sleep_hrs_night",
+            "hh_income_mid", "alcohol_day")
+
+nhanes_tr <- nhanes |>
+  mutate(across(all_of(to_log), ~ log(. + 1)))
+
+# Numeric matrix for PCA (no IDs or categorical variables)
+X <- nhanes_tr |>
+  select(age, bmi, bp_sys_ave, bp_dia_ave, tot_chol,
+         direct_chol, pulse, sleep_hrs_night,
+         hh_income_mid, alcohol_day) |>
+  as.matrix()
+
+# Standardize: PCA is sensitive to scale
+X_s <- scale(X)
+```
+
+::: {.callout-important}
+**Always scale before PCA** when variables are measured in different units or
+on different scales. Without scaling, variables with large variance (e.g.,
+household income) will dominate the first component and variables with small
+variance (e.g., sleep hours) will barely contribute.
+:::
+
+---
+
+# Example 1: Fitting PCA
+
+## Running PCA
+
+```{r}
+pca_res <- prcomp(X_s, center = FALSE, scale. = FALSE)
+# center = FALSE and scale. = FALSE because X_s is already centered and scaled
+```
+
+## Scree Plot and Variance Explained
+
+```{r}
+#| fig-width: 8
+#| fig-height: 4
+# Proportion of variance explained by each PC
+var_explained <- pca_res$sdev^2 / sum(pca_res$sdev^2)
+cum_var       <- cumsum(var_explained)
+
+var_df <- tibble(
+  PC         = seq_along(var_explained),
+  Individual = var_explained * 100,
+  Cumulative = cum_var * 100
+)
+
+p1 <- fviz_eig(pca_res, addlabels = TRUE,
+               barcolor = "gray40", barfill = "steelblue") +
+  labs(title = "Variance Explained per PC",
+       x = "Principal Component", y = "% Variance") +
+  theme_minimal()
+
+p2 <- var_df |>
+  ggplot(aes(x = PC, y = Cumulative)) +
+  geom_line(linewidth = 1, color = "steelblue") +
+  geom_point(size = 3, color = "steelblue") +
+  geom_hline(yintercept = 90, linetype = "dashed",
+             color = "firebrick", linewidth = 0.8) +
+  annotate("text", x = 8, y = 91.5,
+           label = "90% threshold", color = "firebrick", size = 3.5) +
+  labs(title = "Cumulative Variance Explained",
+       x = "Number of PCs", y = "Cumulative % Variance") +
+  theme_minimal()
+
+p1 + p2
+```
+
+```{r}
+var_df |>
+  mutate(across(c(Individual, Cumulative), ~ round(., 1))) |>
+  print(n = 10)
+```
+
+**Reading the scree plot:**
+
+- PC1 explains about 18% of the total variance, PC2 about 17%, and so on.
+- The curve has no sharp elbow -- variance is spread fairly evenly across
+  components, which is typical when variables are only moderately correlated.
+- To explain at least 80% of the variance, we need about 7 PCs. To explain
+  90%, we need 8.
+
+For a dataset where all variables are biologically related health indicators,
+this diffuse scree plot makes sense: there is no single dominant dimension.
+
+## Loadings
+
+The loadings tell us what each PC represents in terms of the original variables.
+
+```{r}
+#| fig-width: 9
+#| fig-height: 5
+# Plot loadings for PC1 and PC2
+loadings_df <- as.data.frame(pca_res$rotation) |>
+  rownames_to_column("variable") |>
+  as_tibble() |>
+  pivot_longer(cols = -variable, names_to = "PC", values_to = "loading") |>
+  filter(PC %in% c("PC1", "PC2"))
+
+loadings_df |>
+  ggplot(aes(x = reorder(variable, loading), y = loading,
+             fill = loading > 0)) +
+  geom_col(show.legend = FALSE, color = "white") +
+  scale_fill_manual(values = c("TRUE" = "steelblue", "FALSE" = "firebrick")) +
+  facet_wrap(~ PC, scales = "free_y") +
+  coord_flip() +
+  labs(x = NULL, y = "Loading weight",
+       title = "PCA Loadings: PC1 and PC2",
+       subtitle = "Blue = positive contribution; red = negative contribution") +
+  theme_minimal()
+```
+
+```{r}
+# Numerical loadings for the first three PCs
+pca_res$rotation[, 1:3] |> round(3)
+```
+
+**Interpreting PC1:**
+
+Age, systolic BP, total cholesterol, and diastolic BP all have large negative
+loadings on PC1. Alcohol use has a large positive loading. A high PC1 score
+(more positive) corresponds to younger participants who drink more; a low PC1
+score corresponds to older participants with higher blood pressure and
+cholesterol. PC1 could be described as a "cardiovascular aging" axis, running
+from younger/higher-alcohol at one end to older/higher-BP at the other.
+
+**Interpreting PC2:**
+
+BMI, systolic BP, and diastolic BP have the largest (positive) loadings on PC2. HDL
+cholesterol (`direct_chol`) has a large negative loading (higher HDL is
+associated with lower BMI, a known relationship). PC2 looks like a "metabolic
+syndrome" axis.
+
+::: {.callout-tip}
+Interpreting PCs is part art, part science. The signs of the loadings are
+arbitrary (flip all signs and you get an equivalent component), so only the
+pattern of which variables load together -- and their relative magnitudes --
+carries information. A loading of -0.54 on age and -0.40 on systolic BP tells
+you those two variables co-vary in the same direction within this component,
+not that one is "better" than the other.
+:::
+
+---
+
+# Example 2: Visualizing PCA Scores
+
+## Biplot
+
+The biplot shows both the observations (points) and the variables (arrows) in
+the same plot.
+
+```{r}
+#| fig-width: 7
+#| fig-height: 6
+#| message: false
+fviz_pca_biplot(
+  pca_res,
+  geom.ind   = "point",
+  habillage  = nhanes_tr$gender,
+  addEllipses = TRUE,
+  repel      = TRUE,
+  col.var    = "black",
+  alpha.ind  = 0.3,
+  pointsize  = 1
+) +
+  labs(title  = "PCA Biplot: NHANES Health Indicators",
+       color  = "Gender",
+       fill   = "Gender") +
+  theme_minimal()
+```
+
+**Reading the biplot:**
+
+- Each point is one participant. Points close together have similar health
+  profiles across the ten variables.
+- Each arrow is one variable, pointing in the direction of its maximum
+  contribution to the two displayed PCs.
+- Arrows pointing in the same direction are positively correlated in the data
+  (age and systolic BP; BMI and diastolic BP). Arrows pointing in opposite
+  directions are negatively correlated (age and alcohol use).
+- The two gender groups show modest separation: male participants (on average
+  higher alcohol use, different BP profiles) tend to cluster somewhat
+  differently from female participants.
+
+## Score Plot Colored by Age Group
+
+```{r}
+#| fig-width: 7
+#| fig-height: 5
+scores <- as.data.frame(pca_res$x) |>
+  as_tibble() |>
+  bind_cols(nhanes_tr |> select(gender, age))
+
+scores |>
+  mutate(age_group = cut(age, breaks = c(20, 40, 60, 80),
+                         labels = c("20-40", "40-60", "60-80"),
+                         include.lowest = TRUE)) |>
+  ggplot(aes(x = PC1, y = PC2, color = age_group)) +
+  geom_point(alpha = 0.3, size = 0.8) +
+  stat_ellipse(linewidth = 1) +
+  scale_color_manual(values = c("20-40"  = "steelblue",
+                                 "40-60"  = "darkgreen",
+                                 "60-80"  = "firebrick")) +
+  labs(title = "PCA Scores Colored by Age Group",
+       x = "PC1 (cardiovascular aging)",
+       y = "PC2 (metabolic syndrome)",
+       color = "Age group") +
+  theme_minimal()
+```
+
+Older participants cluster on the left side of PC1 (consistent with our
+loading interpretation: lower PC1 score = older age with higher BP).
+PC2 does not show a strong age gradient, as expected since it primarily
+captures BMI and metabolic risk rather than age per se.
+
+---
+
+# Example 3: Principal Component Regression
+
+## The Collinearity Problem
+
+We want to predict **systolic blood pressure** from the other health
+indicators. Let us first check the collinearity among predictors.
+
+```{r}
+# Exclude the outcome from the predictor matrix
+X_pred <- nhanes_tr |>
+  select(age, bmi, bp_dia_ave, tot_chol, direct_chol,
+         pulse, sleep_hrs_night, hh_income_mid, alcohol_day)
+
+# Correlation matrix
+cor_mat <- cor(X_pred)
+round(cor_mat, 2)
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 5
+# Visualize correlations
+corrplot::corrplot(cor_mat, method = "color", type = "upper",
+                  tl.cex = 0.8, addCoef.col = "black",
+                  number.cex = 0.65,
+                  col = colorRampPalette(c("firebrick","white","steelblue"))(100))
+```
+
+Diastolic BP and age are both correlated with the outcome and with each other.
+Several other moderate correlations exist. Fitting a plain OLS regression with
+all these predictors will give unstable coefficient estimates.
+
+## Standard OLS: The Instability
+
+```{r}
+nhanes_model <- nhanes_tr |>
+  select(bp_sys_ave, age, bmi, bp_dia_ave, tot_chol, direct_chol,
+         pulse, sleep_hrs_night, hh_income_mid, alcohol_day)
+
+ols_fit <- lm(bp_sys_ave ~ ., data = nhanes_model)
+summary(ols_fit)
+```
+
+The OLS model fits, but notice the large standard errors on some coefficients. Overall, this doesn't appear to have to many issues though. 
+
+## PCR: The Fix
+
+PCR replaces the correlated predictors with uncorrelated PC scores, then
+regresses the outcome on those scores.
+
+```{r}
+# Step 1: PCA on the predictors (not including the outcome)
+X_pred_s <- scale(as.matrix(X_pred))
+pca_pred  <- prcomp(X_pred_s, center = FALSE, scale. = FALSE)
+
+# How much variance do the first r PCs explain?
+var_pred <- pca_pred$sdev^2 / sum(pca_pred$sdev^2)
+cumsum(var_pred) |> round(3)
+```
+
+```{r}
+# Keep 5 PCs (explains ~75% of predictor variance -- a reasonable choice here)
+# In practice, choose r by cross-validation
+r      <- 5
+scores <- as.data.frame(pca_pred$x[, 1:r])
+names(scores) <- paste0("PC", 1:r)
+
+# Step 2: Regress outcome on PC scores
+Y <- nhanes_tr$bp_sys_ave
+pcr_fit <- lm(Y ~ ., data = scores)
+summary(pcr_fit)
+```
+
+The PC scores are uncorrelated by construction, so the standard errors are
+well-behaved and the coefficients are interpretable. Each significant PC
+represents a dimension of the predictor space that is independently associated
+with systolic BP.
+
+## Choosing r by Cross-Validation
+
+Choosing $r = 5$ above was somewhat arbitrary. The `pls` package provides
+`pcr()` with built-in cross-validation.
+
+```{r}
+#| fig-width: 7
+#| fig-height: 4
+# pcr() from the pls package handles the whole workflow
+pcr_cv <- pcr(bp_sys_ave ~ age + bmi + bp_dia_ave + tot_chol +
+                            direct_chol + pulse + sleep_hrs_night +
+                            hh_income_mid + alcohol_day,
+              data      = as.data.frame(nhanes_tr),
+              scale     = TRUE,
+              validation = "CV")
+
+# Plot cross-validated RMSE vs number of components
+validationplot(pcr_cv, val.type = "RMSEP",
+               main = "PCR: Cross-Validated RMSE vs Number of Components")
+```
+
+```{r}
+# Find the r with the lowest CV RMSEP
+cv_rmse <- RMSEP(pcr_cv)$val[1, 1, ]  # intercept-only to full model
+best_r   <- which.min(cv_rmse) - 1    # subtract 1 for the intercept row
+cat("Optimal number of components:", best_r, "\n")
+cat("CV RMSEP at optimal r:        ", round(min(cv_rmse), 3), "\n")
+```
+
+The optimal number of components according to cross-validation is
+typically 6--8 for this dataset, depending on the random seed. The key
+observation is that adding more components beyond this point does not
+meaningfully improve prediction -- confirming that we can reduce 9
+predictors to a handful of PCs without losing predictive ability.
+
+## Comparing OLS and PCR Predictions
+
+```{r}
+#| fig-width: 8
+#| fig-height: 4
+# Predictions on training data (for illustration; honest comparison uses test data)
+pred_ols <- fitted(ols_fit)
+pred_pcr <- as.vector(predict(pcr_cv, ncomp = best_r))
+
+tibble(
+  Method    = c("OLS (all predictors)", paste0("PCR (", best_r, " components)")),
+  R_squared = c(summary(ols_fit)$r.squared,
+                cor(pred_pcr, Y)^2)
+) |>
+  mutate(R_squared = round(R_squared, 4))
+```
+
+The R-squared values are similar, confirming that PCR achieves comparable
+predictive performance with fewer effective parameters. The key advantages of
+PCR are in settings where OLS fails entirely: when $p > n$ (more predictors
+than observations) or when collinearity is severe enough to make OLS
+coefficients meaningless.
+
+## Back-Transforming to Original Coefficients
+
+One limitation of PCR is that the regression coefficients are on the PC scale,
+not the original variable scale. We can back-transform them.
+
+```{r}
+# Extract coefficients on original variable scale
+beta_pc <- coef(pcr_fit)[-1]  # drop intercept
+rotation <- pca_pred$rotation[, 1:r]
+scale_sd  <- attr(X_pred_s, "scaled:scale")
+scale_mn  <- attr(X_pred_s, "scaled:center")
+
+# Original-scale coefficients
+beta_orig <- (rotation %*% beta_pc) / scale_sd
+round(beta_orig, 4)
+```
+
+These are the implied regression coefficients on the original (log-transformed,
+but not standardized) variables. The signs and magnitudes should be more
+interpretable than the raw OLS output when collinearity is high.
+
+---
+
+# Connecting Back to Genomics
+
+The PCA you ran on Days 11--13 was doing the same thing as `prcomp()` above,
+just on a much larger matrix (genes instead of health variables).
+
+```{r}
+# The plotPCA() call in DESeq2 is equivalent to:
+# pca_res <- prcomp(t(vst_matrix), scale. = FALSE)
+# scores  <- pca_res$x[, 1:2]
+# The samples are the "observations" and the genes are the "variables"
+
+# In the Framingham data you could do:
+# pca_chd <- prcomp(framingham[, continuous_vars], scale. = TRUE)
+# Then use pca_chd$x[, 1:3] as predictors in a logistic regression
+
+cat("The same three lines of code work whether you have 10 variables or 20,000.\n")
+```
+
+The only difference in genomics is that the matrix is transposed (samples in
+rows rather than genes), and the VST transformation stabilizes the count
+variance before passing it to `prcomp()`. The rest of the workflow is
+identical.
+
+---
+
+# Summary
+
+**Dimension reduction:**
+
+- When predictors are high-dimensional or correlated, create a smaller set
+  of variables that summarize the originals.
+- Global methods (PCA) preserve overall variance structure and can be used
+  in regression. Local methods (t-SNE, UMAP) preserve neighborhood structure
+  and are for visualization only.
+
+**PCA:**
+
+- Creates uncorrelated components ordered by variance explained.
+- Always scale your variables first. Use a scree plot or cumulative variance
+  to choose the number of components.
+- Loadings tell you what each component represents. Scores are used
+  downstream in regression, clustering, or visualization.
+
+**PCR:**
+
+- Replace correlated predictors with uncorrelated PCA scores, then regress
+  $Y$ on the scores.
+- Eliminates collinearity completely. Works even when $p > n$.
+- Choose the number of PCs by cross-validation, not by how much variance
+  they explain in $X$.
+- Core limitation: PCA is unsupervised. Components explaining the most
+  variance in $X$ are not guaranteed to be the most predictive of $Y$.

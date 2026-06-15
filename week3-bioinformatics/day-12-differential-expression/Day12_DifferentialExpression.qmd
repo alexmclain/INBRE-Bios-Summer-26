@@ -1,0 +1,556 @@
+---
+title: "Day 12: Differential Expression Analysis with DESeq2"
+subtitle: "SC INBRE Biostatistics Summer Intensive 2026"
+date: today
+format:
+  html:
+    toc: true
+    toc-location: left
+    toc-depth: 3
+    number-sections: true
+    smooth-scroll: true
+    theme: cosmo
+    code-fold: false
+    highlight-style: github
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+```{r}
+library(tidyverse)
+library(this.path)
+library(SummarizedExperiment)
+library(DESeq2)
+library(airway)
+library(patchwork)
+setwd(this.dir())
+
+data(airway)
+```
+
+# Overview
+
+Yesterday we learned how genomics data is structured: count matrices,
+`SummarizedExperiment` objects, and quality assessment. Today we answer the
+scientific question that motivated the experiment:
+
+> **Which genes change their expression between dexamethasone-treated and
+> untreated airway smooth muscle cells?**
+
+This is called **differential expression (DE) analysis**. The core idea is
+simple: for each gene, test whether the mean count differs between groups.
+The challenge is doing this correctly for 20,000 genes simultaneously, with
+only a handful of replicates per group, on count data that violates the
+assumptions of a standard t-test.
+
+We will use DESeq2, the current standard tool for RNA-seq differential
+expression. Three examples:
+
+- **Example 1:** Building the DESeq2 model -- data input, filtering, and
+  setup.
+- **Example 2:** Running the analysis and interpreting the results table.
+- **Example 3:** Visualization -- MA plots, volcano plots, and heatmaps.
+
+We also show how to adjust for a covariate (cell line) in the design formula,
+connecting this directly to the confounding framework from Days 8--9.
+
+---
+
+# Why Not a t-Test?
+
+Before fitting anything, it is worth understanding why standard tools do not
+work on raw RNA-seq counts.
+
+```{r}
+counts <- assay(airway)
+
+# Pull counts for one gene across all 8 samples
+gene1 <- counts["ENSG00000103196", ]
+gene1
+```
+
+We have 4 treated and 4 untreated observations for this gene. A t-test would
+assume these 8 numbers are approximately normal with equal variance. Let us
+look at the count distribution across all genes in one sample to see whether
+that assumption holds:
+
+```{r}
+#| fig-width: 8
+#| fig-height: 4
+p1 <- tibble(count = counts[, 1]) |>
+  filter(count > 0) |>
+  ggplot(aes(x = count)) +
+  geom_histogram(bins = 60, fill = "steelblue", color = "white") +
+  scale_x_log10(labels = scales::comma) +
+  labs(title = "Count distribution (log x-axis)",
+       x = "Count (log scale)", y = "Genes") +
+  theme_minimal()
+
+# Mean-variance relationship across genes
+gene_stats <- tibble(
+  mean_count = rowMeans(counts),
+  var_count  = apply(counts, 1, var)
+) |>
+  filter(mean_count > 0, var_count > 0)
+
+p2 <- gene_stats |>
+  slice_sample(n = 3000) |>
+  ggplot(aes(x = mean_count, y = var_count)) +
+  geom_point(alpha = 0.15, color = "steelblue") +
+  geom_abline(slope = 1, intercept = 0,
+              color = "firebrick", linetype = "dashed", linewidth = 1) +
+  scale_x_log10(labels = scales::comma) +
+  scale_y_log10(labels = scales::comma) +
+  labs(title = "Mean vs. variance (log-log scale)",
+       subtitle = "Red line = Poisson (variance = mean)",
+       x = "Mean count", y = "Variance") +
+  theme_minimal()
+
+p1 + p2
+```
+
+Two problems are immediately visible:
+
+1. **Right-skewed counts.** Even on a log scale, the distribution is far from
+   normal.
+2. **Variance grows with the mean.** The variance is consistently above the
+   red dashed line (which would be exact Poisson). This is called
+   **overdispersion**, and it is the rule rather than the exception in
+   RNA-seq data.
+
+The appropriate model is the **negative binomial distribution**:
+$\text{Var}(Y) = \mu + \alpha\mu^2$, where $\alpha > 0$ is the dispersion
+parameter. DESeq2 estimates $\alpha$ separately for each gene and uses it
+when testing for differential expression.
+
+---
+
+# Example 1: Building the DESeq2 Model
+
+## Verifying Data Alignment
+
+Before building the model, confirm that the count matrix and sample metadata
+are aligned. This is the same check we did in the Day 11 lab.
+
+```{r}
+sample_info <- as.data.frame(colData(airway))
+sample_info |> select(SampleName, cell, dex)
+```
+
+```{r}
+identical(colnames(counts), rownames(sample_info))
+```
+
+## Building the DESeqDataSet
+
+The `DESeqDataSet` bundles the count matrix, sample metadata, and experimental
+design into one object. The design formula tells DESeq2 which variable to test.
+
+```{r}
+dds <- DESeqDataSetFromMatrix(
+  countData = counts,
+  colData   = sample_info,
+  design    = ~ dex        # compare treated vs. untreated
+)
+dds
+```
+
+## Filtering Low-Count Genes
+
+Genes with very few counts across all samples carry no information about
+differential expression. Including them wastes computational time and slightly
+increases the multiple testing burden. We keep only genes with at least 10
+total reads across all samples.
+
+```{r}
+keep <- rowSums(counts(dds)) >= 10
+dds  <- dds[keep, ]
+
+cat("Genes before filtering:", nrow(counts), "\n")
+cat("Genes after filtering: ", nrow(dds),    "\n")
+cat("Genes removed:         ", nrow(counts) - nrow(dds), "\n")
+```
+
+## Setting the Reference Level
+
+DESeq2 calculates fold changes as treated divided by the reference. We want
+the reference to be the untreated group so that a positive fold change means
+the gene went up after treatment.
+
+```{r}
+dds$dex <- relevel(dds$dex, ref = "untrt")
+levels(dds$dex)
+```
+
+---
+
+# Example 2: Running the Analysis and Interpreting Results
+
+## Running DESeq2
+
+A single call to `DESeq()` performs the entire workflow:
+
+1. Estimates size factors (normalizes for sequencing depth).
+2. Estimates dispersion for every gene (borrowing strength across genes).
+3. Fits the negative binomial model for every gene.
+4. Runs a Wald test for the treatment effect.
+
+```{r}
+deseq_dds <- DESeq(dds)
+```
+
+## Inspecting Size Factors
+
+Size factors capture the sequencing depth of each sample. Samples with more
+reads get a larger size factor; DESeq2 divides raw counts by the size factor
+before comparing.
+
+```{r}
+sizeFactors(deseq_dds)
+```
+
+Samples range from roughly 0.7 to 1.3. If one sample had a size factor of 5
+(five times the typical depth), that would be a sign of a badly outlying
+library and worth investigating.
+
+## The Dispersion Plot
+
+DESeq2 estimates a dispersion parameter for every gene. With only 8 samples,
+per-gene estimates are noisy. DESeq2 stabilizes them by shrinking each
+estimate toward a trend fitted across all genes -- borrowing strength in the
+same spirit as partial pooling in mixed models.
+
+```{r}
+#| fig-width: 6
+#| fig-height: 5
+plotDispEsts(deseq_dds,
+             main = "Dispersion Estimates",
+             cex  = 0.4)
+```
+
+**Reading this plot:**
+
+- **Black dots:** per-gene dispersion estimates from the data alone. Noisy,
+  especially at low expression.
+- **Red curve:** the fitted dispersion trend across all genes.
+- **Blue dots:** the final shrunken estimates used in testing. They are pulled
+  toward the red curve, reducing the influence of extreme per-gene estimates.
+
+Genes with very high per-gene estimates (outliers far above the trend) are
+shown as open black circles -- DESeq2 flags these and does not shrink them,
+because extreme dispersion may be genuine biology rather than noise.
+
+## Extracting Results
+
+```{r}
+res <- results(deseq_dds)
+res
+```
+
+```{r}
+summary(res)
+```
+
+The summary tells us how many genes were tested, how many passed the adjusted
+p-value threshold of 0.05 (the default), and how many had very low counts
+(excluded from testing).
+
+**What each column means:**
+
+- `baseMean`: average normalized count across all 8 samples. Higher values
+  mean the gene is more abundantly expressed overall.
+- `log2FoldChange`: the estimated change in expression on a log2 scale.
+  LFC = 1 means treated cells have twice the expression; LFC = -1 means half.
+- `lfcSE`: the standard error of the LFC estimate. Wide SE means the estimate
+  is uncertain.
+- `stat`: the Wald test statistic (LFC divided by lfcSE).
+- `pvalue`: raw p-value. Do not use this for calling significant genes.
+- `padj`: Benjamini-Hochberg adjusted p-value. **Use this.**
+
+::: {.callout-important}
+**Always use `padj`, not `pvalue`.** With 20,000 tests, a raw p-value
+threshold of 0.05 gives roughly 1,000 false positives even if no gene is
+truly differentially expressed. The adjusted p-value controls the false
+discovery rate: if we call all genes with `padj < 0.05` significant, we
+expect at most 5% of those calls to be wrong.
+:::
+
+## Top Differentially Expressed Genes
+
+```{r}
+res_df <- as.data.frame(res) |>
+  rownames_to_column("gene_id") |>
+  as_tibble() |>
+  arrange(padj)
+
+head(res_df)
+```
+
+The most significant genes have adjusted p-values near zero and large absolute
+fold changes. Let us add gene symbols from the `rowData` to make these
+interpretable:
+
+```{r}
+gene_info <- as.data.frame(rowData(airway)) |>
+  select(gene_id, gene_name)
+
+res_annotated <- res_df |>
+  left_join(gene_info, by = "gene_id") |>
+  select(gene_name, gene_id, baseMean, log2FoldChange, padj) |>
+  filter(!is.na(padj)) |>
+  arrange(padj)
+
+head(res_annotated, 10)
+```
+
+```{r}
+# How many significant at padj < 0.05?
+res_annotated |>
+  filter(padj < 0.05) |>
+  summarize(
+    n_sig        = n(),
+    n_up         = sum(log2FoldChange > 0),
+    n_down       = sum(log2FoldChange < 0)
+  )
+```
+
+## Interpreting the Top Hits
+
+```{r}
+# Top 5 upregulated and top 5 downregulated
+res_annotated |>
+  filter(padj < 0.05) |>
+  slice_max(log2FoldChange,  n = 5) |>
+  bind_rows(
+    res_annotated |>
+      filter(padj < 0.05) |>
+      slice_min(log2FoldChange, n = 5)
+  ) |>
+  select(gene_name, log2FoldChange, padj) |>
+  mutate(direction = if_else(log2FoldChange > 0, "Up", "Down"),
+         log2FoldChange = round(log2FoldChange, 2),
+         padj = formatC(padj, format = "e", digits = 2))
+```
+
+Dexamethasone is a glucocorticoid -- an anti-inflammatory steroid. Many of the
+top upregulated genes are known glucocorticoid-responsive genes, and the top
+downregulated genes are often involved in pro-inflammatory signaling. This
+biological coherence is a good sign that the analysis is working correctly.
+
+---
+
+# Example 3: Visualization
+
+## MA Plot
+
+The MA plot shows the relationship between a gene's mean expression level and
+its log2 fold change. It is the standard first visualization for a DE analysis.
+
+```{r}
+#| fig-width: 6
+#| fig-height: 5
+plotMA(res, ylim = c(-5, 5),
+       main = "MA Plot: Dexamethasone Treatment",
+       colSig = "firebrick",
+       alpha = 0.05)
+abline(h = c(-1, 1), lty = 2, col = "gray40")
+```
+
+**Reading the MA plot:**
+
+- Each point is one gene. The x-axis is mean expression (log scale); the
+  y-axis is log2 fold change.
+- Red points are significant (padj < 0.05); grey points are not.
+- The dashed lines at LFC = +1 and -1 mark a two-fold change in either
+  direction.
+- Genes at the far left (low mean expression) have noisy LFC estimates --
+  the cloud of non-significant points fans out widely at low counts. This is
+  expected and is why filtering low-count genes matters.
+
+## Volcano Plot
+
+The volcano plot combines fold change (effect size) on the x-axis with
+statistical significance on the y-axis. Genes in the top corners are the most
+interesting: large effect and high confidence.
+
+```{r}
+#| fig-width: 7
+#| fig-height: 5
+volcano_df <- res_annotated |>
+  filter(!is.na(padj)) |>
+  mutate(
+    significant = padj < 0.05,
+    label_gene  = if_else(padj < 1e-20 | abs(log2FoldChange) > 4,
+                          gene_name, NA_character_)
+  )
+
+ggplot(volcano_df, aes(x = log2FoldChange, y = -log10(padj))) +
+  geom_point(data = filter(volcano_df, !significant),
+             color = "gray70", alpha = 0.4, size = 0.8) +
+  geom_point(data = filter(volcano_df, significant),
+             color = "firebrick", alpha = 0.6, size = 1) +
+  geom_vline(xintercept = c(-1, 1), linetype = "dashed",
+             color = "gray40") +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed",
+             color = "gray40") +
+  ggrepel::geom_text_repel(aes(label = label_gene),
+                           size = 3, max.overlaps = 15,
+                           na.rm = TRUE) +
+  labs(x = "log2 Fold Change",
+       y = expression(-log[10](padj)),
+       title = "Volcano Plot: Dexamethasone vs. Untreated",
+       subtitle = "Red = significant (padj < 0.05)") +
+  theme_minimal()
+```
+
+::: {.callout-tip}
+`ggrepel::geom_text_repel()` labels selected points without overlapping text.
+If `ggrepel` is not installed, run `install.packages("ggrepel")` or simply
+remove the label layer.
+:::
+
+## Heatmap of Top DE Genes
+
+A heatmap of the most significant genes shows the expression pattern across all
+samples simultaneously, making it easy to see whether the groups separate
+cleanly.
+
+```{r}
+#| fig-width: 7
+#| fig-height: 6
+library(pheatmap)
+
+# Variance-stabilizing transformation for visualization
+vsd <- vst(deseq_dds, blind = FALSE)
+
+# Take the 30 most significant genes
+top_genes <- res_annotated |>
+  filter(!is.na(padj)) |>
+  slice_min(padj, n = 30) |>
+  pull(gene_id)
+
+# Extract VST counts for those genes
+mat <- assay(vsd)[top_genes, ]
+rownames(mat) <- res_annotated$gene_name[match(top_genes,
+                                               res_annotated$gene_id)]
+
+# Scale each gene (row) to zero mean and unit variance
+mat_scaled <- t(scale(t(mat)))
+
+# Column annotation showing treatment and cell line
+col_anno <- colData(vsd) |>
+  as_tibble(rownames = "sample") |>
+  select(sample, dex, cell) |>
+  column_to_rownames("sample")
+
+pheatmap(mat_scaled,
+         annotation_col  = col_anno,
+         cluster_rows    = TRUE,
+         cluster_cols    = TRUE,
+         show_rownames   = TRUE,
+         show_colnames   = FALSE,
+         color           = colorRampPalette(c("steelblue","white","firebrick"))(100),
+         main            = "Top 30 DE Genes (VST, row-scaled)")
+```
+
+Two things to verify from this plot:
+
+1. **Treated samples cluster together and untreated samples cluster
+   together.** If a treated sample clusters with the untreated group, it may
+   be mislabeled or an outlier.
+2. **Upregulated and downregulated genes form distinct blocks.** A clear
+   two-block pattern (one block high in treated, one block high in untreated)
+   is the expected result of a strong, consistent treatment effect.
+
+---
+
+# Adjusting for Cell Line
+
+The `airway` experiment used four different cell lines. Cell lines can differ
+in their baseline expression levels and potentially in how they respond to
+treatment. If we do not account for this, cell-line variation inflates the
+residual variance and reduces our power to detect treatment effects.
+
+This is exactly the confounding problem we solved with multiple logistic
+regression on Day 8. The solution here is the same: include the potential
+confounder in the model.
+
+```{r}
+# Model 1: treatment only
+dds_simple <- DESeqDataSetFromMatrix(
+  countData = counts(dds),
+  colData   = colData(dds),
+  design    = ~ dex
+)
+dds_simple$dex <- relevel(dds_simple$dex, ref = "untrt")
+dds_simple <- DESeq(dds_simple)
+res_simple  <- results(dds_simple)
+
+# Model 2: adjust for cell line, then test treatment
+dds_cell <- DESeqDataSetFromMatrix(
+  countData = counts(dds),
+  colData   = colData(dds),
+  design    = ~ cell + dex
+)
+dds_cell$dex <- relevel(dds_cell$dex, ref = "untrt")
+dds_cell <- DESeq(dds_cell)
+res_cell  <- results(dds_cell)
+```
+
+```{r}
+# Compare the number of significant genes
+tibble(
+  Model      = c("Treatment only", "Adjusted for cell line"),
+  Sig_genes  = c(
+    sum(results(dds_simple)$padj < 0.05, na.rm = TRUE),
+    sum(results(dds_cell)$padj   < 0.05, na.rm = TRUE)
+  )
+)
+```
+
+Adjusting for cell line typically increases the number of significant genes
+because we have removed a source of unwanted variation from the residual.
+This is the statistical gain from good experimental design and proper
+modeling -- the same principle applies here as in any regression analysis.
+
+::: {.callout-important}
+**The adjusted model is almost always preferable when the design includes a
+blocking variable.** If the four cell lines had not been included in the
+design, their variation would have been absorbed into the residual, making
+the test for dexamethasone less powerful. Including `cell` in the design
+formula is the genomics equivalent of adjusting for a confounder in
+logistic regression.
+:::
+
+---
+
+# Summary
+
+The DESeq2 workflow in five steps:
+
+1. **Build the `DESeqDataSet`** with counts, sample metadata, and design
+   formula. Set the reference level for your grouping variable.
+
+2. **Filter low-count genes.** Keep genes with at least 10 total reads
+   across all samples.
+
+3. **Run `DESeq()`.** One call handles normalization, dispersion estimation,
+   model fitting, and testing for all genes.
+
+4. **Extract results with `results()`.** Report `padj`, not `pvalue`.
+   Positive LFC means upregulated in the treatment group; negative means
+   downregulated.
+
+5. **Visualize.** MA plot for an overview of all genes. Volcano plot to
+   identify top candidates. Heatmap of top genes to check that the biological
+   pattern is coherent.
+
+If the experiment has a blocking variable (cell line, batch, patient), include
+it in the design formula. The statistical logic is identical to adjusting for
+a confounder in regression.
+
+Tomorrow: **multiple testing in depth**. Why the Benjamini-Hochberg procedure
+controls the FDR, how to interpret FDR vs. FWER, and what to do when
+thousands of genes are significant or none are.

@@ -1,0 +1,221 @@
+---
+title: "Day 11 (PM) Lab: Genomics Data Exploration"
+subtitle: "SC INBRE Biostatistics Summer Intensive 2026"
+date: today
+format:
+  html:
+    toc: true
+    toc-location: left
+    toc-depth: 3
+    number-sections: true
+    smooth-scroll: true
+    theme: cosmo
+    code-fold: false
+    highlight-style: github
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+# Overview
+
+This afternoon you will practice the same quality assessment workflow from the
+morning lecture on a new dataset. The goal is repetition with a different
+example -- the same questions, the same tools, a different experiment.
+
+We will use the `pasilla` dataset: an RNA-seq experiment in *Drosophila
+melanogaster* (fruit fly) cells comparing samples where the *pasilla* gene was
+knocked down by RNAi to untreated controls. The *pasilla* gene encodes an RNA-
+binding protein involved in splicing regulation.
+
+**How this lab works:**
+
+- **Part 1 (instructor demo, ~20 min):** Follow along as we load the dataset
+  and run through the setup together.
+- **Part 2 (on your own, ~70 min):** Three exercises following the quality
+  assessment checklist from the morning.
+
+::: {.callout-note}
+If `pasilla` is not installed, run:
+```r
+BiocManager::install("pasilla")
+```
+:::
+
+---
+
+# Part 1: Instructor Demo
+
+## Setup
+
+```{r}
+library(tidyverse)
+library(this.path)
+library(SummarizedExperiment)
+library(DESeq2)
+library(pasilla)
+setwd(this.dir())
+```
+
+## Loading the Dataset
+
+The `pasilla` package ships with the count matrix and sample metadata as
+separate files. We load them and assemble a `SummarizedExperiment` the same
+way DESeq2 expects.
+
+```{r}
+# Path to the count matrix bundled with the pasilla package
+counts_file <- system.file("extdata", "pasilla_gene_counts.tsv",
+                           package = "pasilla")
+
+# Path to the sample metadata
+meta_file <- system.file("extdata", "pasilla_sample_annotation.csv",
+                         package = "pasilla")
+
+# Read both files
+counts <- read.table(counts_file, header = TRUE, row.names = 1) |>
+  as.matrix()
+
+meta <- read.csv(meta_file, row.names = 1)
+```
+
+```{r}
+# Check dimensions
+dim(counts)
+dim(meta)
+
+# The metadata row names must match the count matrix column names
+# The pasilla metadata uses slightly different names -- align them
+rownames(meta) <- sub("fb", "", rownames(meta))
+meta <- meta[colnames(counts), ]
+
+# Confirm alignment
+identical(colnames(counts), rownames(meta))
+```
+
+```{r}
+# Inspect the metadata
+meta
+```
+
+The `condition` column encodes our treatment variable: `treated` (pasilla
+knockdown) vs. `untreated` (control). The `type` column tells us whether each
+library was single-read or paired-end sequencing -- a potential technical
+variable to keep in mind.
+
+```{r}
+# Build the SummarizedExperiment
+se <- SummarizedExperiment(
+  assays  = list(counts = counts),
+  colData = meta
+)
+
+se
+```
+
+```{r}
+# Library sizes
+tibble(
+  sample    = colnames(se),
+  lib_size  = colSums(assay(se)),
+  condition = colData(se)$condition
+) |>
+  ggplot(aes(x = sample, y = lib_size / 1e6, fill = condition)) +
+  geom_col(color = "white") +
+  scale_fill_manual(values = c("untreated" = "steelblue",
+                               "treated"   = "firebrick")) +
+  labs(x = "Sample", y = "Total reads (millions)",
+       fill = "Condition",
+       title = "Library Sizes: pasilla Dataset") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+---
+
+# Part 2: Exercises
+
+## Instructions
+
+**Step 1.** Open a new Quarto document. Title it
+`"Day 11 Lab: Genomics Data Exploration"`.
+
+**Step 2.** Copy the setup chunk from Part 1 into your document (including the
+data loading and `SummarizedExperiment` construction steps). You need the `se`
+object to be available before starting the exercises.
+
+**Step 3.** Work through Exercises 1--3. Add 2--3 sentences of interpretation
+after each result.
+
+**Step 4.** Render when finished.
+
+---
+
+**Exercise 1 -- Inspect the Count Matrix and Sample Metadata.**
+
+a. Extract the count matrix using `assay(se)` and print the first 6 rows and
+   all columns. What do the row names represent? What do the column names
+   represent?
+
+b. How many genes are in the dataset? How many samples?
+
+c. Look at the sample metadata with `colData(se)`. How many samples are in
+   each condition (`treated` vs. `untreated`)? Is the experiment balanced?
+
+d. The `type` column records whether each sample was sequenced as single-read
+   or paired-end. Check whether library type is balanced
+   across the two conditions. Is there a potential confound here?
+
+```{r}
+# your code here
+```
+
+---
+
+**Exercise 2 -- Count Distribution and Low-Count Filtering.**
+
+a. For the first sample, plot a histogram of raw counts (non-zero values only)
+   and a histogram of `log2(count + 1)`. Place them side by side using
+   `library(patchwork)`. Describe the shape of each.
+
+b. How many genes have zero total counts across all samples? What fraction of
+   all genes does this represent?
+
+c. How many genes remain after filtering to those with at least 10 total counts?
+   Filter the `se` object using `se[keep, ]` and confirm the new dimensions.
+
+d. Make a density plot of `log2(count + 1)` values, one curve per sample,
+   colored by condition. Use the filtered dataset. Do the curves overlap
+   closely?
+
+```{r}
+# your code here
+```
+
+---
+
+**Exercise 3 -- PCA.**
+
+a. Build a `DESeqDataSet` from the filtered `se` object and apply the
+   variance-stabilizing transformation:
+   ```r
+   dds <- DESeqDataSet(se_filtered, design = ~ condition)
+   vsd <- vst(dds, blind = TRUE)
+   ```
+
+b. Produce a PCA plot using `plotPCA()` with `returnData = TRUE` and plot it
+   manually with `ggplot2` so you can control the colors. Color points by
+   `condition` and use a different shape for `type` (single-read vs.
+   paired-end).
+
+c. Which principal component separates the treatment groups? How much of the
+   total variance does it capture?
+
+d. Does library type (`type`) appear to drive any separation in the PCA? What
+   would it mean if technical variables dominated the plot instead of the
+   biological treatment?
+
+```{r}
+# your code here
+```
