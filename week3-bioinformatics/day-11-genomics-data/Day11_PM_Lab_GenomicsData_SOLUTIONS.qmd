@@ -1,0 +1,246 @@
+---
+title: "Day 11 (PM) Lab: Genomics Data Exploration -- Solutions"
+subtitle: "SC INBRE Biostatistics Summer Intensive 2026"
+date: today
+format:
+  html:
+    toc: true
+    toc-location: left
+    toc-depth: 3
+    number-sections: true
+    smooth-scroll: true
+    theme: cosmo
+    code-fold: false
+    highlight-style: github
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+```{r}
+library(tidyverse)
+library(this.path)
+library(SummarizedExperiment)
+library(DESeq2)
+library(pasilla)
+library(patchwork)
+# Some conflicted functions for this .qmd, setting defaults here:
+select  <- dplyr::select
+filter  <- dplyr::filter
+setwd(this.dir())
+
+# Load and align data (same as instructor demo)
+counts_file <- system.file("extdata", "pasilla_gene_counts.tsv",
+                           package = "pasilla")
+meta_file   <- system.file("extdata", "pasilla_sample_annotation.csv",
+                           package = "pasilla")
+
+counts <- read.table(counts_file, header = TRUE, row.names = 1) |>
+  as.matrix()
+meta <- read.csv(meta_file, row.names = 1)
+rownames(meta) <- sub("fb", "", rownames(meta))
+meta <- meta[colnames(counts), ]
+
+identical(colnames(counts), rownames(meta))
+
+se <- SummarizedExperiment(
+  assays  = list(counts = counts),
+  colData = meta
+)
+```
+
+---
+
+# Exercise 1 -- Inspect the Count Matrix and Sample Metadata
+
+## Part a: First 6 rows of the count matrix
+
+```{r}
+assay(se)[1:6, ]
+```
+
+Row names are Drosophila gene IDs (e.g., `FBgn0000003`). Column names are
+sample identifiers. Each value is the number of sequencing reads that mapped to
+that gene in that sample -- a non-negative integer.
+
+## Part b: Dimensions
+
+```{r}
+cat("Genes:  ", nrow(se), "\n")
+cat("Samples:", ncol(se), "\n")
+```
+
+The dataset has 14,599 genes and 7 samples.
+
+## Part c: Samples per condition
+
+```{r}
+table(colData(se)$condition)
+```
+
+There are 3 treated and 4 untreated samples. The experiment is slightly
+unbalanced (3 vs. 4), but not severely so. This is common in RNA-seq
+experiments where one sample fails quality control or is lost during
+preparation.
+
+## Part d: Library type balance
+
+```{r}
+table(colData(se)$condition, 
+      colData(se)$type)
+```
+
+Two of the three treated samples are paired-end, while two of the four untreated samples
+are paired-end. So, there are some differences in the proportion of paired-end samples per treatment. On Day 12, we will run a model that will include `type` as a covariate in the design formula.
+
+---
+
+# Exercise 2 -- Count Distribution and Low-Count Filtering
+
+## Part a: Raw and log2-transformed count histograms
+
+```{r}
+#| fig-width: 9
+#| fig-height: 4
+counts_s1 <- assay(se)[, 1]
+
+p1 <- tibble(count = counts_s1) |>
+  filter(count > 0) |>
+  ggplot(aes(x = count)) +
+  geom_histogram(bins = 60, fill = "steelblue", color = "white") +
+  scale_x_continuous(labels = scales::comma) +
+  labs(title = "Raw counts (non-zero only)",
+       x = "Count", y = "Genes") +
+  theme_minimal()
+
+p2 <- tibble(count = counts_s1) |>
+  filter(count > 0) |>
+  mutate(log2count = log2(count + 1)) |>
+  ggplot(aes(x = log2count)) +
+  geom_histogram(bins = 60, fill = "steelblue", color = "white") +
+  labs(title = "log2(count + 1)",
+       x = "log2(count + 1)", y = "Genes") +
+  theme_minimal()
+
+p1 + p2
+```
+
+The raw count distribution is extremely right-skewed: the vast majority of
+genes have very low counts and a small number of highly expressed genes have
+counts in the tens of thousands. After log2 transformation, the distribution
+is much more symmetric and roughly bell-shaped. This demonstrates why
+log-transformation (or the variance-stabilizing transformation used for PCA)
+is necessary before any distance-based analysis -- the raw scale is dominated
+by a small number of highly expressed genes.
+
+## Part b: Zero-count genes
+
+```{r}
+n_zero  <- sum(rowSums(assay(se)) == 0)
+n_total <- nrow(se)
+
+cat("Genes with zero total counts:", n_zero, "\n")
+cat("Fraction of all genes:       ", round(n_zero / n_total * 100, 1), "%\n")
+```
+
+About 2,200 genes (roughly 15% of all genes in the annotation) have zero
+counts across all seven samples. These genes carry no information about
+differential expression and should be removed before modeling.
+
+## Part c: Filtering low-count genes
+
+```{r}
+keep       <- rowSums(assay(se)) >= 10
+se_filtered <- se[keep, ]
+
+cat("Genes before filtering:", nrow(se),          "\n")
+cat("Genes after filtering: ", nrow(se_filtered), "\n")
+cat("Genes removed:         ", nrow(se) - nrow(se_filtered), "\n")
+```
+
+Note that subsetting `se[keep, ]` automatically keeps the count matrix, column
+metadata, and row metadata synchronized -- one of the key benefits of the
+`SummarizedExperiment` structure.
+
+## Part d: Density plot of log2 counts across samples
+
+```{r}
+#| fig-width: 8
+#| fig-height: 4
+#| message: false
+assay(se_filtered) |>
+  as_tibble(rownames = "gene") |>
+  pivot_longer(-gene, names_to = "sample", values_to = "count") |>
+  mutate(log2count = log2(count + 1)) |>
+  left_join(
+    colData(se_filtered) |>
+      as_tibble(rownames = "sample") |>
+      select(sample, condition),
+    by = "sample"
+  ) |>
+  ggplot(aes(x = log2count, color = condition, group = sample)) +
+  geom_density(linewidth = 0.8) +
+  scale_color_manual(values = c("untreated" = "steelblue",
+                                "treated"   = "firebrick")) +
+  labs(x = "log2(count + 1)", y = "Density",
+       color = "Condition",
+       title = "Count Distributions Across Samples (Filtered)") +
+  theme_minimal()
+```
+
+The seven density curves overlap closely in shape and position. No single
+sample is obviously shifted or shaped differently from the others, which is
+a good sign that there are no grossly outlying samples or failed libraries.
+The small differences between curves are expected and will be handled by
+DESeq2's size factor normalization in tomorrow's analysis.
+
+---
+
+# Exercise 3 -- PCA
+
+## Part a and b: VST and PCA plot
+
+```{r}
+#| fig-width: 6
+#| fig-height: 5
+# Build DESeqDataSet
+dds <- DESeqDataSet(se_filtered, design = ~ condition )
+dds$condition <- relevel(dds$condition, ref = "untreated")
+
+# Variance-stabilizing transformation
+vsd <- vst(dds, blind = TRUE)
+
+# Get PCA data
+pca_data <- plotPCA(vsd, intgroup = c("condition", "type"),
+                    returnData = TRUE)
+pct_var  <- round(100 * attr(pca_data, "percentVar"))
+
+ggplot(pca_data, aes(x = PC1, y = PC2,
+                     color = condition, shape = type)) +
+  geom_point(size = 4) +
+  scale_color_manual(values = c("untreated" = "steelblue",
+                                "treated"   = "firebrick")) +
+  labs(x = paste0("PC1: ", pct_var[1], "% variance"),
+       y = paste0("PC2: ", pct_var[2], "% variance"),
+       color = "Condition", shape = "Library type",
+       title = "PCA: pasilla Dataset (VST)") +
+  theme_minimal()
+```
+
+## Part c: Which PC separates treatment groups?
+
+PC1 separates the treated and untreated samples, capturing approximately
+56% of the total variance. The treated
+samples (red) cluster on one side of PC1 and the untreated samples (blue)
+cluster on the other, confirming that the treatment has a strong and consistent
+effect on global gene expression.
+
+## Part d: Does library type drive any separation?
+
+Looking at the shapes (circle = single-read, triangle = paired-end), there is a clear difference between library type along PC2. Here, single-read samples have large positive scores on PC2, while paired-end samples have large negative scores on PC2. This is worrisome, as it indicates that a non-biological element is having a notable impact on the data.
+
+When technical variables dominate the PCA plot instead of the biological
+treatment, it indicates a quality problem: samples are clustering
+by batch or protocol rather than by biology, making the downstream differential
+expression analysis unreliable or uninterpretable. Here, we at least have condition have a clear impact (along with library type).
