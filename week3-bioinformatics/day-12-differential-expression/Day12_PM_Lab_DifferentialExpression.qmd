@@ -52,6 +52,10 @@ library(DESeq2)
 library(pasilla)
 library(pheatmap)
 setwd(this.dir())
+
+select <- dplyr::select
+filter <- dplyr::filter
+count  <- dplyr::count
 ```
 
 ## Load the pasilla Data

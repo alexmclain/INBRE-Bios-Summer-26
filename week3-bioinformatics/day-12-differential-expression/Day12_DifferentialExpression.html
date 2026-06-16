@@ -6,7 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="dcterms.date" content="2026-06-11">
+<meta name="dcterms.date" content="2026-06-16">
 
 <title>Day 12: Differential Expression Analysis with DESeq2</title>
 <style>
@@ -159,7 +159,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">June 11, 2026</p>
+      <p class="date">June 16, 2026</p>
     </div>
   </div>
   
@@ -233,7 +233,7 @@ SRR1039521
 <span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(mean_count <span class="sc">&gt;</span> <span class="dv">0</span>, var_count <span class="sc">&gt;</span> <span class="dv">0</span>)</span>
 <span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>p2 <span class="ot">&lt;-</span> gene_stats <span class="sc">|&gt;</span></span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_sample</span>(<span class="at">n =</span> <span class="dv">3000</span>) <span class="sc">|&gt;</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_sample</span>(<span class="at">n =</span> <span class="dv">3000</span>) <span class="sc">|&gt;</span> <span class="co">#Randomly sample 3000 rows (out of &gt;33K)</span></span>
 <span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> mean_count, <span class="at">y =</span> var_count)) <span class="sc">+</span></span>
 <span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.15</span>, <span class="at">color =</span> <span class="st">"steelblue"</span>) <span class="sc">+</span></span>
 <span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">slope =</span> <span class="dv">1</span>, <span class="at">intercept =</span> <span class="dv">0</span>,</span>
@@ -498,29 +498,29 @@ Important
 <p>The most significant genes have adjusted p-values near zero and large absolute fold changes. Let us add gene symbols from the <code>rowData</code> to make these interpretable:</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>gene_info <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(<span class="fu">rowData</span>(airway)) <span class="sc">|&gt;</span></span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(gene_id, gene_name)</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(gene_id, gene_name, gene_biotype)</span>
 <span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>res_annotated <span class="ot">&lt;-</span> res_df <span class="sc">|&gt;</span></span>
 <span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(gene_info, <span class="at">by =</span> <span class="st">"gene_id"</span>) <span class="sc">|&gt;</span></span>
-<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(gene_name, gene_id, baseMean, log2FoldChange, padj) <span class="sc">|&gt;</span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(gene_name, gene_id, gene_biotype, baseMean, log2FoldChange, padj) <span class="sc">|&gt;</span></span>
 <span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(padj)) <span class="sc">|&gt;</span></span>
 <span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(padj)</span>
 <span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(res_annotated, <span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 10 × 5
-   gene_name gene_id         baseMean log2FoldChange      padj
-   &lt;chr&gt;     &lt;chr&gt;              &lt;dbl&gt;          &lt;dbl&gt;     &lt;dbl&gt;
- 1 SPARCL1   ENSG00000152583     997.           4.60 1.70e-100
- 2 STOM      ENSG00000148175   11194.           1.45 1.43e- 61
- 3 PER1      ENSG00000179094     777.           3.18 1.90e- 52
- 4 PHC2      ENSG00000134686    2738.           1.39 4.45e- 48
- 5 MT2A      ENSG00000125148    3656.           2.20 6.00e- 47
- 6 DUSP1     ENSG00000120129    3409.           2.95 5.39e- 45
- 7 MAOA      ENSG00000189221    2342.           3.31 3.44e- 44
- 8 ZBTB16    ENSG00000109906     385.           7.18 5.17e- 44
- 9 KCTD12    ENSG00000178695    2650.          -2.50 4.64e- 41
-10 SAMHD1    ENSG00000101347   12703.           3.86 4.03e- 40</code></pre>
+<pre><code># A tibble: 10 × 6
+   gene_name gene_id         gene_biotype   baseMean log2FoldChange      padj
+   &lt;chr&gt;     &lt;chr&gt;           &lt;chr&gt;             &lt;dbl&gt;          &lt;dbl&gt;     &lt;dbl&gt;
+ 1 SPARCL1   ENSG00000152583 protein_coding     997.           4.60 1.70e-100
+ 2 STOM      ENSG00000148175 protein_coding   11194.           1.45 1.43e- 61
+ 3 PER1      ENSG00000179094 protein_coding     777.           3.18 1.90e- 52
+ 4 PHC2      ENSG00000134686 protein_coding    2738.           1.39 4.45e- 48
+ 5 MT2A      ENSG00000125148 protein_coding    3656.           2.20 6.00e- 47
+ 6 DUSP1     ENSG00000120129 protein_coding    3409.           2.95 5.39e- 45
+ 7 MAOA      ENSG00000189221 protein_coding    2342.           3.31 3.44e- 44
+ 8 ZBTB16    ENSG00000109906 protein_coding     385.           7.18 5.17e- 44
+ 9 KCTD12    ENSG00000178695 protein_coding    2650.          -2.50 4.64e- 41
+10 SAMHD1    ENSG00000101347 protein_coding   12703.           3.86 4.03e- 40</code></pre>
 </div>
 </div>
 <div class="cell">
@@ -582,7 +582,7 @@ Important
 <h2 data-number="5.1" class="anchored" data-anchor-id="ma-plot"><span class="header-section-number">5.1</span> MA Plot</h2>
 <p>The MA plot shows the relationship between a gene’s mean expression level and its log2 fold change. It is the standard first visualization for a DE analysis.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plotMA</span>(res, <span class="at">ylim =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">5</span>, <span class="dv">5</span>),</span>
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plotMA</span>(res, <span class="at">ylim =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">6</span>, <span class="dv">8</span>),</span>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>       <span class="at">main =</span> <span class="st">"MA Plot: Dexamethasone Treatment"</span>,</span>
 <span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>       <span class="at">colSig =</span> <span class="st">"firebrick"</span>,</span>
 <span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>       <span class="at">alpha =</span> <span class="fl">0.05</span>)</span>
@@ -761,6 +761,90 @@ Important
 </div>
 <div class="callout-body-container callout-body">
 <p><strong>The adjusted model is almost always preferable when the design includes a blocking variable.</strong> If the four cell lines had not been included in the design, their variation would have been absorbed into the residual, making the test for dexamethasone less powerful. Including <code>cell</code> in the design formula is the genomics equivalent of adjusting for a confounder in logistic regression.</p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>gene_info <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(<span class="fu">rowData</span>(airway)) <span class="sc">|&gt;</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(gene_id, gene_name, gene_biotype)</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>res_cell_df <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(res_cell) <span class="sc">|&gt;</span></span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames_to_column</span>(<span class="st">"gene_id"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(padj)</span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>res_cell_annotated <span class="ot">&lt;-</span> res_cell_df <span class="sc">|&gt;</span></span>
+<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(gene_info, <span class="at">by =</span> <span class="st">"gene_id"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(gene_name, gene_id, gene_biotype, baseMean, log2FoldChange, padj) <span class="sc">|&gt;</span></span>
+<span id="cb41-12"><a href="#cb41-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(padj)) <span class="sc">|&gt;</span></span>
+<span id="cb41-13"><a href="#cb41-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(padj)</span>
+<span id="cb41-14"><a href="#cb41-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-15"><a href="#cb41-15" aria-hidden="true" tabindex="-1"></a><span class="co"># New analysis</span></span>
+<span id="cb41-16"><a href="#cb41-16" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(res_cell_annotated, <span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 10 × 6
+   gene_name gene_id         gene_biotype   baseMean log2FoldChange      padj
+   &lt;chr&gt;     &lt;chr&gt;           &lt;chr&gt;             &lt;dbl&gt;          &lt;dbl&gt;     &lt;dbl&gt;
+ 1 SPARCL1   ENSG00000152583 protein_coding     997.           4.57 7.41e-132
+ 2 CACNB2    ENSG00000165995 protein_coding     495.           3.29 4.02e-131
+ 3 DUSP1     ENSG00000120129 protein_coding    3409.           2.95 1.82e-125
+ 4 SAMHD1    ENSG00000101347 protein_coding   12703.           3.77 3.46e-125
+ 5 MAOA      ENSG00000189221 protein_coding    2342.           3.35 1.88e-119
+ 6 GPX3      ENSG00000211445 protein_coding   12286.           3.73 7.77e-108
+ 7 STEAP2    ENSG00000157214 protein_coding    3009.           1.98 1.57e-102
+ 8 NEXN      ENSG00000162614 protein_coding    5393.           2.04 3.53e- 99
+ 9 MT2A      ENSG00000125148 protein_coding    3656.           2.21 3.71e- 93
+10 ADAMTS1   ENSG00000154734 protein_coding   30315.           2.35 4.09e- 87</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Old Analysis</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(res_annotated, <span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 10 × 6
+   gene_name gene_id         gene_biotype   baseMean log2FoldChange      padj
+   &lt;chr&gt;     &lt;chr&gt;           &lt;chr&gt;             &lt;dbl&gt;          &lt;dbl&gt;     &lt;dbl&gt;
+ 1 SPARCL1   ENSG00000152583 protein_coding     997.           4.60 1.70e-100
+ 2 STOM      ENSG00000148175 protein_coding   11194.           1.45 1.43e- 61
+ 3 PER1      ENSG00000179094 protein_coding     777.           3.18 1.90e- 52
+ 4 PHC2      ENSG00000134686 protein_coding    2738.           1.39 4.45e- 48
+ 5 MT2A      ENSG00000125148 protein_coding    3656.           2.20 6.00e- 47
+ 6 DUSP1     ENSG00000120129 protein_coding    3409.           2.95 5.39e- 45
+ 7 MAOA      ENSG00000189221 protein_coding    2342.           3.31 3.44e- 44
+ 8 ZBTB16    ENSG00000109906 protein_coding     385.           7.18 5.17e- 44
+ 9 KCTD12    ENSG00000178695 protein_coding    2650.          -2.50 4.64e- 41
+10 SAMHD1    ENSG00000101347 protein_coding   12703.           3.86 4.03e- 40</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>volcano_df <span class="ot">&lt;-</span> res_cell_annotated <span class="sc">|&gt;</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(padj)) <span class="sc">|&gt;</span></span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">significant =</span> padj <span class="sc">&lt;</span> <span class="fl">0.05</span>,</span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">label_gene  =</span> <span class="fu">if_else</span>(padj <span class="sc">&lt;</span> <span class="fl">1e-20</span> <span class="sc">|</span> <span class="fu">abs</span>(log2FoldChange) <span class="sc">&gt;</span> <span class="dv">4</span>,</span>
+<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a>                          gene_name, <span class="cn">NA_character_</span>)</span>
+<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb45-8"><a href="#cb45-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-9"><a href="#cb45-9" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(volcano_df, <span class="fu">aes</span>(<span class="at">x =</span> log2FoldChange, <span class="at">y =</span> <span class="sc">-</span><span class="fu">log10</span>(padj))) <span class="sc">+</span></span>
+<span id="cb45-10"><a href="#cb45-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">data =</span> <span class="fu">filter</span>(volcano_df, <span class="sc">!</span>significant),</span>
+<span id="cb45-11"><a href="#cb45-11" aria-hidden="true" tabindex="-1"></a>             <span class="at">color =</span> <span class="st">"gray70"</span>, <span class="at">alpha =</span> <span class="fl">0.4</span>, <span class="at">size =</span> <span class="fl">0.8</span>) <span class="sc">+</span></span>
+<span id="cb45-12"><a href="#cb45-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">data =</span> <span class="fu">filter</span>(volcano_df, significant),</span>
+<span id="cb45-13"><a href="#cb45-13" aria-hidden="true" tabindex="-1"></a>             <span class="at">color =</span> <span class="st">"firebrick"</span>, <span class="at">alpha =</span> <span class="fl">0.6</span>, <span class="at">size =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb45-14"><a href="#cb45-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">1</span>, <span class="dv">1</span>), <span class="at">linetype =</span> <span class="st">"dashed"</span>,</span>
+<span id="cb45-15"><a href="#cb45-15" aria-hidden="true" tabindex="-1"></a>             <span class="at">color =</span> <span class="st">"gray40"</span>) <span class="sc">+</span></span>
+<span id="cb45-16"><a href="#cb45-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="sc">-</span><span class="fu">log10</span>(<span class="fl">0.05</span>), <span class="at">linetype =</span> <span class="st">"dashed"</span>,</span>
+<span id="cb45-17"><a href="#cb45-17" aria-hidden="true" tabindex="-1"></a>             <span class="at">color =</span> <span class="st">"gray40"</span>) <span class="sc">+</span></span>
+<span id="cb45-18"><a href="#cb45-18" aria-hidden="true" tabindex="-1"></a>  ggrepel<span class="sc">::</span><span class="fu">geom_text_repel</span>(<span class="fu">aes</span>(<span class="at">label =</span> label_gene),</span>
+<span id="cb45-19"><a href="#cb45-19" aria-hidden="true" tabindex="-1"></a>                           <span class="at">size =</span> <span class="dv">3</span>, <span class="at">max.overlaps =</span> <span class="dv">15</span>,</span>
+<span id="cb45-20"><a href="#cb45-20" aria-hidden="true" tabindex="-1"></a>                           <span class="at">na.rm =</span> <span class="cn">TRUE</span>) <span class="sc">+</span></span>
+<span id="cb45-21"><a href="#cb45-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"log2 Fold Change"</span>,</span>
+<span id="cb45-22"><a href="#cb45-22" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="fu">expression</span>(<span class="sc">-</span>log[<span class="dv">10</span>](padj)),</span>
+<span id="cb45-23"><a href="#cb45-23" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Volcano Plot: Dexamethasone vs. Untreated"</span>,</span>
+<span id="cb45-24"><a href="#cb45-24" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="st">"Red = significant (padj &lt; 0.05)"</span>) <span class="sc">+</span></span>
+<span id="cb45-25"><a href="#cb45-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day12_DifferentialExpression_files/figure-html/unnamed-chunk-24-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
 </div>
 </div>
 <hr>

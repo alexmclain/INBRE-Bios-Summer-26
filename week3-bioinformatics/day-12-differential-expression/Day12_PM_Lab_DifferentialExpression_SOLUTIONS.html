@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.32">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2026-06-16">
+
+<title>Day 12 (PM) Lab: Differential Expression Analysis – Solutions</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Day12_PM_Lab_DifferentialExpression_SOLUTIONS_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Day12_PM_Lab_DifferentialExpression_SOLUTIONS_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="Day12_PM_Lab_DifferentialExpression_SOLUTIONS_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="Day12_PM_Lab_DifferentialExpression_SOLUTIONS_files/libs/quarto-html/popper.min.js"></script>
+<script src="Day12_PM_Lab_DifferentialExpression_SOLUTIONS_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Day12_PM_Lab_DifferentialExpression_SOLUTIONS_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Day12_PM_Lab_DifferentialExpression_SOLUTIONS_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Day12_PM_Lab_DifferentialExpression_SOLUTIONS_files/libs/quarto-html/quarto-syntax-highlighting-234273d1456647dabc34a594ac50e507.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Day12_PM_Lab_DifferentialExpression_SOLUTIONS_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Day12_PM_Lab_DifferentialExpression_SOLUTIONS_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Day12_PM_Lab_DifferentialExpression_SOLUTIONS_files/libs/bootstrap/bootstrap-dfb3f4843b9b0ce307f095fcbeec1e0c.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<style>html{ scroll-behavior: smooth; }</style>
+
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#exercise-1-explore-the-results-table" id="toc-exercise-1-explore-the-results-table" class="nav-link active" data-scroll-target="#exercise-1-explore-the-results-table"><span class="header-section-number">1</span> Exercise 1 – Explore the Results Table</a>
+  <ul class="collapse">
+  <li><a href="#part-a-structure-of-the-results-table" id="toc-part-a-structure-of-the-results-table" class="nav-link" data-scroll-target="#part-a-structure-of-the-results-table"><span class="header-section-number">1.1</span> Part a: Structure of the results table</a></li>
+  <li><a href="#part-b-significant-genes" id="toc-part-b-significant-genes" class="nav-link" data-scroll-target="#part-b-significant-genes"><span class="header-section-number">1.2</span> Part b: Significant genes</a></li>
+  <li><a href="#part-c-direction-of-change" id="toc-part-c-direction-of-change" class="nav-link" data-scroll-target="#part-c-direction-of-change"><span class="header-section-number">1.3</span> Part c: Direction of change</a></li>
+  <li><a href="#part-d-most-significant-gene" id="toc-part-d-most-significant-gene" class="nav-link" data-scroll-target="#part-d-most-significant-gene"><span class="header-section-number">1.4</span> Part d: Most significant gene</a></li>
+  <li><a href="#part-e-top-10-genes" id="toc-part-e-top-10-genes" class="nav-link" data-scroll-target="#part-e-top-10-genes"><span class="header-section-number">1.5</span> Part e: Top 10 genes</a></li>
+  </ul></li>
+  <li><a href="#exercise-2-size-factors-and-dispersion" id="toc-exercise-2-size-factors-and-dispersion" class="nav-link" data-scroll-target="#exercise-2-size-factors-and-dispersion"><span class="header-section-number">2</span> Exercise 2 – Size Factors and Dispersion</a>
+  <ul class="collapse">
+  <li><a href="#part-a-size-factors" id="toc-part-a-size-factors" class="nav-link" data-scroll-target="#part-a-size-factors"><span class="header-section-number">2.1</span> Part a: Size factors</a></li>
+  <li><a href="#part-b-dispersion-plot" id="toc-part-b-dispersion-plot" class="nav-link" data-scroll-target="#part-b-dispersion-plot"><span class="header-section-number">2.2</span> Part b: Dispersion plot</a></li>
+  <li><a href="#part-c-dispersion-for-three-genes" id="toc-part-c-dispersion-for-three-genes" class="nav-link" data-scroll-target="#part-c-dispersion-for-three-genes"><span class="header-section-number">2.3</span> Part c: Dispersion for three genes</a></li>
+  </ul></li>
+  <li><a href="#exercise-3-volcano-plot" id="toc-exercise-3-volcano-plot" class="nav-link" data-scroll-target="#exercise-3-volcano-plot"><span class="header-section-number">3</span> Exercise 3 – Volcano Plot</a>
+  <ul class="collapse">
+  <li><a href="#parts-a-and-b-volcano-plot-with-quadrant-lines" id="toc-parts-a-and-b-volcano-plot-with-quadrant-lines" class="nav-link" data-scroll-target="#parts-a-and-b-volcano-plot-with-quadrant-lines"><span class="header-section-number">3.1</span> Parts a and b: Volcano plot with quadrant lines</a></li>
+  <li><a href="#part-c-gene-counts-per-quadrant" id="toc-part-c-gene-counts-per-quadrant" class="nav-link" data-scroll-target="#part-c-gene-counts-per-quadrant"><span class="header-section-number">3.2</span> Part c: Gene counts per quadrant</a></li>
+  <li><a href="#part-d-interpretation-of-quadrants" id="toc-part-d-interpretation-of-quadrants" class="nav-link" data-scroll-target="#part-d-interpretation-of-quadrants"><span class="header-section-number">3.3</span> Part d: Interpretation of quadrants</a></li>
+  </ul></li>
+  <li><a href="#exercise-4-heatmap-of-top-de-genes" id="toc-exercise-4-heatmap-of-top-de-genes" class="nav-link" data-scroll-target="#exercise-4-heatmap-of-top-de-genes"><span class="header-section-number">4</span> Exercise 4 – Heatmap of Top DE Genes</a>
+  <ul class="collapse">
+  <li><a href="#parts-ad-vst-subset-scale-and-heatmap" id="toc-parts-ad-vst-subset-scale-and-heatmap" class="nav-link" data-scroll-target="#parts-ad-vst-subset-scale-and-heatmap"><span class="header-section-number">4.1</span> Parts a–d: VST, subset, scale, and heatmap</a></li>
+  <li><a href="#part-e-library-type-effect" id="toc-part-e-library-type-effect" class="nav-link" data-scroll-target="#part-e-library-type-effect"><span class="header-section-number">4.2</span> Part e: Library type effect</a></li>
+  </ul></li>
+  <li><a href="#exercise-5-model-comparison-with-vs.-without-library-type" id="toc-exercise-5-model-comparison-with-vs.-without-library-type" class="nav-link" data-scroll-target="#exercise-5-model-comparison-with-vs.-without-library-type"><span class="header-section-number">5</span> Exercise 5 – Model Comparison: With vs.&nbsp;Without Library Type</a>
+  <ul class="collapse">
+  <li><a href="#part-a-fit-the-unadjusted-model" id="toc-part-a-fit-the-unadjusted-model" class="nav-link" data-scroll-target="#part-a-fit-the-unadjusted-model"><span class="header-section-number">5.1</span> Part a: Fit the unadjusted model</a></li>
+  <li><a href="#part-b-number-of-significant-genes" id="toc-part-b-number-of-significant-genes" class="nav-link" data-scroll-target="#part-b-number-of-significant-genes"><span class="header-section-number">5.2</span> Part b: Number of significant genes</a></li>
+  <li><a href="#part-c-lfc-comparison-for-top-20-genes" id="toc-part-c-lfc-comparison-for-top-20-genes" class="nav-link" data-scroll-target="#part-c-lfc-comparison-for-top-20-genes"><span class="header-section-number">5.3</span> Part c: LFC comparison for top 20 genes</a></li>
+  <li><a href="#part-d-ma-plot-comparison" id="toc-part-d-ma-plot-comparison" class="nav-link" data-scroll-target="#part-d-ma-plot-comparison"><span class="header-section-number">5.4</span> Part d: MA plot comparison</a></li>
+  <li><a href="#part-e-discussion" id="toc-part-e-discussion" class="nav-link" data-scroll-target="#part-e-discussion"><span class="header-section-number">5.5</span> Part e: Discussion</a></li>
+  </ul></li>
+  </ul>
+</nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Day 12 (PM) Lab: Differential Expression Analysis – Solutions</h1>
+<p class="subtitle lead">SC INBRE Biostatistics Summer Intensive 2026</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">June 16, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(this.path)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(SummarizedExperiment)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DESeq2)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(pasilla)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(pheatmap)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(patchwork)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">setwd</span>(<span class="fu">this.dir</span>())</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>select <span class="ot">&lt;-</span> dplyr<span class="sc">::</span>select</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>filter <span class="ot">&lt;-</span> dplyr<span class="sc">::</span>filter</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>count <span class="ot">&lt;-</span> dplyr<span class="sc">::</span>count</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co"># ── Data loading (same as instructor demo) ─────────────────────────────────</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>counts_file <span class="ot">&lt;-</span> <span class="fu">system.file</span>(<span class="st">"extdata"</span>, <span class="st">"pasilla_gene_counts.tsv"</span>,</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>                           <span class="at">package =</span> <span class="st">"pasilla"</span>)</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>meta_file   <span class="ot">&lt;-</span> <span class="fu">system.file</span>(<span class="st">"extdata"</span>, <span class="st">"pasilla_sample_annotation.csv"</span>,</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>                           <span class="at">package =</span> <span class="st">"pasilla"</span>)</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>counts <span class="ot">&lt;-</span> <span class="fu">read.table</span>(counts_file, <span class="at">header =</span> <span class="cn">TRUE</span>, <span class="at">row.names =</span> <span class="dv">1</span>) <span class="sc">|&gt;</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.matrix</span>()</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>meta <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(meta_file, <span class="at">row.names =</span> <span class="dv">1</span>)</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(meta) <span class="ot">&lt;-</span> <span class="fu">sub</span>(<span class="st">"fb"</span>, <span class="st">""</span>, <span class="fu">rownames</span>(meta))</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>meta <span class="ot">&lt;-</span> meta[<span class="fu">colnames</span>(counts), ]</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="co"># ── DESeq2 model (same as instructor demo) ─────────────────────────────────</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>dds <span class="ot">&lt;-</span> <span class="fu">DESeqDataSetFromMatrix</span>(</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>  <span class="at">countData =</span> counts,</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>  <span class="at">colData   =</span> meta,</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>  <span class="at">design    =</span> <span class="sc">~</span> type <span class="sc">+</span> condition</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>dds<span class="sc">$</span>condition <span class="ot">&lt;-</span> <span class="fu">relevel</span>(dds<span class="sc">$</span>condition, <span class="at">ref =</span> <span class="st">"untreated"</span>)</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>dds<span class="sc">$</span>type      <span class="ot">&lt;-</span> <span class="fu">relevel</span>(dds<span class="sc">$</span>type,      <span class="at">ref =</span> <span class="st">"single-read"</span>)</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>keep          <span class="ot">&lt;-</span> <span class="fu">rowSums</span>(<span class="fu">counts</span>(dds)) <span class="sc">&gt;=</span> <span class="dv">10</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>dds           <span class="ot">&lt;-</span> dds[keep, ]</span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>deseq_dds     <span class="ot">&lt;-</span> <span class="fu">DESeq</span>(dds)</span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>res           <span class="ot">&lt;-</span> <span class="fu">results</span>(deseq_dds, <span class="at">name =</span> <span class="st">"condition_treated_vs_untreated"</span>)</span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a><span class="co"># ── Results tibble used throughout ────────────────────────────────────────</span></span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>res_df <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(res) <span class="sc">|&gt;</span></span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames_to_column</span>(<span class="st">"gene_id"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(padj)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<hr>
+<section id="exercise-1-explore-the-results-table" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Exercise 1 – Explore the Results Table</h1>
+<section id="part-a-structure-of-the-results-table" class="level2" data-number="1.1">
+<h2 data-number="1.1" class="anchored" data-anchor-id="part-a-structure-of-the-results-table"><span class="header-section-number">1.1</span> Part a: Structure of the results table</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Rows:"</span>, <span class="fu">nrow</span>(res_df), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 9921 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(res_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 7
+  gene_id     baseMean log2FoldChange  lfcSE  stat    pvalue      padj
+  &lt;chr&gt;          &lt;dbl&gt;          &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;
+1 FBgn0003360    4343.          -3.13 0.109  -28.6 4.45e-180 3.82e-176
+2 FBgn0026562   43909.          -2.48 0.0883 -28.1 3.13e-173 1.34e-169
+3 FBgn0039155     731.          -4.62 0.166  -27.8 1.65e-169 4.72e-166
+4 FBgn0025111    1501.           2.85 0.105   27.3 1.12e-163 2.40e-160
+5 FBgn0029167    3706.          -2.20 0.0968 -22.7 4.03e-114 6.91e-111
+6 FBgn0035085     638.          -2.58 0.129  -20.0 7.16e- 89 1.02e- 85</code></pre>
+</div>
+</div>
+<p>The table has one row per gene tested. Each row contains the gene ID, the average normalized expression across all samples (<code>baseMean</code>), the estimated log2 fold change between treated and untreated (<code>log2FoldChange</code>), its standard error (<code>lfcSE</code>), a Wald test statistic (<code>stat</code>), the raw p-value, and the Benjamini-Hochberg adjusted p-value (<code>padj</code>). There is one row for every gene that passed the low-count filter, roughly 10,000–12,000 genes.</p>
+</section>
+<section id="part-b-significant-genes" class="level2" data-number="1.2">
+<h2 data-number="1.2" class="anchored" data-anchor-id="part-b-significant-genes"><span class="header-section-number">1.2</span> Part b: Significant genes</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"padj &lt; 0.05:"</span>, res_df <span class="sc">|&gt;</span> <span class="fu">filter</span>(padj <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="sc">|&gt;</span> <span class="fu">nrow</span>(), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>padj &lt; 0.05: 1080 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"padj &lt; 0.01:"</span>, res_df <span class="sc">|&gt;</span> <span class="fu">filter</span>(padj <span class="sc">&lt;</span> <span class="fl">0.01</span>) <span class="sc">|&gt;</span> <span class="fu">nrow</span>(), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>padj &lt; 0.01: 735 </code></pre>
+</div>
+</div>
+<p>Several hundred genes pass each threshold. Moving from 0.05 to 0.01 roughly halves the number of significant genes, as the stricter threshold accepts fewer false discoveries.</p>
+</section>
+<section id="part-c-direction-of-change" class="level2" data-number="1.3">
+<h2 data-number="1.3" class="anchored" data-anchor-id="part-c-direction-of-change"><span class="header-section-number">1.3</span> Part c: Direction of change</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>res_df <span class="sc">|&gt;</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(padj <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="sc">|&gt;</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">direction =</span> <span class="fu">if_else</span>(log2FoldChange <span class="sc">&gt;</span> <span class="dv">0</span>,</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>                                    <span class="st">"Upregulated"</span>,</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>                                    <span class="st">"Downregulated"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(direction)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 2
+  direction         n
+  &lt;chr&gt;         &lt;int&gt;
+1 Downregulated   592
+2 Upregulated     488</code></pre>
+</div>
+</div>
+<p>Upregulated means higher expression in the <code>treated</code> (pasilla knockdown) samples compared with the <code>untreated</code> controls. Since pasilla is an RNA-binding protein involved in splicing, many of the upregulated genes are likely those normally suppressed by pasilla activity – when pasilla is knocked down, their expression rises. The roughly equal number of up and downregulated genes is consistent with a transcription factor or splicing regulator that activates some genes and represses others.</p>
+</section>
+<section id="part-d-most-significant-gene" class="level2" data-number="1.4">
+<h2 data-number="1.4" class="anchored" data-anchor-id="part-d-most-significant-gene"><span class="header-section-number">1.4</span> Part d: Most significant gene</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>res_df <span class="sc">|&gt;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_min</span>(padj, <span class="at">n =</span> <span class="dv">1</span>) <span class="sc">|&gt;</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(gene_id, log2FoldChange, padj)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 3
+  gene_id     log2FoldChange      padj
+  &lt;chr&gt;                &lt;dbl&gt;     &lt;dbl&gt;
+1 FBgn0003360          -3.13 3.82e-176</code></pre>
+</div>
+</div>
+<p>The most significant gene has a large negative log2 fold change and a near-zero adjusted p-value, indicating both a biologically meaningful and statistically robust change in expression after pasilla knockdown.</p>
+</section>
+<section id="part-e-top-10-genes" class="level2" data-number="1.5">
+<h2 data-number="1.5" class="anchored" data-anchor-id="part-e-top-10-genes"><span class="header-section-number">1.5</span> Part e: Top 10 genes</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>res_df <span class="sc">|&gt;</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_min</span>(padj, <span class="at">n =</span> <span class="dv">10</span>) <span class="sc">|&gt;</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(gene_id, log2FoldChange, padj) <span class="sc">|&gt;</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">log2FoldChange =</span> <span class="fu">round</span>(log2FoldChange, <span class="dv">3</span>),</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>         <span class="at">padj           =</span> <span class="fu">formatC</span>(padj, <span class="at">format =</span> <span class="st">"e"</span>, <span class="at">digits =</span> <span class="dv">2</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 10 × 3
+   gene_id     log2FoldChange padj     
+   &lt;chr&gt;                &lt;dbl&gt; &lt;chr&gt;    
+ 1 FBgn0003360          -3.13 3.82e-176
+ 2 FBgn0026562          -2.48 1.34e-169
+ 3 FBgn0039155          -4.62 4.72e-166
+ 4 FBgn0025111           2.85 2.40e-160
+ 5 FBgn0029167          -2.20 6.91e-111
+ 6 FBgn0035085          -2.58 1.02e-85 
+ 7 FBgn0039827          -4.18 2.13e-80 
+ 8 FBgn0034736          -3.54 9.31e-64 
+ 9 FBgn0000071           2.62 7.41e-59 
+10 FBgn0029896          -2.44 9.34e-59 </code></pre>
+</div>
+</div>
+<hr>
+</section>
+</section>
+<section id="exercise-2-size-factors-and-dispersion" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Exercise 2 – Size Factors and Dispersion</h1>
+<section id="part-a-size-factors" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="part-a-size-factors"><span class="header-section-number">2.1</span> Part a: Size factors</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>sf <span class="ot">&lt;-</span> <span class="fu">sizeFactors</span>(deseq_dds)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sort</span>(sf)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>untreated3 untreated4   treated2   treated3 untreated1   treated1 untreated2 
+ 0.6494828  0.7516005  0.7612159  0.8326603  1.1383376  1.6355014  1.7935406 </code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Sample with largest size factor: "</span>, <span class="fu">names</span>(<span class="fu">which.max</span>(sf)), <span class="fu">round</span>(<span class="fu">max</span>(sf), <span class="dv">3</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Sample with largest size factor:  untreated2 1.794 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Sample with smallest size factor:"</span>, <span class="fu">names</span>(<span class="fu">which.min</span>(sf)), <span class="fu">round</span>(<span class="fu">min</span>(sf), <span class="dv">3</span>), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Sample with smallest size factor: untreated3 0.649 </code></pre>
+</div>
+</div>
+<p>A large size factor means the sample was sequenced to a greater depth than the typical sample in this dataset: it has proportionally more reads and would appear to have higher counts for every gene if we compared raw counts directly. DESeq2 divides each sample’s raw counts by its size factor before testing, so that differences in count magnitude reflect biology rather than sequencing depth.</p>
+</section>
+<section id="part-b-dispersion-plot" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="part-b-dispersion-plot"><span class="header-section-number">2.2</span> Part b: Dispersion plot</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plotDispEsts</span>(deseq_dds,</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>             <span class="at">main =</span> <span class="st">"Dispersion Estimates: pasilla"</span>,</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>             <span class="at">cex  =</span> <span class="fl">0.4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day12_PM_Lab_DifferentialExpression_SOLUTIONS_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The black dots (per-gene dispersion estimates from the data alone) are scattered widely around the fitted red trend line, especially at low expression levels where small counts make per-gene estimates very noisy. The blue dots (final shrunken estimates) are pulled toward the red trend, reducing the influence of extreme per-gene estimates. A small number of black open circles appear above the trend – these are genes with unusually high per-gene dispersion that DESeq2 flags as potential outliers and does not shrink toward the trend, because their extreme dispersion may represent genuine biological variability rather than estimation noise.</p>
+</section>
+<section id="part-c-dispersion-for-three-genes" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="part-c-dispersion-for-three-genes"><span class="header-section-number">2.3</span> Part c: Dispersion for three genes</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Creating a tibble with the results (IMPORTANT: do not sort by padj.)</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>res_df <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(res) <span class="sc">|&gt;</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames_to_column</span>(<span class="st">"gene_id"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() </span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="co"># This gives the dispersions for each row of the DESeqDataSet.</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>disp_vals <span class="ot">&lt;-</span> <span class="fu">dispersions</span>(deseq_dds)</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a><span class="co"># I'm going to add the dispersion to the results.</span></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a><span class="co"># This is why it was important that we didn't res_df by sort by padj.</span></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>res_df <span class="ot">&lt;-</span> res_df <span class="sc">|&gt;</span> </span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">disp_val =</span> disp_vals)</span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>res_df <span class="sc">|&gt;</span> </span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_max</span>(baseMean, <span class="at">n=</span><span class="dv">1</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Category =</span> <span class="st">"Highest_mean"</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>(</span>
+<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>    res_df <span class="sc">|&gt;</span> </span>
+<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(baseMean <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_min</span>(baseMean, <span class="at">n=</span><span class="dv">1</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Category =</span> <span class="st">"Lowest non-zero mean"</span>) </span>
+<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
+<span id="cb23-24"><a href="#cb23-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>(</span>
+<span id="cb23-25"><a href="#cb23-25" aria-hidden="true" tabindex="-1"></a>    res_df <span class="sc">|&gt;</span> </span>
+<span id="cb23-26"><a href="#cb23-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_min</span>(padj, <span class="at">n=</span><span class="dv">1</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb23-27"><a href="#cb23-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Category =</span> <span class="st">"Top DE gene"</span>)</span>
+<span id="cb23-28"><a href="#cb23-28" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
+<span id="cb23-29"><a href="#cb23-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(disp_val) <span class="sc">|&gt;</span> </span>
+<span id="cb23-30"><a href="#cb23-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(gene_id, Category, baseMean, log2FoldChange, padj, disp_val)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 6
+  gene_id     Category               baseMean log2FoldChange       padj disp_val
+  &lt;chr&gt;       &lt;chr&gt;                     &lt;dbl&gt;          &lt;dbl&gt;      &lt;dbl&gt;    &lt;dbl&gt;
+1 FBgn0000556 Highest_mean         196243.            -0.227  9.19e-  2  0.00685
+2 FBgn0003360 Top DE gene            4343.            -3.13   3.82e-176  0.00878
+3 FBgn0085297 Lowest non-zero mean      0.873          0.114 NA          2.69   </code></pre>
+</div>
+</div>
+<p>The highly expressed gene (highest mean) has a small dispersion estimate (its counts are consistent across samples relative to its mean). The lowly expressed gene has a much larger dispersion estimate, reflecting the greater proportional variability that is typical of low-count genes. The top DE gene has a moderate mean expression and a dispersion consistent with that expression level – it is not extreme in either direction.</p>
+<hr>
+</section>
+</section>
+<section id="exercise-3-volcano-plot" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Exercise 3 – Volcano Plot</h1>
+<section id="parts-a-and-b-volcano-plot-with-quadrant-lines" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="parts-a-and-b-volcano-plot-with-quadrant-lines"><span class="header-section-number">3.1</span> Parts a and b: Volcano plot with quadrant lines</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>volcano_df <span class="ot">&lt;-</span> res_df <span class="sc">|&gt;</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(padj)) <span class="sc">|&gt;</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">significant =</span> padj <span class="sc">&lt;</span> <span class="fl">0.05</span>)</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(volcano_df, <span class="fu">aes</span>(<span class="at">x =</span> log2FoldChange,</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>                       <span class="at">y =</span> <span class="sc">-</span><span class="fu">log10</span>(padj),</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>                       <span class="at">color =</span> significant)) <span class="sc">+</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">size =</span> <span class="fl">0.9</span>) <span class="sc">+</span></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"FALSE"</span> <span class="ot">=</span> <span class="st">"gray70"</span>, <span class="st">"TRUE"</span> <span class="ot">=</span> <span class="st">"firebrick"</span>)) <span class="sc">+</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">1</span>, <span class="dv">1</span>), <span class="at">linetype =</span> <span class="st">"dashed"</span>,</span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>             <span class="at">color =</span> <span class="st">"gray40"</span>, <span class="at">linewidth =</span> <span class="fl">0.8</span>) <span class="sc">+</span></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="sc">-</span><span class="fu">log10</span>(<span class="fl">0.05</span>), <span class="at">linetype =</span> <span class="st">"dashed"</span>,</span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a>             <span class="at">color =</span> <span class="st">"gray40"</span>, <span class="at">linewidth =</span> <span class="fl">0.8</span>) <span class="sc">+</span></span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"log2 Fold Change"</span>,</span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="fu">expression</span>(<span class="sc">-</span>log[<span class="dv">10</span>](padj)),</span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a>       <span class="at">color =</span> <span class="st">"padj &lt; 0.05"</span>,</span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Volcano Plot: pasilla Knockdown vs. Control"</span>) <span class="sc">+</span></span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day12_PM_Lab_DifferentialExpression_SOLUTIONS_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="part-c-gene-counts-per-quadrant" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="part-c-gene-counts-per-quadrant"><span class="header-section-number">3.2</span> Part c: Gene counts per quadrant</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>volcano_df <span class="sc">|&gt;</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(padj <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="sc">|&gt;</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">quadrant =</span> <span class="fu">case_when</span>(</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>      log2FoldChange <span class="sc">&gt;</span>  <span class="dv">1</span> <span class="sc">~</span> <span class="st">"Upper right (sig + up &gt; 2x)"</span>,</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>      log2FoldChange <span class="sc">&lt;</span> <span class="sc">-</span><span class="dv">1</span> <span class="sc">~</span> <span class="st">"Upper left  (sig + down &gt; 2x)"</span>,</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span>                <span class="sc">~</span> <span class="st">"Upper center (sig, small LFC)"</span></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(quadrant)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 3 × 2
+  quadrant                          n
+  &lt;chr&gt;                         &lt;int&gt;
+1 Upper center (sig, small LFC)   858
+2 Upper left  (sig + down &gt; 2x)   113
+3 Upper right (sig + up &gt; 2x)     109</code></pre>
+</div>
+</div>
+</section>
+<section id="part-d-interpretation-of-quadrants" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="part-d-interpretation-of-quadrants"><span class="header-section-number">3.3</span> Part d: Interpretation of quadrants</h2>
+<p>Genes in the top-right corner are both statistically significant and strongly upregulated after pasilla knockdown – these are the most compelling candidates for follow-up, being both reliable (low false discovery probability) and biologically meaningful in magnitude. Genes in the bottom-center have small absolute log2 fold changes and low significance: the expression change is negligible or the evidence is weak, and these genes would not be prioritized.</p>
+<hr>
+</section>
+</section>
+<section id="exercise-4-heatmap-of-top-de-genes" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Exercise 4 – Heatmap of Top DE Genes</h1>
+<section id="parts-ad-vst-subset-scale-and-heatmap" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="parts-ad-vst-subset-scale-and-heatmap"><span class="header-section-number">4.1</span> Parts a–d: VST, subset, scale, and heatmap</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>vsd <span class="ot">&lt;-</span> <span class="fu">vst</span>(deseq_dds, <span class="at">blind =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Top 25 most significant genes</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>top25_ids <span class="ot">&lt;-</span> res_df <span class="sc">|&gt;</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(padj)) <span class="sc">|&gt;</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_min</span>(padj, <span class="at">n =</span> <span class="dv">25</span>) <span class="sc">|&gt;</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(gene_id)</span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>mat        <span class="ot">&lt;-</span> <span class="fu">assay</span>(vsd)[top25_ids, ]</span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>mat_scaled <span class="ot">&lt;-</span> <span class="fu">t</span>(<span class="fu">scale</span>(<span class="fu">t</span>(mat)))</span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>col_anno <span class="ot">&lt;-</span> <span class="fu">colData</span>(vsd) <span class="sc">|&gt;</span></span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>(<span class="at">rownames =</span> <span class="st">"sample"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(sample, condition, type) <span class="sc">|&gt;</span></span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">condition =</span> <span class="fu">as.character</span>(condition),</span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a>         <span class="at">type      =</span> <span class="fu">as.character</span>(type)) <span class="sc">|&gt;</span></span>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">column_to_rownames</span>(<span class="st">"sample"</span>)</span>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a><span class="fu">pheatmap</span>(mat_scaled,</span>
+<span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a>         <span class="at">annotation_col  =</span> col_anno,</span>
+<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a>         <span class="at">cluster_rows    =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb28-22"><a href="#cb28-22" aria-hidden="true" tabindex="-1"></a>         <span class="at">cluster_cols    =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb28-23"><a href="#cb28-23" aria-hidden="true" tabindex="-1"></a>         <span class="at">show_rownames   =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb28-24"><a href="#cb28-24" aria-hidden="true" tabindex="-1"></a>         <span class="at">show_colnames   =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb28-25"><a href="#cb28-25" aria-hidden="true" tabindex="-1"></a>         <span class="at">color           =</span> <span class="fu">colorRampPalette</span>(</span>
+<span id="cb28-26"><a href="#cb28-26" aria-hidden="true" tabindex="-1"></a>           <span class="fu">c</span>(<span class="st">"steelblue"</span>, <span class="st">"white"</span>, <span class="st">"firebrick"</span>))(<span class="dv">100</span>),</span>
+<span id="cb28-27"><a href="#cb28-27" aria-hidden="true" tabindex="-1"></a>         <span class="at">main            =</span> <span class="st">"Top 25 DE Genes (VST, row-scaled)"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day12_PM_Lab_DifferentialExpression_SOLUTIONS_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The treated and untreated samples cluster separately along the columns, confirming that the top DE genes genuinely separate the two experimental groups. A two-block pattern is visible in the rows: one block of genes is consistently higher (red) in treated samples and lower (blue) in untreated, and a second block runs in the opposite direction. This is the expected pattern for a strong, consistent treatment effect.</p>
+</section>
+<section id="part-e-library-type-effect" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="part-e-library-type-effect"><span class="header-section-number">4.2</span> Part e: Library type effect</h2>
+<p>Looking at the <code>type</code> column annotation, the two paired-end untreated sample and the three paired-end treated samples do not cluster separately from the single-read untreated samples within each condition. This confirms what we saw in the Day 11 PCA: library type is not the dominant source of variation in this dataset. Nevertheless, because it is partially confounded with condition (all treated samples happen to be paired-end), including it in the design formula is the correct modeling choice. Failing to do so would leave a potential technical confound unaddressed, even if the practical impact appears small here.</p>
+<hr>
+</section>
+</section>
+<section id="exercise-5-model-comparison-with-vs.-without-library-type" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Exercise 5 – Model Comparison: With vs.&nbsp;Without Library Type</h1>
+<section id="part-a-fit-the-unadjusted-model" class="level2" data-number="5.1">
+<h2 data-number="5.1" class="anchored" data-anchor-id="part-a-fit-the-unadjusted-model"><span class="header-section-number">5.1</span> Part a: Fit the unadjusted model</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>dds_simple <span class="ot">&lt;-</span> <span class="fu">DESeqDataSetFromMatrix</span>(</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">countData =</span> counts,</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">colData   =</span> meta,</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">design    =</span> <span class="sc">~</span> condition</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>dds_simple<span class="sc">$</span>condition <span class="ot">&lt;-</span> <span class="fu">relevel</span>(dds_simple<span class="sc">$</span>condition, <span class="at">ref =</span> <span class="st">"untreated"</span>)</span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>keep_simple          <span class="ot">&lt;-</span> <span class="fu">rowSums</span>(<span class="fu">counts</span>(dds_simple)) <span class="sc">&gt;=</span> <span class="dv">10</span></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>dds_simple           <span class="ot">&lt;-</span> dds_simple[keep_simple, ]</span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>dds_simple           <span class="ot">&lt;-</span> <span class="fu">DESeq</span>(dds_simple)</span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>res_simple           <span class="ot">&lt;-</span> <span class="fu">results</span>(dds_simple,</span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a>                                <span class="at">name =</span> <span class="st">"condition_treated_vs_untreated"</span>)</span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a>res_simple_df <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(res_simple) <span class="sc">|&gt;</span></span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames_to_column</span>(<span class="st">"gene_id"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
+<span id="cb29-16"><a href="#cb29-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(padj)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="part-b-number-of-significant-genes" class="level2" data-number="5.2">
+<h2 data-number="5.2" class="anchored" data-anchor-id="part-b-number-of-significant-genes"><span class="header-section-number">5.2</span> Part b: Number of significant genes</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">Model        =</span> <span class="fu">c</span>(<span class="st">"Adjusted (type + condition)"</span>, <span class="st">"Unadjusted (condition only)"</span>),</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">Sig_padj_05  =</span> <span class="fu">c</span>(</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>    res_df        <span class="sc">|&gt;</span> <span class="fu">filter</span>(padj <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="sc">|&gt;</span> <span class="fu">nrow</span>(),</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>    res_simple_df <span class="sc">|&gt;</span> <span class="fu">filter</span>(padj <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="sc">|&gt;</span> <span class="fu">nrow</span>()</span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 2
+  Model                       Sig_padj_05
+  &lt;chr&gt;                             &lt;int&gt;
+1 Adjusted (type + condition)        1080
+2 Unadjusted (condition only)         841</code></pre>
+</div>
+</div>
+<p>Adjusting for library type typically increases the number of significant genes. By including <code>type</code> in the model, we explain some of the residual variability in the data, which tightens the estimates and increases power for detecting true treatment effects.</p>
+</section>
+<section id="part-c-lfc-comparison-for-top-20-genes" class="level2" data-number="5.3">
+<h2 data-number="5.3" class="anchored" data-anchor-id="part-c-lfc-comparison-for-top-20-genes"><span class="header-section-number">5.3</span> Part c: LFC comparison for top 20 genes</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>top20_ids <span class="ot">&lt;-</span> res_df <span class="sc">|&gt;</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(padj)) <span class="sc">|&gt;</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_min</span>(padj, <span class="at">n =</span> <span class="dv">20</span>) <span class="sc">|&gt;</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(gene_id)</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>lfc_compare <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">gene_id   =</span> top20_ids,</span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">LFC_adj   =</span> res_df<span class="sc">$</span>log2FoldChange[<span class="fu">match</span>(top20_ids, res_df<span class="sc">$</span>gene_id)],</span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">LFC_simple =</span> res_simple_df<span class="sc">$</span>log2FoldChange[</span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">match</span>(top20_ids, res_simple_df<span class="sc">$</span>gene_id)]</span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(lfc_compare, <span class="fu">aes</span>(<span class="at">x =</span> LFC_adj, <span class="at">y =</span> LFC_simple)) <span class="sc">+</span></span>
+<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">color =</span> <span class="st">"steelblue"</span>, <span class="at">size =</span> <span class="dv">3</span>) <span class="sc">+</span></span>
+<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">slope =</span> <span class="dv">1</span>, <span class="at">intercept =</span> <span class="dv">0</span>,</span>
+<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a>              <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">color =</span> <span class="st">"firebrick"</span>) <span class="sc">+</span></span>
+<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"LFC: adjusted model (type + condition)"</span>,</span>
+<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"LFC: unadjusted model (condition only)"</span>,</span>
+<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"LFC Comparison: Top 20 DE Genes"</span>) <span class="sc">+</span></span>
+<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day12_PM_Lab_DifferentialExpression_SOLUTIONS_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The LFC estimates are generally similar between the two models for the top genes, with points falling close to the diagonal. This is consistent with our observation that library type is not the dominant driver of expression differences in this dataset. Larger departures from the diagonal would indicate that unadjusted estimates were confounded by library type.</p>
+</section>
+<section id="part-d-ma-plot-comparison" class="level2" data-number="5.4">
+<h2 data-number="5.4" class="anchored" data-anchor-id="part-d-ma-plot-comparison"><span class="header-section-number">5.4</span> Part d: MA plot comparison</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>))</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plotMA</span>(res,        <span class="at">ylim =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">5</span>, <span class="dv">5</span>), <span class="at">alpha =</span> <span class="fl">0.05</span>, <span class="at">colSig =</span> <span class="st">"firebrick"</span>,</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>       <span class="at">main =</span> <span class="st">"Adjusted (type + condition)"</span>)</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plotMA</span>(res_simple, <span class="at">ylim =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">5</span>, <span class="dv">5</span>), <span class="at">alpha =</span> <span class="fl">0.05</span>, <span class="at">colSig =</span> <span class="st">"firebrick"</span>,</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">main =</span> <span class="st">"Unadjusted (condition only)"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Day12_PM_Lab_DifferentialExpression_SOLUTIONS_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="960"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The two MA plots look broadly similar, but the adjusted model typically has slightly more red (significant) points, particularly among genes with moderate to high expression. The unadjusted model shows somewhat wider scatter in the non-significant genes, reflecting the extra unexplained variance from not modeling library type.</p>
+</section>
+<section id="part-e-discussion" class="level2" data-number="5.5">
+<h2 data-number="5.5" class="anchored" data-anchor-id="part-e-discussion"><span class="header-section-number">5.5</span> Part e: Discussion</h2>
+<p>Adjusting for library type changes the results because library type (single-read vs.&nbsp;paired-end) introduces systematic technical differences in which reads are captured and counted. In this experiment, all three treated samples happen to be paired-end while most untreated samples are single-read. If we fit a model with only <code>condition</code>, the model cannot distinguish between expression differences due to the knockdown and expression differences due to the sequencing protocol. The library-type effect gets absorbed into the condition coefficient, potentially biasing the treatment estimates.</p>
+<p>This is the same confounding logic from Day 8’s logistic regression: when a technical variable is correlated with the exposure of interest, failing to adjust for it produces biased estimates of the effect you care about. Including <code>type</code> in the design formula tells DESeq2 to estimate the library-type effect separately and then test for the treatment effect after removing it – the genomics equivalent of an adjusted odds ratio.</p>
+<p>In this particular dataset, the confounding appears modest (the LFC estimates are similar between models), probably because the biological treatment effect is large enough to dominate any library-type artifact. But the correct approach is to adjust regardless, because we cannot know in advance how large the confounding will be.</p>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+<script src="Day12_PM_Lab_DifferentialExpression_SOLUTIONS_files/libs/quarto-html/zenscroll-min.js"></script>
+</body></html>

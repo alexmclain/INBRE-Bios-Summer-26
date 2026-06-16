@@ -96,7 +96,7 @@ gene_stats <- tibble(
   filter(mean_count > 0, var_count > 0)
 
 p2 <- gene_stats |>
-  slice_sample(n = 3000) |>
+  slice_sample(n = 3000) |> #Randomly sample 3000 rows (out of >33K)
   ggplot(aes(x = mean_count, y = var_count)) +
   geom_point(alpha = 0.15, color = "steelblue") +
   geom_abline(slope = 1, intercept = 0,
@@ -294,11 +294,11 @@ interpretable:
 
 ```{r}
 gene_info <- as.data.frame(rowData(airway)) |>
-  select(gene_id, gene_name)
+  select(gene_id, gene_name, gene_biotype)
 
 res_annotated <- res_df |>
   left_join(gene_info, by = "gene_id") |>
-  select(gene_name, gene_id, baseMean, log2FoldChange, padj) |>
+  select(gene_name, gene_id, gene_biotype, baseMean, log2FoldChange, padj) |>
   filter(!is.na(padj)) |>
   arrange(padj)
 
@@ -351,7 +351,7 @@ its log2 fold change. It is the standard first visualization for a DE analysis.
 ```{r}
 #| fig-width: 6
 #| fig-height: 5
-plotMA(res, ylim = c(-5, 5),
+plotMA(res, ylim = c(-6, 8),
        main = "MA Plot: Dexamethasone Treatment",
        colSig = "firebrick",
        alpha = 0.05)
@@ -523,6 +523,59 @@ the test for dexamethasone less powerful. Including `cell` in the design
 formula is the genomics equivalent of adjusting for a confounder in
 logistic regression.
 :::
+
+```{r}
+gene_info <- as.data.frame(rowData(airway)) |>
+  select(gene_id, gene_name, gene_biotype)
+
+res_cell_df <- as.data.frame(res_cell) |>
+  rownames_to_column("gene_id") |>
+  as_tibble() |>
+  arrange(padj)
+
+res_cell_annotated <- res_cell_df |>
+  left_join(gene_info, by = "gene_id") |>
+  select(gene_name, gene_id, gene_biotype, baseMean, log2FoldChange, padj) |>
+  filter(!is.na(padj)) |>
+  arrange(padj)
+
+# New analysis
+head(res_cell_annotated, 10)
+
+# Old Analysis
+head(res_annotated, 10)
+```
+
+
+```{r}
+#| fig-width: 7
+#| fig-height: 5
+volcano_df <- res_cell_annotated |>
+  filter(!is.na(padj)) |>
+  mutate(
+    significant = padj < 0.05,
+    label_gene  = if_else(padj < 1e-20 | abs(log2FoldChange) > 4,
+                          gene_name, NA_character_)
+  )
+
+ggplot(volcano_df, aes(x = log2FoldChange, y = -log10(padj))) +
+  geom_point(data = filter(volcano_df, !significant),
+             color = "gray70", alpha = 0.4, size = 0.8) +
+  geom_point(data = filter(volcano_df, significant),
+             color = "firebrick", alpha = 0.6, size = 1) +
+  geom_vline(xintercept = c(-1, 1), linetype = "dashed",
+             color = "gray40") +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed",
+             color = "gray40") +
+  ggrepel::geom_text_repel(aes(label = label_gene),
+                           size = 3, max.overlaps = 15,
+                           na.rm = TRUE) +
+  labs(x = "log2 Fold Change",
+       y = expression(-log[10](padj)),
+       title = "Volcano Plot: Dexamethasone vs. Untreated",
+       subtitle = "Red = significant (padj < 0.05)") +
+  theme_minimal()
+```
 
 ---
 

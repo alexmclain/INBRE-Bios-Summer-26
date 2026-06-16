@@ -1,0 +1,449 @@
+---
+title: "Day 12 (PM) Lab: Differential Expression Analysis -- Solutions"
+subtitle: "SC INBRE Biostatistics Summer Intensive 2026"
+date: today
+format:
+  html:
+    toc: true
+    toc-location: left
+    toc-depth: 3
+    number-sections: true
+    smooth-scroll: true
+    theme: cosmo
+    code-fold: false
+    highlight-style: github
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+```{r}
+library(tidyverse)
+library(this.path)
+library(SummarizedExperiment)
+library(DESeq2)
+library(pasilla)
+library(pheatmap)
+library(patchwork)
+setwd(this.dir())
+
+select <- dplyr::select
+filter <- dplyr::filter
+count <- dplyr::count
+
+# ── Data loading (same as instructor demo) ─────────────────────────────────
+counts_file <- system.file("extdata", "pasilla_gene_counts.tsv",
+                           package = "pasilla")
+meta_file   <- system.file("extdata", "pasilla_sample_annotation.csv",
+                           package = "pasilla")
+
+counts <- read.table(counts_file, header = TRUE, row.names = 1) |>
+  as.matrix()
+meta <- read.csv(meta_file, row.names = 1)
+rownames(meta) <- sub("fb", "", rownames(meta))
+meta <- meta[colnames(counts), ]
+
+# ── DESeq2 model (same as instructor demo) ─────────────────────────────────
+dds <- DESeqDataSetFromMatrix(
+  countData = counts,
+  colData   = meta,
+  design    = ~ type + condition
+)
+dds$condition <- relevel(dds$condition, ref = "untreated")
+dds$type      <- relevel(dds$type,      ref = "single-read")
+keep          <- rowSums(counts(dds)) >= 10
+dds           <- dds[keep, ]
+deseq_dds     <- DESeq(dds)
+res           <- results(deseq_dds, name = "condition_treated_vs_untreated")
+
+# ── Results tibble used throughout ────────────────────────────────────────
+res_df <- as.data.frame(res) |>
+  rownames_to_column("gene_id") |>
+  as_tibble() |>
+  arrange(padj)
+```
+
+---
+
+# Exercise 1 -- Explore the Results Table
+
+## Part a: Structure of the results table
+
+```{r}
+cat("Rows:", nrow(res_df), "\n")
+head(res_df)
+```
+
+The table has one row per gene tested. Each row contains the gene ID, the
+average normalized expression across all samples (`baseMean`), the estimated
+log2 fold change between treated and untreated (`log2FoldChange`), its standard
+error (`lfcSE`), a Wald test statistic (`stat`), the raw p-value, and the
+Benjamini-Hochberg adjusted p-value (`padj`). There is one row for every gene
+that passed the low-count filter, roughly 10,000--12,000 genes.
+
+## Part b: Significant genes
+
+```{r}
+cat("padj < 0.05:", res_df |> filter(padj < 0.05) |> nrow(), "\n")
+cat("padj < 0.01:", res_df |> filter(padj < 0.01) |> nrow(), "\n")
+```
+
+Several hundred genes pass each threshold. Moving from 0.05 to 0.01 roughly
+halves the number of significant genes, as the stricter threshold accepts fewer
+false discoveries.
+
+## Part c: Direction of change
+
+```{r}
+res_df |>
+  filter(padj < 0.05) |>
+  mutate(direction = if_else(log2FoldChange > 0,
+                                    "Upregulated",
+                                    "Downregulated")) |>
+  count(direction)
+
+```
+
+Upregulated means higher expression in the `treated` (pasilla knockdown)
+samples compared with the `untreated` controls. Since pasilla is an
+RNA-binding protein involved in splicing, many of the upregulated genes are
+likely those normally suppressed by pasilla activity -- when pasilla is knocked
+down, their expression rises. The roughly equal number of up and downregulated
+genes is consistent with a transcription factor or splicing regulator that
+activates some genes and represses others.
+
+## Part d: Most significant gene
+
+```{r}
+res_df |>
+  slice_min(padj, n = 1) |>
+  select(gene_id, log2FoldChange, padj)
+```
+
+The most significant gene has a large negative log2 fold change and a
+near-zero adjusted p-value, indicating both a biologically meaningful and
+statistically robust change in expression after pasilla knockdown.
+
+## Part e: Top 10 genes
+
+```{r}
+res_df |>
+  slice_min(padj, n = 10) |>
+  select(gene_id, log2FoldChange, padj) |>
+  mutate(log2FoldChange = round(log2FoldChange, 3),
+         padj           = formatC(padj, format = "e", digits = 2))
+```
+
+---
+
+# Exercise 2 -- Size Factors and Dispersion
+
+## Part a: Size factors
+
+```{r}
+sf <- sizeFactors(deseq_dds)
+sort(sf)
+```
+
+```{r}
+cat("Sample with largest size factor: ", names(which.max(sf)), round(max(sf), 3), "\n")
+cat("Sample with smallest size factor:", names(which.min(sf)), round(min(sf), 3), "\n")
+```
+
+A large size factor means the sample was sequenced to a greater depth than the
+typical sample in this dataset: it has proportionally more reads and would
+appear to have higher counts for every gene if we compared raw counts directly.
+DESeq2 divides each sample's raw counts by its size factor before testing, so
+that differences in count magnitude reflect biology rather than sequencing
+depth.
+
+## Part b: Dispersion plot
+
+```{r}
+#| fig-width: 6
+#| fig-height: 5
+plotDispEsts(deseq_dds,
+             main = "Dispersion Estimates: pasilla",
+             cex  = 0.4)
+```
+
+The black dots (per-gene dispersion estimates from the data alone) are
+scattered widely around the fitted red trend line, especially at low expression
+levels where small counts make per-gene estimates very noisy. The blue dots
+(final shrunken estimates) are pulled toward the red trend, reducing the
+influence of extreme per-gene estimates. A small number of black open circles
+appear above the trend -- these are genes with unusually high per-gene
+dispersion that DESeq2 flags as potential outliers and does not shrink toward
+the trend, because their extreme dispersion may represent genuine biological
+variability rather than estimation noise.
+
+## Part c: Dispersion for three genes
+
+```{r}
+# Creating a tibble with the results (IMPORTANT: do not sort by padj.)
+res_df <- as.data.frame(res) |>
+  rownames_to_column("gene_id") |>
+  as_tibble() 
+
+# This gives the dispersions for each row of the DESeqDataSet.
+disp_vals <- dispersions(deseq_dds)
+
+# I'm going to add the dispersion to the results.
+# This is why it was important that we didn't res_df by sort by padj.
+res_df <- res_df |> 
+  mutate(
+    disp_val = disp_vals)
+
+res_df |> 
+  slice_max(baseMean, n=1) |> 
+  mutate(Category = "Highest_mean") |> 
+  bind_rows(
+    res_df |> 
+      filter(baseMean > 0) |> 
+  slice_min(baseMean, n=1) |> 
+  mutate(Category = "Lowest non-zero mean") 
+  ) |> 
+  bind_rows(
+    res_df |> 
+  slice_min(padj, n=1) |> 
+  mutate(Category = "Top DE gene")
+  ) |> 
+  arrange(disp_val) |> 
+  select(gene_id, Category, baseMean, log2FoldChange, padj, disp_val)
+
+```
+
+The highly expressed gene (highest mean) has a small dispersion estimate (its counts are
+consistent across samples relative to its mean). The lowly expressed gene has
+a much larger dispersion estimate, reflecting the greater proportional
+variability that is typical of low-count genes. The top DE gene has a moderate
+mean expression and a dispersion consistent with that expression level -- it
+is not extreme in either direction.
+
+---
+
+# Exercise 3 -- Volcano Plot
+
+## Parts a and b: Volcano plot with quadrant lines
+
+```{r}
+#| fig-width: 7
+#| fig-height: 5
+volcano_df <- res_df |>
+  filter(!is.na(padj)) |>
+  mutate(significant = padj < 0.05)
+
+ggplot(volcano_df, aes(x = log2FoldChange,
+                       y = -log10(padj),
+                       color = significant)) +
+  geom_point(alpha = 0.5, size = 0.9) +
+  scale_color_manual(values = c("FALSE" = "gray70", "TRUE" = "firebrick")) +
+  geom_vline(xintercept = c(-1, 1), linetype = "dashed",
+             color = "gray40", linewidth = 0.8) +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed",
+             color = "gray40", linewidth = 0.8) +
+  labs(x = "log2 Fold Change",
+       y = expression(-log[10](padj)),
+       color = "padj < 0.05",
+       title = "Volcano Plot: pasilla Knockdown vs. Control") +
+  theme_minimal()
+```
+
+## Part c: Gene counts per quadrant
+
+```{r}
+volcano_df |>
+  filter(padj < 0.05) |>
+  mutate(
+    quadrant = case_when(
+      log2FoldChange >  1 ~ "Upper right (sig + up > 2x)",
+      log2FoldChange < -1 ~ "Upper left  (sig + down > 2x)",
+      TRUE                ~ "Upper center (sig, small LFC)"
+    )
+  ) |>
+  count(quadrant)
+```
+
+## Part d: Interpretation of quadrants
+
+Genes in the top-right corner are both statistically significant and strongly
+upregulated after pasilla knockdown -- these are the most compelling candidates
+for follow-up, being both reliable (low false discovery probability) and
+biologically meaningful in magnitude. Genes in the bottom-center have small
+absolute log2 fold changes and low significance: the expression change is
+negligible or the evidence is weak, and these genes would not be prioritized.
+
+---
+
+# Exercise 4 -- Heatmap of Top DE Genes
+
+## Parts a--d: VST, subset, scale, and heatmap
+
+```{r}
+#| fig-width: 7
+#| fig-height: 7
+vsd <- vst(deseq_dds, blind = FALSE)
+
+# Top 25 most significant genes
+top25_ids <- res_df |>
+  filter(!is.na(padj)) |>
+  slice_min(padj, n = 25) |>
+  pull(gene_id)
+
+mat        <- assay(vsd)[top25_ids, ]
+mat_scaled <- t(scale(t(mat)))
+
+col_anno <- colData(vsd) |>
+  as_tibble(rownames = "sample") |>
+  select(sample, condition, type) |>
+  mutate(condition = as.character(condition),
+         type      = as.character(type)) |>
+  column_to_rownames("sample")
+
+pheatmap(mat_scaled,
+         annotation_col  = col_anno,
+         cluster_rows    = TRUE,
+         cluster_cols    = TRUE,
+         show_rownames   = TRUE,
+         show_colnames   = FALSE,
+         color           = colorRampPalette(
+           c("steelblue", "white", "firebrick"))(100),
+         main            = "Top 25 DE Genes (VST, row-scaled)")
+```
+
+The treated and untreated samples cluster separately along the columns,
+confirming that the top DE genes genuinely separate the two experimental
+groups. A two-block pattern is visible in the rows: one block of genes is
+consistently higher (red) in treated samples and lower (blue) in untreated,
+and a second block runs in the opposite direction. This is the expected pattern
+for a strong, consistent treatment effect.
+
+## Part e: Library type effect
+
+Looking at the `type` column annotation, the two paired-end untreated sample
+and the three paired-end treated samples do not cluster separately from the
+single-read untreated samples within each condition. This confirms what we
+saw in the Day 11 PCA: library type is not the dominant source of variation in
+this dataset. Nevertheless, because it is partially confounded with condition
+(all treated samples happen to be paired-end), including it in the design
+formula is the correct modeling choice. Failing to do so would leave a potential
+technical confound unaddressed, even if the practical impact appears small here.
+
+---
+
+# Exercise 5 -- Model Comparison: With vs. Without Library Type
+
+## Part a: Fit the unadjusted model
+
+```{r}
+dds_simple <- DESeqDataSetFromMatrix(
+  countData = counts,
+  colData   = meta,
+  design    = ~ condition
+)
+dds_simple$condition <- relevel(dds_simple$condition, ref = "untreated")
+keep_simple          <- rowSums(counts(dds_simple)) >= 10
+dds_simple           <- dds_simple[keep_simple, ]
+dds_simple           <- DESeq(dds_simple)
+res_simple           <- results(dds_simple,
+                                name = "condition_treated_vs_untreated")
+
+res_simple_df <- as.data.frame(res_simple) |>
+  rownames_to_column("gene_id") |>
+  as_tibble() |>
+  arrange(padj)
+```
+
+## Part b: Number of significant genes
+
+```{r}
+tibble(
+  Model        = c("Adjusted (type + condition)", "Unadjusted (condition only)"),
+  Sig_padj_05  = c(
+    res_df        |> filter(padj < 0.05) |> nrow(),
+    res_simple_df |> filter(padj < 0.05) |> nrow()
+  )
+)
+```
+
+Adjusting for library type typically increases the number of significant genes.
+By including `type` in the model, we explain some of the residual variability
+in the data, which tightens the estimates and increases power for detecting true
+treatment effects.
+
+## Part c: LFC comparison for top 20 genes
+
+```{r}
+#| fig-width: 6
+#| fig-height: 5
+top20_ids <- res_df |>
+  filter(!is.na(padj)) |>
+  slice_min(padj, n = 20) |>
+  pull(gene_id)
+
+lfc_compare <- tibble(
+  gene_id   = top20_ids,
+  LFC_adj   = res_df$log2FoldChange[match(top20_ids, res_df$gene_id)],
+  LFC_simple = res_simple_df$log2FoldChange[
+    match(top20_ids, res_simple_df$gene_id)]
+)
+
+ggplot(lfc_compare, aes(x = LFC_adj, y = LFC_simple)) +
+  geom_point(color = "steelblue", size = 3) +
+  geom_abline(slope = 1, intercept = 0,
+              linetype = "dashed", color = "firebrick") +
+  labs(x = "LFC: adjusted model (type + condition)",
+       y = "LFC: unadjusted model (condition only)",
+       title = "LFC Comparison: Top 20 DE Genes") +
+  theme_minimal()
+```
+
+The LFC estimates are generally similar between the two models for the top
+genes, with points falling close to the diagonal. This is consistent with our
+observation that library type is not the dominant driver of expression
+differences in this dataset. Larger departures from the diagonal would indicate
+that unadjusted estimates were confounded by library type.
+
+## Part d: MA plot comparison
+
+```{r}
+#| fig-width: 10
+#| fig-height: 5
+par(mfrow = c(1, 2))
+plotMA(res,        ylim = c(-5, 5), alpha = 0.05, colSig = "firebrick",
+       main = "Adjusted (type + condition)")
+plotMA(res_simple, ylim = c(-5, 5), alpha = 0.05, colSig = "firebrick",
+       main = "Unadjusted (condition only)")
+par(mfrow = c(1, 1))
+```
+
+The two MA plots look broadly similar, but the adjusted model typically has
+slightly more red (significant) points, particularly among genes with moderate
+to high expression. The unadjusted model shows somewhat wider scatter in the
+non-significant genes, reflecting the extra unexplained variance from not
+modeling library type.
+
+## Part e: Discussion
+
+Adjusting for library type changes the results because library type (single-read
+vs. paired-end) introduces systematic technical differences in which reads are
+captured and counted. In this experiment, all three treated samples happen to be
+paired-end while most untreated samples are single-read. If we fit a model with
+only `condition`, the model cannot distinguish between expression differences due
+to the knockdown and expression differences due to the sequencing protocol. The
+library-type effect gets absorbed into the condition coefficient, potentially
+biasing the treatment estimates.
+
+This is the same confounding logic from Day 8's logistic regression: when a
+technical variable is correlated with the exposure of interest, failing to
+adjust for it produces biased estimates of the effect you care about. Including
+`type` in the design formula tells DESeq2 to estimate the library-type effect
+separately and then test for the treatment effect after removing it -- the
+genomics equivalent of an adjusted odds ratio.
+
+In this particular dataset, the confounding appears modest (the LFC estimates
+are similar between models), probably because the biological treatment effect is
+large enough to dominate any library-type artifact. But the correct approach is
+to adjust regardless, because we cannot know in advance how large the
+confounding will be.
