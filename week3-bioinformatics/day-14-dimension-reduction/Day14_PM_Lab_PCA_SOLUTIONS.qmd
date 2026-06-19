@@ -1,0 +1,343 @@
+---
+title: "Day 14 (PM) Lab: Principal Component Analysis -- Solutions"
+subtitle: "SC INBRE Biostatistics Summer Intensive 2026"
+date: today
+format:
+  html:
+    toc: true
+    toc-location: left
+    toc-depth: 3
+    number-sections: true
+    smooth-scroll: true
+    theme: cosmo
+    code-fold: false
+    highlight-style: github
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Setup
+
+```{r}
+library(tidyverse)
+library(this.path)
+library(factoextra)
+library(patchwork)
+setwd(this.dir())
+
+select <- dplyr::select
+filter <- dplyr::filter
+```
+
+## Load the Wine Data
+
+```{r}
+url <- paste0("https://archive.ics.uci.edu/ml/",
+              "machine-learning-databases/wine/wine.data")
+wine_raw <- read.csv(url, header = FALSE)
+names(wine_raw) <- c("Cultivar", "Alcohol", "MalicAcid", "Ash",
+  "AlcalinityAsh", "Magnesium", "TotalPhenols", "Flavanoids",
+  "NonflavanoidPhenols", "Proanthocyanins", "ColorIntensity",
+  "Hue", "OD280_OD315", "Proline")
+wine_raw$Cultivar <- factor(wine_raw$Cultivar)
+
+wine <- wine_raw
+
+head(wine)
+dim(wine)
+```
+
+For the exercises we will use a clean version with clear variable names:
+
+```{r}
+# Build a clean tibble with the 13 chemical variables + cultivar label
+# Using the UCI wine data structure (adjust column names if your load differs)
+wine_clean <- wine |>
+  as_tibble() |>
+  rename_with(tolower)
+
+# Check the structure
+glimpse(wine_clean)
+```
+
+```{r}
+# Summary statistics for the chemical variables
+wine_clean |>
+  select(where(is.numeric)) |>
+ summary()
+```
+
+The variables are on very different scales:  **Scaling is essential** before PCA.
+
+## Step 1: Scale and Run PCA
+
+```{r}
+# Extract the numeric variables (drop the cultivar label for PCA)
+X <- wine_clean |>
+  select(where(is.numeric)) |>
+  as.matrix()
+
+# Standardize
+X_s <- scale(X)
+
+# Run PCA
+pca_wine <- prcomp(X_s, center = FALSE, scale. = FALSE)
+```
+
+## Step 2: Quick Scree Plot
+
+```{r}
+fviz_eig(pca_wine, addlabels = TRUE,
+         barfill = "steelblue", barcolor = "gray40") +
+  labs(title = "Scree Plot: Wine PCA") +
+  theme_minimal()
+```
+
+The first two PCs together explain roughly 55% of the total variance, and
+the curve shows a clear elbow after PC2 or PC3 -- much sharper than the NHANES
+data from the morning, where variance was spread more evenly.
+
+## Step 3: Score Plot
+
+```{r}
+#| fig-width: 6
+#| fig-height: 5
+fviz_pca_ind(pca_wine,
+             geom.ind   = "point",
+             habillage  = wine_clean$cultivar,
+             addEllipses = TRUE,
+             repel      = TRUE) +
+  labs(title = "PCA Score Plot: Wine Cultivars") +
+  theme_minimal()
+```
+
+---
+
+**Exercise 1 -- Variance Explained.**
+
+a. Compute the proportion of variance explained by each PC. The formula is:
+   ```r
+   var_exp <- pca_wine$sdev^2 / sum(pca_wine$sdev^2)
+   ```
+   Print a table with the PC number, individual variance explained (%), and
+   cumulative variance explained (%).
+   
+
+```{r}
+# Proportion of variance explained by each PC
+var_explained <- pca_wine$sdev^2 / sum(pca_wine$sdev^2)
+cum_var       <- cumsum(var_explained)
+
+var_df <- tibble(
+  PC         = seq_along(var_explained),
+  Individual = var_explained * 100,
+  Cumulative = cum_var * 100
+)
+
+var_df |>
+  mutate(across(c(Individual, Cumulative), ~ round(., 1))) |>
+  print(n = 10)
+```  
+
+b. How many PCs are needed to explain at least 70% of the total variance?
+   At least 90%?
+   
+   If we want to explain 70% of the variance we need to use 4 PCs, if we want to explain 90% we need to use 8 PCs.
+
+c. Apply Kaiser's rule: keep PCs with eigenvalue greater than 1. The
+   eigenvalues are `pca_wine$sdev^2`. How many PCs would Kaiser's rule
+   suggest keeping?
+
+```{r}
+pca_wine$sdev^2
+```
+
+Kaiser's rule suggests using 3 PCs. 
+
+d. Make a scree plot using `fviz_eig()`. Where does the "elbow" appear?
+   Does it agree with the answers from parts b and c? Which criterion
+   would you use, and why?
+
+
+```{r}
+#| fig-width: 8
+#| fig-height: 4
+# Proportion of variance explained by each PC
+var_explained <- pca_wine$sdev^2 / sum(pca_wine$sdev^2)
+cum_var       <- cumsum(var_explained)
+
+var_df <- tibble(
+  PC         = seq_along(var_explained),
+  Individual = var_explained * 100,
+  Cumulative = cum_var * 100
+)
+
+p1 <- fviz_eig(pca_wine, addlabels = TRUE,
+               barcolor = "gray40", barfill = "steelblue") +
+  labs(title = "Variance Explained per PC",
+       x = "Principal Component", y = "% Variance") +
+  theme_minimal()
+
+p2 <- var_df |>
+  ggplot(aes(x = PC, y = Cumulative)) +
+  geom_line(linewidth = 1, color = "steelblue") +
+  geom_point(size = 3, color = "steelblue") +
+  geom_hline(yintercept = 80, linetype = "dashed",
+             color = "firebrick", linewidth = 0.8) +
+  annotate("text", x = 8, y = 91.5,
+           label = "80% threshold", color = "firebrick", size = 3.5) +
+  labs(title = "Cumulative Variance Explained",
+       x = "Number of PCs", y = "Cumulative % Variance") +
+  theme_minimal()
+
+p1 + p2
+```
+
+From the Elbow method, I would say around 2 or 3 PCs seems to be a good choice.
+
+---
+
+**Exercise 2 -- Score Plot and Cultivar Separation.**
+
+a. Produce a score plot (observations in PC space) using `fviz_pca_ind()`.
+   Color points by cultivar (`habillage = wine_clean$label`) and add
+   confidence ellipses (`addEllipses = TRUE`).
+
+
+```{r}
+#| fig-width: 7
+#| fig-height: 6
+#| message: false
+fviz_pca_ind(
+  pca_wine,
+  geom.ind   = "point",
+  habillage  = wine_clean$cultivar,
+  addEllipses = TRUE,
+  repel      = TRUE,
+  col.var    = "black",
+  alpha.ind  = 0.3,
+  pointsize  = 1
+) +
+  labs(title  = "PCA Biplot: Wine PCA",
+       color  = "Cultivar",
+       fill   = "Cultivar") +
+  theme_minimal()
+```
+
+b. Do the three cultivars separate in the first two PCs? Which cultivar
+   is most distinct from the other two?
+   
+   Yes, the PCAs clearly separate the wines by cultivar. This confirms that the chemical variables genuinely capture cultivar differences – exactly what you want to see. Region 3, appears to be the most different.
+
+c. PC1 runs left to right on the plot. Look at where each cultivar falls
+   along PC1. Which cultivar has the highest PC1 scores (furthest right)?
+   Which has the lowest (furthest left)?
+   
+   Wines from region 3 have large positive loadings on PC1, while wines from region 1 have larger negative loadings (on average). Wines from region 2 have PC1 loading that center around 0 with large spread.
+
+d. Now make a second score plot using PC1 and PC3 instead of PC1 and PC2.
+   Pass `axes = c(1, 3)` to `fviz_pca_ind()`. Does adding PC3 improve or
+   worsen the separation between cultivars?
+
+```{r}
+#| fig-width: 7
+#| fig-height: 6
+#| message: false
+fviz_pca_ind(
+  pca_wine,
+  geom.ind   = "point",
+  habillage  = wine_clean$cultivar,
+  addEllipses = TRUE,
+  repel      = TRUE,
+  col.var    = "black",
+  alpha.ind  = 0.3,
+  axes = c(1,3),
+  pointsize  = 1
+) +
+  labs(title  = "PCA Biplot: Wine PCA",
+       color  = "Cultivar",
+       fill   = "Cultivar") +
+  theme_minimal()
+```
+
+PC3 has basically no relationship with region. The regional differences were much more clear when visualizing as a function of PC1 and PC2.
+
+---
+
+**Exercise 3 -- Loadings.**
+
+a. Extract the loadings matrix from `pca_wine$rotation`. Print the loadings
+   for the first three PCs, rounded to 3 decimal places.
+
+```{r}
+# Numerical loadings for the first three PCs
+pca_wine$rotation[, 1:3] |> round(3)
+```
+
+b. For PC1: which three variables have the largest absolute loadings? What
+   do these variables have in common chemically? Based on this, what
+   biological property might PC1 be capturing?
+   
+   Flavanoids, totalphenols, and od280_od315 have the largest loadings. These variables are all tied to phenolic content in wine. In plain terms, this axis is mostly capturing how phenolic-rich the wine is. Phenolics are linked to things like bitterness, astringency, antioxidant capacity, and overall “structure” of the wine.
+
+c. For PC2: which three variables have the largest absolute loadings? Are
+   these the same variables as PC1 or different? What might PC2 be
+   capturing?
+   
+   For PC2, colorintensity, alcohol, and proline all have large loadings. These are all often related to grape ripeness, fermentation/extraction, and wine concentration/body. So PC2 is probably capturing something like grape maturation and fermentation outcomes rather than a single chemical class.     
+
+d. Make a loading bar plot for PC1 and PC2 (see the Quick Reference Card
+   for the ggplot2 code). Does the pattern of loadings match your
+   interpretation from parts b and c?
+
+```{r}
+#| fig-width: 9
+#| fig-height: 5
+# Plot loadings for PC1 and PC2
+loadings_df <- as.data.frame(pca_wine$rotation) |>
+  rownames_to_column("variable") |>
+  as_tibble() |>
+  pivot_longer(cols = -variable, names_to = "PC", values_to = "loading") |>
+  filter(PC %in% c("PC1", "PC2"))
+
+loadings_df |>
+  ggplot(aes(x = reorder(variable, loading), y = loading,
+             fill = loading > 0)) +
+  geom_col(show.legend = FALSE, color = "white") +
+  scale_fill_manual(values = c("TRUE" = "steelblue", "FALSE" = "firebrick")) +
+  facet_wrap(~ PC, scales = "free_y") +
+  coord_flip() +
+  labs(x = NULL, y = "Loading weight",
+       title = "PCA Loadings: PC1 and PC2",
+       subtitle = "Blue = positive contribution; red = negative contribution") +
+  theme_minimal()
+```
+
+e. Produce a **biplot** using `fviz_pca_biplot()`. Color observations by
+   cultivar. Describe: which variables have arrows pointing in the same
+   direction as the cultivar that has the highest PC1 scores?
+
+
+```{r}
+#| fig-width: 7
+#| fig-height: 6
+#| message: false
+fviz_pca_biplot(
+  pca_wine,
+  geom.ind   = "point",
+  habillage  = wine_clean$cultivar,
+  addEllipses = TRUE,
+  repel      = TRUE,
+  col.var    = "black",
+  alpha.ind  = 0.3,
+  pointsize  = 1
+) +
+  labs(title  = "PCA Biplot: Wine dataset",
+       color  = "Cultivar",
+       fill   = "Cultivar") +
+  theme_minimal()
+```
+
+

@@ -346,7 +346,7 @@ p_elbow + p_sil
 
 ```{r}
 set.seed(2026)
-km_fit <- kmeans(mat_scaled, centers = 4, nstart = 25)
+km_fit <- kmeans(mat_scaled, centers = 3, nstart = 25)
 table(km_fit$cluster)
 ```
 
@@ -357,9 +357,9 @@ fviz_cluster(km_fit,
              data          = mat_scaled,
              geom          = "point",
              ellipse.type  = "norm",
-             palette       = c("steelblue","firebrick","darkgreen","orange"),
+             palette       = c("steelblue","firebrick","darkgreen"),
              ggtheme       = theme_minimal()) +
-  labs(title = "K-Means Clustering of Top 200 Variable Genes (K=4)")
+  labs(title = "K-Means Clustering of Top 200 Variable Genes (K=3)")
 ```
 
 The cluster plot projects the 200-dimensional data onto the first two principal
@@ -368,7 +368,7 @@ similar expression profiles across the eight samples.
 
 ## Hierarchical Clustering
 
-K-means required us to choose $K = 4$ upfront. Hierarchical clustering builds
+K-means required us to choose $K = 3$ upfront. Hierarchical clustering builds
 a tree that shows all possible groupings, letting us choose the number of
 clusters after seeing the structure.
 
@@ -393,7 +393,7 @@ plot(hc_samples,
      xlab   = "",
      sub    = "",
      labels = paste(colData(vsd)$dex,
-                    colData(vsd)$cell, sep = "_")[hc_samples$order])
+                    colData(vsd)$cell, sep = "_"))
 ```
 
 ```{r}
@@ -426,8 +426,8 @@ abline(h = 12, lty = 2, col = "firebrick")
 ```
 
 ```{r}
-# Cut to 4 clusters
-gene_clusters_hc <- cutree(hc_genes, k = 4)
+# Cut to 3 clusters
+gene_clusters_hc <- cutree(hc_genes, k = 3)
 table(gene_clusters_hc)
 ```
 
@@ -462,7 +462,8 @@ algorithm.
 #| fig-height: 7
 # Add cluster labels to the row annotation
 gene_clusters <- data.frame(
-  Cluster = factor(paste0("C", km_fit$cluster)),
+  K_means = factor(paste0("C", km_fit$cluster)),
+  Hierarc = factor(paste0("C", gene_clusters_hc)),
   row.names = names(km_fit$cluster)
 )
 
@@ -499,7 +500,7 @@ sil_obj <- silhouette(km_fit$cluster, dist(mat_scaled))
 fviz_silhouette(sil_obj,
                 palette = c("steelblue","firebrick","darkgreen","orange"),
                 ggtheme = theme_minimal()) +
-  labs(title = "Silhouette Plot: K-Means K=4")
+  labs(title = "Silhouette Plot: K-Means K=3")
 ```
 
 **Reading the silhouette plot:**

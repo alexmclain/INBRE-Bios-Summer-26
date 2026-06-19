@@ -6,7 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="dcterms.date" content="2026-06-12">
+<meta name="dcterms.date" content="2026-06-17">
 
 <title>Day 13: Multiple Testing and Clustering</title>
 <style>
@@ -161,7 +161,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">June 12, 2026</p>
+      <p class="date">June 17, 2026</p>
     </div>
   </div>
   
@@ -495,12 +495,12 @@ window.Quarto = {
 <h3 data-number="3.2.2" class="anchored" data-anchor-id="fitting-k-means"><span class="header-section-number">3.2.2</span> Fitting K-Means</h3>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">2026</span>)</span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>km_fit <span class="ot">&lt;-</span> <span class="fu">kmeans</span>(mat_scaled, <span class="at">centers =</span> <span class="dv">4</span>, <span class="at">nstart =</span> <span class="dv">25</span>)</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>km_fit <span class="ot">&lt;-</span> <span class="fu">kmeans</span>(mat_scaled, <span class="at">centers =</span> <span class="dv">3</span>, <span class="at">nstart =</span> <span class="dv">25</span>)</span>
 <span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(km_fit<span class="sc">$</span>cluster)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
- 1  2  3  4 
-35 91 45 29 </code></pre>
+ 1  2  3 
+52 95 53 </code></pre>
 </div>
 </div>
 <div class="cell">
@@ -508,9 +508,9 @@ window.Quarto = {
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>             <span class="at">data          =</span> mat_scaled,</span>
 <span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>             <span class="at">geom          =</span> <span class="st">"point"</span>,</span>
 <span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>             <span class="at">ellipse.type  =</span> <span class="st">"norm"</span>,</span>
-<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>             <span class="at">palette       =</span> <span class="fu">c</span>(<span class="st">"steelblue"</span>,<span class="st">"firebrick"</span>,<span class="st">"darkgreen"</span>,<span class="st">"orange"</span>),</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>             <span class="at">palette       =</span> <span class="fu">c</span>(<span class="st">"steelblue"</span>,<span class="st">"firebrick"</span>,<span class="st">"darkgreen"</span>),</span>
 <span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>             <span class="at">ggtheme       =</span> <span class="fu">theme_minimal</span>()) <span class="sc">+</span></span>
-<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"K-Means Clustering of Top 200 Variable Genes (K=4)"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"K-Means Clustering of Top 200 Variable Genes (K=3)"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -524,7 +524,7 @@ window.Quarto = {
 </section>
 <section id="hierarchical-clustering" class="level2" data-number="3.3">
 <h2 data-number="3.3" class="anchored" data-anchor-id="hierarchical-clustering"><span class="header-section-number">3.3</span> Hierarchical Clustering</h2>
-<p>K-means required us to choose <span class="math inline">\(K = 4\)</span> upfront. Hierarchical clustering builds a tree that shows all possible groupings, letting us choose the number of clusters after seeing the structure.</p>
+<p>K-means required us to choose <span class="math inline">\(K = 3\)</span> upfront. Hierarchical clustering builds a tree that shows all possible groupings, letting us choose the number of clusters after seeing the structure.</p>
 <section id="clustering-samples" class="level3" data-number="3.3.1">
 <h3 data-number="3.3.1" class="anchored" data-anchor-id="clustering-samples"><span class="header-section-number">3.3.1</span> Clustering Samples</h3>
 <p>With only 8 samples, hierarchical clustering produces a readable dendrogram and is the standard way to check whether samples group by treatment.</p>
@@ -542,7 +542,7 @@ window.Quarto = {
 <span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>     <span class="at">xlab   =</span> <span class="st">""</span>,</span>
 <span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a>     <span class="at">sub    =</span> <span class="st">""</span>,</span>
 <span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a>     <span class="at">labels =</span> <span class="fu">paste</span>(<span class="fu">colData</span>(vsd)<span class="sc">$</span>dex,</span>
-<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">colData</span>(vsd)<span class="sc">$</span>cell, <span class="at">sep =</span> <span class="st">"_"</span>)[hc_samples<span class="sc">$</span>order])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">colData</span>(vsd)<span class="sc">$</span>cell, <span class="at">sep =</span> <span class="st">"_"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -588,13 +588,13 @@ Cluster untrt trt
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Cut to 4 clusters</span></span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>gene_clusters_hc <span class="ot">&lt;-</span> <span class="fu">cutree</span>(hc_genes, <span class="at">k =</span> <span class="dv">4</span>)</span>
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Cut to 3 clusters</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>gene_clusters_hc <span class="ot">&lt;-</span> <span class="fu">cutree</span>(hc_genes, <span class="at">k =</span> <span class="dv">3</span>)</span>
 <span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(gene_clusters_hc)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>gene_clusters_hc
- 1  2  3  4 
-35 14 52 99 </code></pre>
+  1   2   3 
+ 35  14 151 </code></pre>
 </div>
 </div>
 <p>The dashed line shows where we would cut the tree to get 4 clusters. Adjusting the cut height changes the number of clusters: higher cut = fewer, coarser clusters; lower cut = more, finer clusters.</p>
@@ -612,11 +612,10 @@ Cluster untrt trt
 <span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>      <span class="at">Hierarchical =</span> comparison<span class="sc">$</span>hc_cluster)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>      Hierarchical
-KMeans  1  2  3  4
-     1 14  6 15  0
-     2  0  0  3 88
-     3  0  2 33 10
-     4 21  6  1  1</code></pre>
+KMeans  1  2  3
+     1 35  9  8
+     2  0  2 93
+     3  0  3 50</code></pre>
 </div>
 </div>
 <p>Perfect agreement between two different methods would be unusual. Some genes that K-means puts in one cluster may land in a different cluster hierarchically. Where both methods agree, you can be more confident that a grouping reflects real biological structure rather than an artifact of the algorithm.</p>
@@ -626,25 +625,26 @@ KMeans  1  2  3  4
 <div class="cell">
 <div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Add cluster labels to the row annotation</span></span>
 <span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>gene_clusters <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
-<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">Cluster =</span> <span class="fu">factor</span>(<span class="fu">paste0</span>(<span class="st">"C"</span>, km_fit<span class="sc">$</span>cluster)),</span>
-<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="fu">names</span>(km_fit<span class="sc">$</span>cluster)</span>
-<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>col_anno <span class="ot">&lt;-</span> <span class="fu">colData</span>(vsd) <span class="sc">|&gt;</span></span>
-<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>(<span class="at">rownames =</span> <span class="st">"sample"</span>) <span class="sc">|&gt;</span></span>
-<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(sample, dex, cell) <span class="sc">|&gt;</span></span>
-<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">column_to_rownames</span>(<span class="st">"sample"</span>)</span>
-<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a><span class="fu">pheatmap</span>(mat_scaled,</span>
-<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>         <span class="at">annotation_row    =</span> gene_clusters,</span>
-<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>         <span class="at">annotation_col    =</span> col_anno,</span>
-<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>         <span class="at">cluster_rows      =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>         <span class="at">cluster_cols      =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>         <span class="at">show_rownames     =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a>         <span class="at">show_colnames     =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb38-19"><a href="#cb38-19" aria-hidden="true" tabindex="-1"></a>         <span class="at">color             =</span> <span class="fu">colorRampPalette</span>(</span>
-<span id="cb38-20"><a href="#cb38-20" aria-hidden="true" tabindex="-1"></a>           <span class="fu">c</span>(<span class="st">"steelblue"</span>, <span class="st">"white"</span>, <span class="st">"firebrick"</span>))(<span class="dv">100</span>),</span>
-<span id="cb38-21"><a href="#cb38-21" aria-hidden="true" tabindex="-1"></a>         <span class="at">main              =</span> <span class="st">"Top 200 Variable Genes: K-Means versus Hierarchical Clusters"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">K_means =</span> <span class="fu">factor</span>(<span class="fu">paste0</span>(<span class="st">"C"</span>, km_fit<span class="sc">$</span>cluster)),</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">Hierarc =</span> <span class="fu">factor</span>(<span class="fu">paste0</span>(<span class="st">"C"</span>, gene_clusters_hc)),</span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">row.names =</span> <span class="fu">names</span>(km_fit<span class="sc">$</span>cluster)</span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>col_anno <span class="ot">&lt;-</span> <span class="fu">colData</span>(vsd) <span class="sc">|&gt;</span></span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>(<span class="at">rownames =</span> <span class="st">"sample"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(sample, dex, cell) <span class="sc">|&gt;</span></span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">column_to_rownames</span>(<span class="st">"sample"</span>)</span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a><span class="fu">pheatmap</span>(mat_scaled,</span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>         <span class="at">annotation_row    =</span> gene_clusters,</span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>         <span class="at">annotation_col    =</span> col_anno,</span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>         <span class="at">cluster_rows      =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>         <span class="at">cluster_cols      =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a>         <span class="at">show_rownames     =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb38-19"><a href="#cb38-19" aria-hidden="true" tabindex="-1"></a>         <span class="at">show_colnames     =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb38-20"><a href="#cb38-20" aria-hidden="true" tabindex="-1"></a>         <span class="at">color             =</span> <span class="fu">colorRampPalette</span>(</span>
+<span id="cb38-21"><a href="#cb38-21" aria-hidden="true" tabindex="-1"></a>           <span class="fu">c</span>(<span class="st">"steelblue"</span>, <span class="st">"white"</span>, <span class="st">"firebrick"</span>))(<span class="dv">100</span>),</span>
+<span id="cb38-22"><a href="#cb38-22" aria-hidden="true" tabindex="-1"></a>         <span class="at">main              =</span> <span class="st">"Top 200 Variable Genes: K-Means versus Hierarchical Clusters"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -664,13 +664,12 @@ KMeans  1  2  3  4
 <span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a><span class="fu">fviz_silhouette</span>(sil_obj,</span>
 <span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>                <span class="at">palette =</span> <span class="fu">c</span>(<span class="st">"steelblue"</span>,<span class="st">"firebrick"</span>,<span class="st">"darkgreen"</span>,<span class="st">"orange"</span>),</span>
 <span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>                <span class="at">ggtheme =</span> <span class="fu">theme_minimal</span>()) <span class="sc">+</span></span>
-<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Silhouette Plot: K-Means K=4"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Silhouette Plot: K-Means K=3"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>  cluster size ave.sil.width
-1       1   35          0.25
-2       2   91          0.48
-3       3   45          0.24
-4       4   29          0.30</code></pre>
+1       1   52          0.22
+2       2   95          0.50
+3       3   53          0.24</code></pre>
 </div>
 <div class="cell-output-display">
 <div>
